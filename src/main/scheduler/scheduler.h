@@ -111,6 +111,10 @@ typedef enum {
     TASK_VTXCTRL,
 #endif
 
+#ifdef RUNCAM_SPLIT_SUPPORT
+    TASK_RCSPLIT_SUPPORT,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 

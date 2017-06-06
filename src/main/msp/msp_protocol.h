@@ -59,7 +59,7 @@
 #define MSP_PROTOCOL_VERSION                0
 
 #define API_VERSION_MAJOR                   1  // increment when major changes are made
-#define API_VERSION_MINOR                   36 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
+#define API_VERSION_MINOR                   37 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
 
 #define API_VERSION_LENGTH                  2
 
@@ -263,6 +263,13 @@
 #define MSP_MOTOR_CONFIG         131    //out message         Motor configuration (min/max throttle, etc)
 #define MSP_GPS_CONFIG           132    //out message         GPS configuration
 #define MSP_COMPASS_CONFIG       133    //out message         Compass configuration
+
+// commands for RunCam Split support
+#define MSP_RCSPLIT_BOXNAMES     134    // out message         the box names RunCam Split modes
+#define MSP_RCSPLIT_BOXIDS       135    // out message         the box ids of RunCam Split modes
+#define MSP_RCSPLIT_MODE_RANGES  136    // out message         Returns all mode ranges of RunCam Split
+#define MSP_RCSPLIT_SET_MODE_RANGE 137  // in message          Sets a single rcsplit mode range
+
 
 #define MSP_SET_RAW_RC           200    //in message          8 rc chan
 #define MSP_SET_RAW_GPS          201    //in message          fix, numsat, lat, lon, alt, speed

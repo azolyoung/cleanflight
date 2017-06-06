@@ -176,6 +176,11 @@ transponder_unittest_SRC := \
 		$(USER_DIR)/drivers/transponder_ir_arcitimer.c \
 		$(USER_DIR)/drivers/transponder_ir_ilap.c
 
+rcsplit_unittest_SRC := \
+		$(USER_DIR)/rcsplit/rcsplit.c
+
+rcsplit_unitest_DEFINES := \
+		USE_UART3
 
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets

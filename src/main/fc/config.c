@@ -631,6 +631,10 @@ void validateAndFixConfig(void)
     validateAndFixGyroConfig();
 #endif
 
+#ifdef RUNCAM_SPLIT_SUPPORT
+    featureSet(FEATURE_RUNCAM_SPLIT);
+#endif
+
     if (!isSerialConfigValid(serialConfig())) {
         pgResetFn_serialConfig(serialConfigMutable());
     }

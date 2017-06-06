@@ -85,6 +85,8 @@
 
 #include "io/osd_slave.h"
 
+#include "rcsplit/rcsplit.h"
+
 #ifdef USE_BST
 void taskBstMasterProcess(timeUs_t currentTimeUs);
 #endif
@@ -352,6 +354,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
+
+#ifdef RUNCAM_SPLIT_SUPPORT
+    setTaskEnabled(TASK_RCSPLIT_SUPPORT, true);
+#endif
 }
 #endif
 
@@ -583,6 +589,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskStackCheck,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10 Hz
         .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
+#ifdef RUNCAM_SPLIT_SUPPORT
+    [TASK_RCSPLIT_SUPPORT] = {
+        .taskName = "RCSPLIT",
+        .taskFunc = rcsplitProcess,
+        .desiredPeriod = TASK_PERIOD_HZ(100),        // 100 Hz, 10ms
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
 

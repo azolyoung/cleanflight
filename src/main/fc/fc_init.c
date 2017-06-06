@@ -123,6 +123,7 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "rcsplit/rcsplit.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -585,6 +586,10 @@ void init(void)
 #endif
 
 #endif // VTX_CONTROL
+
+#ifdef RUNCAM_SPLIT_SUPPORT
+    rcsplitInit();
+#endif // RUNCAM_SPLIT_SUPPORT
 
     // start all timers
     // TODO - not implemented yet

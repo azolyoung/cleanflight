@@ -79,6 +79,8 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "rcsplit/rcsplit.h"
+
 
 // June 2013     V2.2-dev
 
@@ -385,6 +387,8 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     updateActivatedModes();
+
+    updateRCSplitActivatedModes();
 
     if (!cliMode) {
         updateAdjustmentStates();

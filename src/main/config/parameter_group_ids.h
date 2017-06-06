@@ -84,6 +84,8 @@
 #define PG_CURRENT_SENSOR_VIRTUAL_CONFIG 257
 #define PG_VOLTAGE_SENSOR_ADC_CONFIG 258
 #define PG_VTX_RTC6705_CONFIG 259
+// RunCam Split support
+#define PG_RCSPLIT_MODE_ACTIVATION_PROFILE 260
 
 
 // betaflight specific parameter group ids start at 500

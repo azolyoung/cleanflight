@@ -711,6 +711,7 @@ COMMON_SRC = \
             sensors/battery.c \
             sensors/current.c \
             sensors/voltage.c \
+            rcsplit/rcsplit.c \
 
 OSD_SLAVE_SRC = \
             io/displayport_max7456.c \
