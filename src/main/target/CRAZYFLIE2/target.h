@@ -124,3 +124,5 @@
 #else
 #define BRUSHED_MOTORS
 #endif
+
+#define RUNCAM_SPLIT_SUPPORT

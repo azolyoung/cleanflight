@@ -124,3 +124,5 @@
 
 
 
+
+#define RUNCAM_SPLIT_SUPPORT

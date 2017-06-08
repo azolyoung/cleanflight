@@ -196,3 +196,5 @@
 #endif
 #endif
 
+
+#define RUNCAM_SPLIT_SUPPORT
