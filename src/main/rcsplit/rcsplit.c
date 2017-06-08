@@ -63,18 +63,6 @@ static serialPort_t *rcsplitSerialPort = NULL;
 static rcsplit_switch_state_t switchStates[RCSPLIT_CHECKBOX_ITEM_COUNT];
 static rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
 
-// response packet variables
-typedef enum {
-    S_WAIT_HEADER = 0,      // Waiting for the packet header flag
-    S_WAIT_CMD,   // Waiting for the command in the packet
-    S_WAIT_DATA,      // Waiting for the argument of command
-    S_WAIT_CRC,           // Waiting for the packet crc
-    S_WAIT_TAIL,        // Waiting for a packet tail flag
-} rcsplitReceiveState_e;
-static rcsplitReceiveState_e rcsplitReceiveState = S_WAIT_HEADER;
-static int rcsplitReceivePos = 0;
-static uint8_t rcsplitRespBuffer[5];
-
 static unsigned char crc_high_first(unsigned char *ptr, unsigned char len)
 {
     unsigned char i; 
@@ -89,27 +77,6 @@ static unsigned char crc_high_first(unsigned char *ptr, unsigned char len)
         }
     }
     return (crc); 
-}
-
-static unsigned char rcsplit_verify_data(unsigned char *dat)
-{
-	unsigned char buffer[4] = {0};
-	unsigned char ret = 0;
-	unsigned char calc_crc = 0;
-	unsigned char crc = dat[3];
-	
-	buffer[0] = dat[0];
-	buffer[1] = dat[1];
-	buffer[2] = dat[2];
-	buffer[3] = dat[4];
-
-	if((RCSPLIT_PACKET_HEADER == buffer[0]) && (RCSPLIT_PACKET_TAIL == buffer[3])) {
-		calc_crc = crc_high_first(buffer,4);
-		if(crc == calc_crc) {
-			ret = 1;
-		}
-	}
-	return ret;
 }
 
 static void sendCtrlCommand(rcsplit_ctrl_cmd_argument_e argument)
@@ -184,76 +151,6 @@ static void rcsplitProcessMode()
     }
 }
 
-static void rcsplitHandleResponse()
-{
-    uint8_t cmd = rcsplitRespBuffer[1];
-    uint8_t arg = rcsplitRespBuffer[2];
-    if (cmd != RCSPLIT_PACKET_CMD_CTRL) {
-        return ;
-    }
-
-    if (arg == 0xFF) { 
-        // this is the response of RCSPLIT_PACKET_CMD_CTRL with argument RCSPLIT_CTRL_ARGU_WHO_ARE_YOU
-        // so here we set the camera state to RCSPLIT_STATE_IS_READY, means camera is ready to work
-        cameraState = RCSPLIT_STATE_IS_READY;
-    }
-}
-
-static void rcsplitResetReceiver()
-{
-    rcsplitReceiveState = S_WAIT_HEADER;
-    rcsplitReceivePos = 0;
-}
-
-static void rcsplitReceive()
-{
-    if (!rcsplitSerialPort)
-        return ;
-
-    // receive data loop
-    while (serialRxBytesWaiting(rcsplitSerialPort)) {
-        uint8_t c = serialRead(rcsplitSerialPort);
-        rcsplitRespBuffer[rcsplitReceivePos++] = c;
-
-        switch(rcsplitReceiveState) {
-        case S_WAIT_HEADER:
-            if (c == RCSPLIT_PACKET_HEADER) {
-                rcsplitReceiveState = S_WAIT_CMD;
-            } else {
-                rcsplitReceivePos = 0;
-            }
-            break;
-
-        case S_WAIT_CMD:
-            if (c == RCSPLIT_PACKET_CMD_CTRL) { // current we only handle RCSPLIT_PACKET_CMD_CTRL
-                rcsplitReceiveState = S_WAIT_DATA;
-            } else {
-                rcsplitResetReceiver();
-            }
-            break;
-
-        case S_WAIT_DATA:
-            rcsplitReceiveState = S_WAIT_CRC;
-            break;
-        case S_WAIT_CRC:
-            rcsplitReceiveState = S_WAIT_TAIL;
-            break;
-        case S_WAIT_TAIL: 
-            // receive packet tail, means the packet is receive done.
-            // we need verify the packet
-            if (rcsplit_verify_data(rcsplitRespBuffer)) { 
-                // crc is valid, start handle this response
-                rcsplitHandleResponse();
-            }
-
-            rcsplitResetReceiver();
-            break;
-        default:
-            rcsplitResetReceiver();
-        }
-    }
-}
-
 rcsplit_state_e unitTestRCsplitState()
 {
     return cameraState;
@@ -270,8 +167,8 @@ void unitTestResetRCSplit()
 {
     rcsplitSerialPort = NULL;
     cameraState = RCSPLIT_STATE_UNKNOWN;
-    rcsplitReceiveState = S_WAIT_HEADER;
-    rcsplitReceivePos = 0;
+    // rcsplitReceiveState = S_WAIT_HEADER;
+    // rcsplitReceivePos = 0;
 }
 
 void unitTestUpdateActiveBoxIds(uint32_t activeBoxIDs)
@@ -305,8 +202,9 @@ bool rcsplitInit(void)
     
     // send ctrl command with RCSPLIT_CTRL_ARGU_WHO_ARE_YOU to device, if we got response,
     // means the device was ready.
-    sendCtrlCommand(RCSPLIT_CTRL_ARGU_WHO_ARE_YOU);
-    cameraState = RCSPLIT_STATE_IS_READY; // update camera state to initializing
+    // sendCtrlCommand(RCSPLIT_CTRL_ARGU_WHO_ARE_YOU);
+    // cameraState = RCSPLIT_STATE_INITIALIZING; // update camera state to initializing
+    cameraState = RCSPLIT_STATE_IS_READY; 
 
     return true;
 }
@@ -317,9 +215,6 @@ void rcsplitProcess(timeUs_t currentTimeUs)
 
     if (rcsplitSerialPort == NULL)
         return ;
-
-    // process the response from RunCam Split
-    rcsplitReceive();
 
     // process rcsplit custom mode if has any changed
     rcsplitProcessMode();

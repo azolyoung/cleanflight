@@ -85,7 +85,7 @@ TEST(RCSplitTest, TestRCSplitInit)
 
     bool result = rcsplitInit();
     EXPECT_EQ(true, result);
-    EXPECT_EQ(RCSPLIT_STATE_INITIALIZING, unitTestRCsplitState());
+    EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 }
 
 TEST(RCSplitTest, TestRecvWhoAreYouResponse)
@@ -125,7 +125,6 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     for (int i = 0; i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT; i++) {
         memset(rcsplitModeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
-    
 
     // bind aux1 to wifi button with range [900,1600]
     rcsplitModeActivationConditionsMutable(0)->auxChannelIndex = 0;
@@ -155,10 +154,9 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     // runn process loop
     rcsplitProcess(0);
 
-
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)

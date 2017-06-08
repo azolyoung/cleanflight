@@ -65,7 +65,7 @@ typedef enum {
 
 
 
-#define MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT 20
+#define MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT 4
 
 extern uint32_t rcsplitModeActivationMask;
 

@@ -1340,6 +1340,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         }
 #endif
         break;
+#ifdef RUNCAM_SPLIT_SUPPORT
     case MSP_RCSPLIT_BOXNAMES:
     {
         serializeRCSplitBoxNamesReply(dst);
@@ -1358,7 +1359,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
             sbufWriteU8(dst, mac->range.endStep);
         }
         break;
-    
+#endif
     default:
         return false;
     }
@@ -1971,6 +1972,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             systemConfigMutable()->name[i] = sbufReadU8(src);
         }
         break;
+#ifdef RUNCAM_SPLIT_SUPPORT
     case MSP_RCSPLIT_SET_MODE_RANGE:
         i = sbufReadU8(src);
         if (i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT) {
@@ -1991,6 +1993,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+#endif
     default:
         // we do not know how to handle the (valid) message, indicate error MSP $M!
         return MSP_RESULT_ERROR;
