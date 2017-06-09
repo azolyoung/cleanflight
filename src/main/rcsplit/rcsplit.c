@@ -63,40 +63,30 @@ static serialPort_t *rcsplitSerialPort = NULL;
 static rcsplit_switch_state_t switchStates[RCSPLIT_CHECKBOX_ITEM_COUNT];
 static rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
 
-static unsigned char crc_high_first(unsigned char *ptr, unsigned char len)
-{
-    unsigned char i; 
-    unsigned char crc=0x00;
-    while(len--) {
-        crc ^= *ptr++;  
-        for (i=8; i>0; --i) { 
-            if (crc & 0x80)
-                crc = (crc << 1) ^ 0x31;
-            else
-                crc = (crc << 1);
-        }
-    }
-    return (crc); 
-}
-
 static void sendCtrlCommand(rcsplit_ctrl_cmd_argument_e argument)
 {
     if (!rcsplitSerialPort)
         return ;
 
-    uint8_t tmpBuffer[4];
     unsigned char uart_buffer[5] = {0};
     unsigned char crc = 0;
 
-    // first calc crc with the request, 
-    // note: the componnents that need to crc is [header]+[command]+[argument]+[tail], 
-    // no need calc  with crc field, event the crc field is zero
-    tmpBuffer[0] = RCSPLIT_PACKET_HEADER;
-    tmpBuffer[1] = RCSPLIT_PACKET_CMD_CTRL;
-    tmpBuffer[2] = argument;
-    tmpBuffer[3] = RCSPLIT_PACKET_TAIL;
-
-    crc = crc_high_first(tmpBuffer, 4);
+    switch (argument) {
+        case RCSPLIT_CTRL_ARGU_PRESS_WIFI_BUTTON:
+            crc = 0xd8;
+            break;
+        case RCSPLIT_CTRL_ARGU_PRESS_POWER_BUTTON:
+            crc = 0xf5;
+            break;
+        case RCSPLIT_CTRL_ARGU_PRESS_CHANGE_MODE_BUTTON:
+            crc = 0x01;
+            break;
+        case RCSPLIT_CTRL_ARGU_WHO_ARE_YOU:
+            crc = 0xaf; 
+            break;
+        default:
+            crc = 0;
+    }
 
     // build up a full request [header]+[command]+[argument]+[crc]+[tail]
     uart_buffer[0] = RCSPLIT_PACKET_HEADER;
