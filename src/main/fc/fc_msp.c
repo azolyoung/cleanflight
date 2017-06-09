@@ -1340,18 +1340,16 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         }
 #endif
         break;
-#ifdef RUNCAM_SPLIT_SUPPORT
+#ifdef USE_RCSPLIT
     case MSP_RCSPLIT_BOXNAMES:
-    {
         serializeRCSplitBoxNamesReply(dst);
-    }
         break;
     case MSP_RCSPLIT_BOXIDS:
         serializeRCSplitBoxIdsReply(dst);
         break;
     case MSP_RCSPLIT_MODE_RANGES:
         for (int i = 0; i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-            const modeActivationCondition_t *mac = rcsplitModeActivationConditions(i);
+            const modeActivationCondition_t *mac = rcSplitModeActivationConditions(i);
             const box_t *box = findRCSplitBoxByBoxId(mac->modeId);
             sbufWriteU8(dst, box->permanentId);
             sbufWriteU8(dst, mac->auxChannelIndex);
@@ -1972,11 +1970,11 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             systemConfigMutable()->name[i] = sbufReadU8(src);
         }
         break;
-#ifdef RUNCAM_SPLIT_SUPPORT
+#ifdef USE_RCSPLIT
     case MSP_RCSPLIT_SET_MODE_RANGE:
         i = sbufReadU8(src);
         if (i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT) {
-            modeActivationCondition_t *mac = rcsplitModeActivationConditionsMutable(i);
+            modeActivationCondition_t *mac = rcSplitModeActivationConditionsMutable(i);
             i = sbufReadU8(src);
             const box_t *box = findBoxByPermanentId(i);
             if (box) {
@@ -1984,8 +1982,6 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                 mac->auxChannelIndex = sbufReadU8(src);
                 mac->range.startStep = sbufReadU8(src);
                 mac->range.endStep = sbufReadU8(src);
-
-                // useRcControlsConfig(rcsplitModeActivationConditions(0), currentPidProfile);
             } else {
                 return MSP_RESULT_ERROR;
             }
@@ -2292,7 +2288,7 @@ void mspFcInit(void)
 {
     initActiveBoxIds();
 
-#ifdef RUNCAM_SPLIT_SUPPORT
+#ifdef USE_RCSPLIT
     initRCSplitActiveBoxIds();
 #endif
 }

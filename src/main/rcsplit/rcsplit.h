@@ -22,25 +22,17 @@
 #include "fc/fc_msp.h"
 
 
-// typedef enum {
-//     RCSPLIT_BOXCAPTUREMODE = 0,
-//     RCSPLIT_BOXSETTING,
-//     RCSPLIT_BOXWIFIBUTTON,
-//     RCSPLIT_RESERVED,
-//     RCSPLIT_CHECKBOX_ITEM_COUNT
-// } rcsplitBoxId_e;
-
 typedef enum {
     RCSPLIT_BOX_SIM_WIFI_BUTTON = 0,
     RCSPLIT_BOX_SIM_POWER_BUTTON,
     RCSPLIT_BOX_SIM_CHANGE_MODE,
     RCSPLIT_CHECKBOX_ITEM_COUNT,
     RCSPLIT_BOX_INVALID = 255,
-} rcsplitBoxId_e;
+} rcSplitBoxId_e;
 
 typedef struct {
     uint8_t boxId;
-    bool isActivited;
+    bool isActivated;
 } rcsplit_switch_state_t;
 
 typedef enum {
@@ -60,35 +52,32 @@ typedef enum {
     RCSPLIT_CTRL_ARGU_PRESS_WIFI_BUTTON = 0x1,
     RCSPLIT_CTRL_ARGU_PRESS_POWER_BUTTON = 0x2,
     RCSPLIT_CTRL_ARGU_PRESS_CHANGE_MODE_BUTTON = 0x3,
-    RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0x4,
+    RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0xFF,
 } rcsplit_ctrl_cmd_argument_e;
 
 
 
 #define MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT 4
 
-extern uint32_t rcsplitModeActivationMask;
+extern serialPort_t *rcSplitSerialPort;
+extern uint32_t rcSplitModeActivationMask;
+extern rcsplit_state_e cameraState;
+extern rcsplit_switch_state_t switchStates[RCSPLIT_CHECKBOX_ITEM_COUNT];
+extern uint32_t rcSplitActiveBoxIds;
 
-#define IS_RCSPLIT_MODE_ACTIVE(modeId) ((1 << (modeId)) & rcsplitModeActivationMask)
-#define ACTIVATE_RCSPLIT_MODE(modeId) (rcsplitModeActivationMask |= (1 << modeId))
+#define IS_RCSPLIT_MODE_ACTIVE(modeId) ((1 << (modeId)) & rcSplitModeActivationMask)
+#define ACTIVATE_RCSPLIT_MODE(modeId) (rcSplitModeActivationMask |= (1 << modeId))
 
-PG_DECLARE_ARRAY(modeActivationCondition_t, MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT, rcsplitModeActivationConditions);
+PG_DECLARE_ARRAY(modeActivationCondition_t, MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT, rcSplitModeActivationConditions);
 
-bool rcsplitInit(void);
+bool rcSplitInit(void);
 
-void rcsplitProcess(timeUs_t currentTimeUs);
+void rcSplitProcess(timeUs_t currentTimeUs);
 void initRCSplitActiveBoxIds();
 
-const box_t *findRCSplitBoxByBoxId(rcsplitBoxId_e boxId);
+const box_t *findRCSplitBoxByBoxId(rcSplitBoxId_e boxId);
 const box_t *findRCSplitBoxByPermanentId(uint8_t permanentId);
 void serializeRCSplitBoxNamesReply(sbuf_t *dst);
 void serializeRCSplitBoxIdsReply(sbuf_t *dst);
 
 void updateRCSplitActivatedModes(void);
-
-// only for unit test
-rcsplit_state_e unitTestRCsplitState();
-bool unitTestIsSwitchActivited(rcsplitBoxId_e boxId);
-void unitTestResetRCSplit();
-void unitTestUpdateActiveBoxIds(uint32_t activeBoxIDs);
-uint32_t unitTestGetActiveBoxIds();

@@ -388,7 +388,7 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
-#ifdef RUNCAM_SPLIT_SUPPORT
+#ifdef USE_RCSPLIT
     updateRCSplitActivatedModes();
 #endif
 

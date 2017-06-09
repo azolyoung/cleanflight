@@ -93,5 +93,3 @@
 #define I2C_DEVICE				(I2CDEV_2)
 #define I2C2_SCL                PB2
 #define I2C2_SDA                PB1
-
-#define RUNCAM_SPLIT_SUPPORT

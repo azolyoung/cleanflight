@@ -30,21 +30,21 @@ typedef enum {
 } portSharing_e;
 
 typedef enum {
-    FUNCTION_NONE                   = 0,
-    FUNCTION_MSP                    = (1 << 0),  // 1
-    FUNCTION_GPS                    = (1 << 1),  // 2
-    FUNCTION_TELEMETRY_FRSKY        = (1 << 2),  // 4
-    FUNCTION_TELEMETRY_HOTT         = (1 << 3),  // 8
-    FUNCTION_TELEMETRY_LTM          = (1 << 4),  // 16
-    FUNCTION_TELEMETRY_SMARTPORT    = (1 << 5),  // 32
-    FUNCTION_RX_SERIAL              = (1 << 6),  // 64
-    FUNCTION_BLACKBOX               = (1 << 7),  // 128
-    FUNCTION_TELEMETRY_MAVLINK      = (1 << 9),  // 512
-    FUNCTION_ESC_SENSOR             = (1 << 10), // 1024
-    FUNCTION_VTX_SMARTAUDIO         = (1 << 11), // 2048
-    FUNCTION_TELEMETRY_IBUS         = (1 << 12), // 4096
-    FUNCTION_VTX_TRAMP              = (1 << 13), // 8192
-    FUNCTION_RUNCAM_SPLIT_CONTROL   = (1 << 14), // 16384
+    FUNCTION_NONE                = 0,
+    FUNCTION_MSP                 = (1 << 0),  // 1
+    FUNCTION_GPS                 = (1 << 1),  // 2
+    FUNCTION_TELEMETRY_FRSKY     = (1 << 2),  // 4
+    FUNCTION_TELEMETRY_HOTT      = (1 << 3),  // 8
+    FUNCTION_TELEMETRY_LTM       = (1 << 4),  // 16
+    FUNCTION_TELEMETRY_SMARTPORT = (1 << 5),  // 32
+    FUNCTION_RX_SERIAL           = (1 << 6),  // 64
+    FUNCTION_BLACKBOX            = (1 << 7),  // 128
+    FUNCTION_TELEMETRY_MAVLINK   = (1 << 9),  // 512
+    FUNCTION_ESC_SENSOR          = (1 << 10), // 1024
+    FUNCTION_VTX_SMARTAUDIO      = (1 << 11), // 2048
+    FUNCTION_TELEMETRY_IBUS      = (1 << 12), // 4096
+    FUNCTION_VTX_TRAMP           = (1 << 13), // 8192
+    FUNCTION_RCSPLIT             = (1 << 14), // 16384
 } serialPortFunction_e;
 
 typedef enum {

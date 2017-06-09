@@ -354,10 +354,6 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
-
-#ifdef RUNCAM_SPLIT_SUPPORT
-    setTaskEnabled(TASK_RCSPLIT_SUPPORT, true);
-#endif
 }
 #endif
 
@@ -592,10 +588,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef RUNCAM_SPLIT_SUPPORT
-    [TASK_RCSPLIT_SUPPORT] = {
+#ifdef USE_RCSPLIT
+    [TASK_RCSPLIT] = {
         .taskName = "RCSPLIT",
-        .taskFunc = rcsplitProcess,
+        .taskFunc = rcSplitProcess,
         .desiredPeriod = TASK_PERIOD_HZ(100),        // 100 Hz, 10ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },

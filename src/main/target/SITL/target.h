@@ -244,6 +244,3 @@ uint64_t micros64();
 uint64_t millis64();
 
 int lockMainPID(void);
-
-
-#define RUNCAM_SPLIT_SUPPORT

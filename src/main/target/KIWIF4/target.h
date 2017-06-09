@@ -193,6 +193,3 @@
 
 #define CMS
 #define USE_MSP_DISPLAYPORT
-
-
-#define RUNCAM_SPLIT_SUPPORT

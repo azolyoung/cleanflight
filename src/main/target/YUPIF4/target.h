@@ -150,5 +150,3 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 8
 #define USED_TIMERS             (TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8))
-
-#define RUNCAM_SPLIT_SUPPORT
