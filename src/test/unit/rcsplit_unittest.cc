@@ -149,7 +149,7 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
     rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
 
-    updateRCSplitActivatedModes();
+    updateActivatedModes();
 
     // runn process loop
     rcsplitProcess(0);
@@ -202,7 +202,7 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
     rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
     rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
 
-    updateRCSplitActivatedModes();
+    updateActivatedModes();
 
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
@@ -258,7 +258,7 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     rcData[rcsplitModeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
     rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
     rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
-    updateRCSplitActivatedModes();
+    updateActivatedModes();
 
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
@@ -276,7 +276,7 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     rcData[rcsplitModeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1500;
     rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1300;
     rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1900;
-    updateRCSplitActivatedModes();
+    updateActivatedModes();
     rcsplitProcess((timeUs_t)0);
     EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
     EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
@@ -284,12 +284,12 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
 
 
     rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1899;
-    updateRCSplitActivatedModes();
+    updateActivatedModes();
     rcsplitProcess((timeUs_t)0);
     EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
 
     rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2001;
-    updateRCSplitActivatedModes();
+    updateActivatedModes();
     rcsplitProcess((timeUs_t)0);
     EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
     EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
@@ -461,8 +461,6 @@ TEST(RCSplitTest, TestSerializeRCSplitBoxIdsReply)
 }
 
 TEST(RCSplitTest, TestInitActiveBoxIds) {
-    initRCSplitActiveBoxIds();
-
     uint32_t ena = 0;
 #define BME(boxId) do { ena |= (1 << (boxId)); } while(0)
     

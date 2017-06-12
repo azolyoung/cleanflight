@@ -43,10 +43,15 @@ typedef enum {
     BOXGOV,
     BOXOSD,
     BOXTELEMETRY,
+    //** DO NOT CHANGE THE FOLLOWING THREE ENUMS' ORDER **//
+    BOXRCSPLITWIFI,
+    BOXRCSPLITPOWER,
+    BOXRCSPLITCHANGEMODE,
     BOXGTUNE,
-    BOXSONAR,
-    BOXSERVO1,
-    BOXSERVO2,
+    // disable these boxes temporarily, for runcam split test
+    BOXSONAR = BOXGTUNE,
+    BOXSERVO1 = BOXGTUNE,
+    BOXSERVO2 = BOXGTUNE,
     BOXSERVO3,
     BOXBLACKBOX,
     BOXFAILSAFE,

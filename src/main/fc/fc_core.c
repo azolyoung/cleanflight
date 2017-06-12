@@ -388,10 +388,6 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
-#ifdef RUNCAM_SPLIT_SUPPORT
-    updateRCSplitActivatedModes();
-#endif
-
     if (!cliMode) {
         updateAdjustmentStates();
         processRcAdjustments(currentControlRateProfile);
