@@ -137,8 +137,9 @@ bool rcSplitInit(void)
 
     // set init value to true, to avoid the action auto run when the flight board start and the switch is on.
     for (boxId_e i = BOXRCSPLITWIFI; i <= BOXRCSPLITCHANGEMODE; i++) {
-        switchStates[i].boxId = 1 << i;
-        switchStates[i].isActivated = true; 
+        uint8_t switchIndex = i - BOXRCSPLITWIFI;
+        switchStates[switchIndex].boxId = 1 << i;
+        switchStates[switchIndex].isActivated = true; 
     }
     
     cameraState = RCSPLIT_STATE_IS_READY;
