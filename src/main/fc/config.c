@@ -631,7 +631,7 @@ void validateAndFixConfig(void)
     validateAndFixGyroConfig();
 #endif
 
-#ifdef RUNCAM_SPLIT_SUPPORT
+#ifdef USE_RCSPLIT
     featureSet(FEATURE_RUNCAM_SPLIT);
 #endif
 

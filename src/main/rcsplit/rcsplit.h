@@ -23,7 +23,7 @@
 
 typedef struct {
     uint8_t boxId;
-    bool isActivited;
+    bool isActivated;
 } rcsplit_switch_state_t;
 
 typedef enum {
@@ -41,16 +41,16 @@ typedef enum {
 // the commands of RunCam Split serial protocol
 typedef enum {
     RCSPLIT_CTRL_ARGU_INVALID = 0x0,
-    RCSPLIT_CTRL_ARGU_WIFI_BTN = 0X1,
-    RCSPLIT_CTRL_ARGU_POWER_BTN = 0X2,
-    RCSPLIT_CTRL_ARGU_CHANGE_MODE = 0X3,
+    RCSPLIT_CTRL_ARGU_WIFI_BTN = 0x1,
+    RCSPLIT_CTRL_ARGU_POWER_BTN = 0x2,
+    RCSPLIT_CTRL_ARGU_CHANGE_MODE = 0x3,
     RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0xFF,
 } rcsplit_ctrl_argument_e;
 
-bool rcsplitInit(void);
-void rcsplitProcess(timeUs_t currentTimeUs);
+bool rcSplitInit(void);
+void rcSplitProcess(timeUs_t currentTimeUs);
 
 // only for unit test
-rcsplit_state_e unitTestRCsplitState();
-bool unitTestIsSwitchActivited(boxId_e boxId);
-void unitTestResetRCSplit();
+extern rcsplit_state_e cameraState;
+extern serialPort_t *rcSplitSerialPort;
+extern rcsplit_switch_state_t switchStates[BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI + 1];

@@ -170,5 +170,3 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define USED_TIMERS  ( TIM_N(1) | TIM_N(3) | TIM_N(4) )
-
-#define RUNCAM_SPLIT_SUPPORT

@@ -32,14 +32,16 @@
 #include "io/beeper.h"
 #include "io/serial.h"
 
+#include "scheduler/scheduler.h"
+
 #include "drivers/serial.h"
 
 #include "rcsplit/rcsplit.h"
 
 // communicate with camera device variables
-static serialPort_t *rcsplitSerialPort = NULL;
-static rcsplit_switch_state_t switchStates[BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI + 1];
-static rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
+serialPort_t *rcSplitSerialPort = NULL;
+rcsplit_switch_state_t switchStates[BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI + 1];
+rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
 
 static unsigned char crc_high_first(unsigned char *ptr, unsigned char len)
 {
@@ -59,7 +61,7 @@ static unsigned char crc_high_first(unsigned char *ptr, unsigned char len)
 
 static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
 {
-    if (!rcsplitSerialPort)
+    if (!rcSplitSerialPort)
         return ;
 
     unsigned char uart_buffer[5] = {0};
@@ -76,10 +78,10 @@ static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
     uart_buffer[4] = RCSPLIT_PACKET_TAIL;
 
     // write to device
-    serialWriteBuf(rcsplitSerialPort, uart_buffer, 5);
+    serialWriteBuf(rcSplitSerialPort, uart_buffer, 5);
 }
 
-static void rcsplitProcessMode() 
+static void rcSplitProcessMode() 
 {
     // if the device not ready, do not handle any mode change event
     if (RCSPLIT_STATE_IS_READY != cameraState) 
@@ -89,7 +91,7 @@ static void rcsplitProcessMode()
         if (IS_RC_MODE_ACTIVE(i)) {
             // check last state of this mode, if it's true, then ignore it. 
             // Here is a logic to make a toggle control for this mode
-            if (switchStates[i].isActivited) {
+            if (switchStates[i].isActivated) {
                 continue;
             }
 
@@ -111,64 +113,51 @@ static void rcsplitProcessMode()
             
             if (argument != RCSPLIT_CTRL_ARGU_INVALID) {
                 sendCtrlCommand(argument);
-                switchStates[i].isActivited = true;
-            } else {
+                switchStates[i].isActivated = true;
+                printf("bbbbb\n");
             }
         } else {
-            switchStates[i].isActivited = false;
+            switchStates[i].isActivated = false;
+            printf("aaaa\n");
         }
     }
 }
 
-rcsplit_state_e unitTestRCsplitState()
-{
-    return cameraState;
-}
-
-bool unitTestIsSwitchActivited(boxId_e boxId)
-{
-    rcsplit_switch_state_t switchState = switchStates[boxId - BOXRCSPLITWIFI];
-
-    return switchState.isActivited;
-}
-
-void unitTestResetRCSplit()
-{
-    rcsplitSerialPort = NULL;
-    cameraState = RCSPLIT_STATE_UNKNOWN;
-}
-
-bool rcsplitInit(void)
+bool rcSplitInit(void)
 {
     // found the port config with FUNCTION_RUNCAM_SPLIT_CONTROL
     // User must set some UART inteface with RunCam Split at peripherals column in Ports tab
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RUNCAM_SPLIT_CONTROL);
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
     if (portConfig) {
-        rcsplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, NULL, 115200, MODE_RXTX, 0);
+        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
     }
 
-    if (!rcsplitSerialPort) {
+    if (!rcSplitSerialPort) {
         return false;
     }
 
     // set init value to true, to avoid the action auto run when the flight board start and the switch is on.
     for (boxId_e i = BOXRCSPLITWIFI; i <= BOXRCSPLITCHANGEMODE; i++) {
         switchStates[i].boxId = 1 << i;
-        switchStates[i].isActivited = true; 
+        switchStates[i].isActivated = true; 
     }
     
     cameraState = RCSPLIT_STATE_IS_READY;
 
+#ifdef USE_RCSPLIT
+    setTaskEnabled(TASK_RCSPLIT, true);
+#endif
+
     return true;
 }
 
-void rcsplitProcess(timeUs_t currentTimeUs)
+void rcSplitProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (rcsplitSerialPort == NULL)
+    if (rcSplitSerialPort == NULL)
         return ;
 
     // process rcsplit custom mode if has any changed
-    rcsplitProcessMode();
+    rcSplitProcessMode();
 }

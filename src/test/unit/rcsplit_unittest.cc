@@ -36,6 +36,7 @@ extern "C" {
     #include "io/beeper.h"
     #include "io/serial.h"
 
+    #include "scheduler/scheduler.h"
     #include "drivers/serial.h"
     #include "rcsplit/rcsplit.h"
 
@@ -43,7 +44,27 @@ extern "C" {
 
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 
-    // PG_DECLARE_ARRAY(modeActivationCondition_t, MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT, rcsplitModeActivationConditions);
+    rcsplit_state_e unitTestRCsplitState()
+    {
+        return cameraState;
+    }
+
+    bool unitTestIsSwitchActivited(boxId_e boxId)
+    {
+        uint8_t adjustBoxID = boxId - BOXRCSPLITWIFI;
+        rcsplit_switch_state_t switchState = switchStates[adjustBoxID];
+
+        return switchState.isActivated;
+    }
+
+    void unitTestResetRCSplit()
+    {
+        rcSplitSerialPort = NULL;
+        cameraState = RCSPLIT_STATE_UNKNOWN;
+    }
+
+    PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
+    uint32_t rcModeActivationMask;
 }
 
 typedef struct testData_s {
@@ -59,7 +80,7 @@ TEST(RCSplitTest, TestRCSplitInitWithoutPortConfigurated)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(false, result);
     EXPECT_EQ(RCSPLIT_STATE_UNKNOWN, unitTestRCsplitState());
 }
@@ -71,7 +92,7 @@ TEST(RCSplitTest, TestRCSplitInitWithoutOpenPortConfigurated)
     testData.isRunCamSplitOpenPortSupported = false;
     testData.isRunCamSplitPortConfigurated = true;
 
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(false, result);
     EXPECT_EQ(RCSPLIT_STATE_UNKNOWN, unitTestRCsplitState());
 }
@@ -83,7 +104,7 @@ TEST(RCSplitTest, TestRCSplitInit)
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
 
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(true, result);
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 }
@@ -95,14 +116,14 @@ TEST(RCSplitTest, TestRecvWhoAreYouResponse)
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(true, result);
 
     // here will generate a number in [6-255], it's make the serialRxBytesWaiting() and serialRead() run at least 5 times, 
     // so the "who are you response" will full received, and cause the state change to RCSPLIT_STATE_IS_READY;
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
-    rcsplitProcess((timeUs_t)0);
+    rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 }
@@ -115,48 +136,46 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
     
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(true, result);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
-    // modeActivationCondition_t rcsplitModeActivationConditions[MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT];
 
-    // memset(rcsplitModeActivationConditions, 0, sizeof(modeActivationCondition_t) * MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT);
-    for (int i = 0; i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-        memset(rcsplitModeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
+    for (uint8_t i = 0; i <= (BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI); i++) {
+        memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
 
     // bind aux1 to wifi button with range [900,1600]
-    rcsplitModeActivationConditionsMutable(0)->auxChannelIndex = 0;
-    rcsplitModeActivationConditionsMutable(0)->modeId = (boxId_e)RCSPLIT_BOX_SIM_WIFI_BUTTON;
-    rcsplitModeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
-    rcsplitModeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
+    modeActivationConditionsMutable(0)->auxChannelIndex = 0;
+    modeActivationConditionsMutable(0)->modeId = BOXRCSPLITWIFI;
+    modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // bind aux2 to power button with range [1900, 2100]
-    rcsplitModeActivationConditionsMutable(1)->auxChannelIndex = 1;
-    rcsplitModeActivationConditionsMutable(1)->modeId = (boxId_e)RCSPLIT_BOX_SIM_POWER_BUTTON;
-    rcsplitModeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
-    rcsplitModeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
+    modeActivationConditionsMutable(1)->auxChannelIndex = 1;
+    modeActivationConditionsMutable(1)->modeId = BOXRCSPLITPOWER;
+    modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
+    modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // bind aux3 to change mode with range [1300, 1600]
-    rcsplitModeActivationConditionsMutable(2)->auxChannelIndex = 2;
-    rcsplitModeActivationConditionsMutable(2)->modeId = (boxId_e)RCSPLIT_BOX_SIM_CHANGE_MODE;
-    rcsplitModeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1300);
-    rcsplitModeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
+    modeActivationConditionsMutable(2)->auxChannelIndex = 2;
+    modeActivationConditionsMutable(2)->modeId = BOXRCSPLITCHANGEMODE;
+    modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1300);
+    modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // make the binded mode inactive
-    rcData[rcsplitModeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1800;
-    rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
-    rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
+    rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1800;
+    rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
+    rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
 
     updateActivatedModes();
 
     // runn process loop
-    rcsplitProcess(0);
+    rcSplitProcess(0);
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
@@ -167,53 +186,49 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
     
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(true, result);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
-    // modeActivationCondition_t rcsplitModeActivationConditions[MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT];
-
-    // memset(rcsplitModeActivationConditions, 0, sizeof(modeActivationCondition_t) * MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT);
-    for (int i = 0; i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-        memset(rcsplitModeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
+    for (uint8_t i = 0; i <= BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI; i++) {
+        memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
     
 
     // bind aux1 to wifi button with range [900,1600]
-    rcsplitModeActivationConditionsMutable(0)->auxChannelIndex = 0;
-    rcsplitModeActivationConditionsMutable(0)->modeId = (boxId_e)RCSPLIT_BOX_SIM_WIFI_BUTTON;
-    rcsplitModeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
-    rcsplitModeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
+    modeActivationConditionsMutable(0)->auxChannelIndex = 0;
+    modeActivationConditionsMutable(0)->modeId = BOXRCSPLITWIFI;
+    modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // bind aux2 to power button with range [1900, 2100]
-    rcsplitModeActivationConditionsMutable(1)->auxChannelIndex = 1;
-    rcsplitModeActivationConditionsMutable(1)->modeId = (boxId_e)RCSPLIT_BOX_SIM_POWER_BUTTON;
-    rcsplitModeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
-    rcsplitModeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
+    modeActivationConditionsMutable(1)->auxChannelIndex = 1;
+    modeActivationConditionsMutable(1)->modeId = BOXRCSPLITPOWER;
+    modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
+    modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // bind aux3 to change mode with range [1300, 1600]
-    rcsplitModeActivationConditionsMutable(2)->auxChannelIndex = 2;
-    rcsplitModeActivationConditionsMutable(2)->modeId = (boxId_e)RCSPLIT_BOX_SIM_CHANGE_MODE;
-    rcsplitModeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
-    rcsplitModeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
+    modeActivationConditionsMutable(2)->auxChannelIndex = 2;
+    modeActivationConditionsMutable(2)->modeId = BOXRCSPLITCHANGEMODE;
+    modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
+    modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
-    // // make the binded mode inactive
-    rcData[rcsplitModeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
-    rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
-    rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
+    rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
+    rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
+    rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
 
     updateActivatedModes();
 
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
-    rcsplitProcess((timeUs_t)0);
+    rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeCombine)
@@ -224,252 +239,73 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
     
-    bool result = rcsplitInit();
+    bool result = rcSplitInit();
     EXPECT_EQ(true, result);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
-    // modeActivationCondition_t rcsplitModeActivationConditions[MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT];
-
-    // memset(rcsplitModeActivationConditions, 0, sizeof(modeActivationCondition_t) * MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT);
-    for (int i = 0; i < MAX_RC_SPLIT_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-        memset(rcsplitModeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
+    for (uint8_t i = 0; i <= BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI; i++) {
+        memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
     
 
     // bind aux1 to wifi button with range [900,1600]
-    rcsplitModeActivationConditionsMutable(0)->auxChannelIndex = 0;
-    rcsplitModeActivationConditionsMutable(0)->modeId = (boxId_e)RCSPLIT_BOX_SIM_WIFI_BUTTON;
-    rcsplitModeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
-    rcsplitModeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
+    modeActivationConditionsMutable(0)->auxChannelIndex = 0;
+    modeActivationConditionsMutable(0)->modeId = BOXRCSPLITWIFI;
+    modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // bind aux2 to power button with range [1900, 2100]
-    rcsplitModeActivationConditionsMutable(1)->auxChannelIndex = 1;
-    rcsplitModeActivationConditionsMutable(1)->modeId = (boxId_e)RCSPLIT_BOX_SIM_POWER_BUTTON;
-    rcsplitModeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
-    rcsplitModeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
+    modeActivationConditionsMutable(1)->auxChannelIndex = 1;
+    modeActivationConditionsMutable(1)->modeId = BOXRCSPLITPOWER;
+    modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
+    modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // bind aux3 to change mode with range [1300, 1600]
-    rcsplitModeActivationConditionsMutable(2)->auxChannelIndex = 2;
-    rcsplitModeActivationConditionsMutable(2)->modeId = (boxId_e)RCSPLIT_BOX_SIM_CHANGE_MODE;
-    rcsplitModeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
-    rcsplitModeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
+    modeActivationConditionsMutable(2)->auxChannelIndex = 2;
+    modeActivationConditionsMutable(2)->modeId = BOXRCSPLITCHANGEMODE;
+    modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
+    modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // // make the binded mode inactive
-    rcData[rcsplitModeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
-    rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
-    rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
+    rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
+    rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
+    rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
     updateActivatedModes();
 
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
-    rcsplitProcess((timeUs_t)0);
+    rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
 
 
     // // make the binded mode inactive
-    rcData[rcsplitModeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1500;
-    rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1300;
-    rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1900;
+    rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1500;
+    rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1300;
+    rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1900;
     updateActivatedModes();
-    rcsplitProcess((timeUs_t)0);
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
+    rcSplitProcess((timeUs_t)0);
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
 
 
-    rcData[rcsplitModeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1899;
+    rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1899;
     updateActivatedModes();
-    rcsplitProcess((timeUs_t)0);
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
+    rcSplitProcess((timeUs_t)0);
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
 
-    rcData[rcsplitModeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2001;
+    rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2001;
     updateActivatedModes();
-    rcsplitProcess((timeUs_t)0);
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_WIFI_BUTTON));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_POWER_BUTTON));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(RCSPLIT_BOX_SIM_CHANGE_MODE));
-}
-
-TEST(RCSplitTest, TestFindRCSplitBoxByBoxId)
-{
-    const box_t *wifiButtonBox = findRCSplitBoxByBoxId(RCSPLIT_BOX_SIM_WIFI_BUTTON);
-    EXPECT_EQ(RCSPLIT_BOX_SIM_WIFI_BUTTON, wifiButtonBox->boxId);
-
-    const box_t *powerButtonBox = findRCSplitBoxByBoxId(RCSPLIT_BOX_SIM_POWER_BUTTON);
-    EXPECT_EQ(RCSPLIT_BOX_SIM_POWER_BUTTON, powerButtonBox->boxId);
-
-    const box_t *changeModeButtonBox = findRCSplitBoxByBoxId(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    EXPECT_EQ(RCSPLIT_BOX_SIM_CHANGE_MODE, changeModeButtonBox->boxId);
-
-    const box_t *unknownBox = findRCSplitBoxByBoxId((rcsplitBoxId_e)100);
-    EXPECT_EQ(NULL, unknownBox);
-
-    const box_t *unknownBox2 = findRCSplitBoxByBoxId(RCSPLIT_CHECKBOX_ITEM_COUNT);
-    EXPECT_EQ(NULL, unknownBox2);
-
-    const box_t *unknownBox3 = findRCSplitBoxByBoxId(RCSPLIT_BOX_INVALID);
-    EXPECT_EQ(NULL, unknownBox3);
-}
-
-TEST(RCSplitTest, TestFindRCSplitBoxByPermanentId)
-{
-    const box_t *wifiButtonBox = findRCSplitBoxByPermanentId(0);
-    EXPECT_EQ(RCSPLIT_BOX_SIM_WIFI_BUTTON, wifiButtonBox->boxId);
-
-    const box_t *powerButtonBox = findRCSplitBoxByPermanentId(1);
-    EXPECT_EQ(RCSPLIT_BOX_SIM_POWER_BUTTON, powerButtonBox->boxId);
-
-    const box_t *changeModeButtonBox = findRCSplitBoxByPermanentId(2);
-    EXPECT_EQ(RCSPLIT_BOX_SIM_CHANGE_MODE, changeModeButtonBox->boxId);
-
-    const box_t *unknownBox = findRCSplitBoxByPermanentId(3);
-    EXPECT_EQ(NULL, unknownBox);
-
-    const box_t *unknownBox2 = findRCSplitBoxByPermanentId(4);
-    EXPECT_EQ(NULL, unknownBox2);
-
-    const box_t *unknownBox3 = findRCSplitBoxByPermanentId(5);
-    EXPECT_EQ(NULL, unknownBox3);
-}
-
-TEST(RCSplitTest, TestSerializeRCSplitBoxNamesReply)
-{
-    memset(&testData, 0, sizeof(testData));
-    testData.isAllowBufferReadWrite = true;
-    
-    sbuf_t buf;
-    uint8_t *base = (uint8_t*)malloc(1024 * sizeof(char));
-    buf.ptr = base;
-
-    uint32_t ena = 0;
-#define BME(boxId) do { ena |= (1 << (boxId)); } while(0)
-    
-
-    BME(RCSPLIT_BOX_SIM_WIFI_BUTTON);
-    BME(RCSPLIT_BOX_SIM_POWER_BUTTON);
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxNamesReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    EXPECT_STREQ("Wi-Fi Button;Power Button;Change Mode;", (const char*)buf.ptr);
-    free(base);
-
-
-    base = (uint8_t*)malloc(1024);
-    memset(base, 0, 1024);
-    buf.ptr = base;
-    ena = 0;
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxNamesReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    EXPECT_STREQ("Change Mode;", (const char*)buf.ptr);
-
-    base = (uint8_t*)malloc(1024 * sizeof(char));
-    memset(base, 0, 1024);
-    buf.ptr = base;
-    ena = 0;
-    BME(RCSPLIT_BOX_SIM_WIFI_BUTTON);
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxNamesReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    EXPECT_STREQ("Wi-Fi Button;Change Mode;", (const char*)buf.ptr);
-
-    base = (uint8_t*)malloc(1024 * sizeof(char));
-    memset(base, 0, 1024);
-    buf.ptr = base;
-    ena = 0;
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    BME(RCSPLIT_BOX_SIM_POWER_BUTTON);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxNamesReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    EXPECT_STREQ("Power Button;Change Mode;", (const char*)buf.ptr);
-}
-
-TEST(RCSplitTest, TestSerializeRCSplitBoxIdsReply)
-{
-    memset(&testData, 0, sizeof(testData));
-    testData.isAllowBufferReadWrite = true;
-    
-    sbuf_t buf;
-    uint8_t *base = (uint8_t*)malloc(1024 * sizeof(char));
-    buf.ptr = base;
-
-    uint32_t ena = 0;
-#define BME(boxId) do { ena |= (1 << (boxId)); } while(0)
-    
-
-    BME(RCSPLIT_BOX_SIM_WIFI_BUTTON);
-    BME(RCSPLIT_BOX_SIM_POWER_BUTTON);
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxIdsReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    uint8_t expectedData1[3] = { 0, 1, 2 };
-    EXPECT_EQ(expectedData1[0], buf.ptr[0]);
-    EXPECT_EQ(expectedData1[1], buf.ptr[1]);
-    EXPECT_EQ(expectedData1[2], buf.ptr[2]);
-    free(base);
-
-
-    base = (uint8_t*)malloc(1024);
-    memset(base, 0, 1024);
-    buf.ptr = base;
-    ena = 0;
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxIdsReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    uint8_t expectedData2[1] = { 2 };
-    EXPECT_EQ(expectedData2[0], buf.ptr[0]);
-
-
-    base = (uint8_t*)malloc(1024 * sizeof(char));
-    memset(base, 0, 1024);
-    buf.ptr = base;
-    ena = 0;
-    BME(RCSPLIT_BOX_SIM_WIFI_BUTTON);
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxIdsReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    uint8_t expectedData3[2] = { 0, 2 };
-    EXPECT_EQ(expectedData3[0], buf.ptr[0]);
-    EXPECT_EQ(expectedData3[1], buf.ptr[1]);
-
-    base = (uint8_t*)malloc(1024 * sizeof(char));
-    memset(base, 0, 1024);
-    buf.ptr = base;
-    ena = 0;
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-    BME(RCSPLIT_BOX_SIM_POWER_BUTTON);
-    unitTestUpdateActiveBoxIds(ena);
-    serializeRCSplitBoxIdsReply(&buf);
-    sbufSwitchToReader(&buf, base);
-    uint8_t expectedData4[2] = { 1, 2 };
-
-    EXPECT_EQ(expectedData4[0], buf.ptr[0]);
-    EXPECT_EQ(expectedData4[1], buf.ptr[1]);
-}
-
-TEST(RCSplitTest, TestInitActiveBoxIds) {
-    uint32_t ena = 0;
-#define BME(boxId) do { ena |= (1 << (boxId)); } while(0)
-    
-
-    BME(RCSPLIT_BOX_SIM_WIFI_BUTTON);
-    BME(RCSPLIT_BOX_SIM_POWER_BUTTON);
-    BME(RCSPLIT_BOX_SIM_CHANGE_MODE);
-
-    EXPECT_EQ(ena, unitTestGetActiveBoxIds());
+    rcSplitProcess((timeUs_t)0);
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
 }
 
 extern "C" {
@@ -603,6 +439,22 @@ extern "C" {
         if (testData.isAllowBufferReadWrite) {
             buf->end = buf->ptr;
             buf->ptr = base;
+        }
+    }
+
+    void updateActivatedModes(void)
+    {
+        rcModeActivationMask = 0;
+
+        for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
+            const modeActivationCondition_t *modeActivationCondition = modeActivationConditions(index);
+
+            if (isRangeActive(modeActivationCondition->auxChannelIndex, &modeActivationCondition->range)) {
+                ACTIVATE_RC_MODE(modeActivationCondition->modeId);
+                printf("is activated:%d\n", index);
+            } else {
+                printf("is not activated:%d\n", index);
+            }
         }
     }
     

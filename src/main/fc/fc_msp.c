@@ -404,6 +404,12 @@ void initActiveBoxIds(void)
     }
 #endif
 
+#ifdef USE_RCSPLIT
+    BME(BOXRCSPLITWIFI);
+    BME(BOXRCSPLITPOWER);
+    BME(BOXRCSPLITCHANGEMODE);
+#endif
+
 #undef BME
     // check that all enabled IDs are in boxes array (check may be skipped when using findBoxById() functions)
     for(boxId_e boxId = 0;  boxId < CHECKBOX_ITEM_COUNT; boxId++)

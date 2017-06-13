@@ -180,7 +180,8 @@ rcsplit_unittest_SRC := \
 		$(USER_DIR)/rcsplit/rcsplit.c
 
 rcsplit_unitest_DEFINES := \
-		USE_UART3
+		USE_UART3 \
+		USE_RCSPLIT \
 
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets

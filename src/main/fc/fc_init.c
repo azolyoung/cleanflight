@@ -587,10 +587,6 @@ void init(void)
 
 #endif // VTX_CONTROL
 
-#ifdef RUNCAM_SPLIT_SUPPORT
-    rcsplitInit();
-#endif // RUNCAM_SPLIT_SUPPORT
-
     // start all timers
     // TODO - not implemented yet
     timerStart();
@@ -633,5 +629,10 @@ void init(void)
 #else
     fcTasksInit();
 #endif
+
+#ifdef USE_RCSPLIT
+    rcSplitInit();
+#endif // USE_RCSPLIT
+
     systemState |= SYSTEM_STATE_READY;
 }
