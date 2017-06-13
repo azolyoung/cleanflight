@@ -88,10 +88,11 @@ static void rcSplitProcessMode()
         return ;
 
     for (boxId_e i = BOXRCSPLITWIFI; i <= BOXRCSPLITCHANGEMODE; i++) {
+        uint8_t switchIndex = i - BOXRCSPLITWIFI;
         if (IS_RC_MODE_ACTIVE(i)) {
             // check last state of this mode, if it's true, then ignore it. 
             // Here is a logic to make a toggle control for this mode
-            if (switchStates[i].isActivated) {
+            if (switchStates[switchIndex].isActivated) {
                 continue;
             }
 
@@ -113,12 +114,10 @@ static void rcSplitProcessMode()
             
             if (argument != RCSPLIT_CTRL_ARGU_INVALID) {
                 sendCtrlCommand(argument);
-                switchStates[i].isActivated = true;
-                printf("bbbbb\n");
+                switchStates[switchIndex].isActivated = true;
             }
         } else {
-            switchStates[i].isActivated = false;
-            printf("aaaa\n");
+            switchStates[switchIndex].isActivated = false;
         }
     }
 }

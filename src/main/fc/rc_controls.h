@@ -52,6 +52,7 @@ typedef enum {
     BOXSONAR = BOXGTUNE,
     BOXSERVO1 = BOXGTUNE,
     BOXSERVO2 = BOXGTUNE,
+    // end disable
     BOXSERVO3,
     BOXBLACKBOX,
     BOXFAILSAFE,

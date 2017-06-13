@@ -53,7 +53,6 @@ extern "C" {
     {
         uint8_t adjustBoxID = boxId - BOXRCSPLITWIFI;
         rcsplit_switch_state_t switchState = switchStates[adjustBoxID];
-
         return switchState.isActivated;
     }
 
@@ -451,9 +450,6 @@ extern "C" {
 
             if (isRangeActive(modeActivationCondition->auxChannelIndex, &modeActivationCondition->range)) {
                 ACTIVATE_RC_MODE(modeActivationCondition->modeId);
-                printf("is activated:%d\n", index);
-            } else {
-                printf("is not activated:%d\n", index);
             }
         }
     }
