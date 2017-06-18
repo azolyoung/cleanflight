@@ -183,6 +183,8 @@ transponder_unittest_SRC := \
 		$(USER_DIR)/drivers/transponder_ir_ilap.c
 
 rcsplit_unittest_SRC := \
+		$(USER_DIR)/common/bitarray.c \
+		$(USER_DIR)/fc/rc_modes.c \
 		$(USER_DIR)/rcsplit/rcsplit.c
 
 rcsplit_unitest_DEFINES := \

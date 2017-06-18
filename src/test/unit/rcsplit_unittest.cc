@@ -27,11 +27,14 @@ extern "C" {
 
     #include "common/utils.h"
     #include "common/maths.h"
+    #include "common/bitarray.h"
 
     #include "config/parameter_group.h"
     #include "config/parameter_group_ids.h"
 
     #include "fc/rc_controls.h"
+    #include "fc/rc_modes.h"
+    
 
     #include "io/beeper.h"
     #include "io/serial.h"
@@ -61,9 +64,6 @@ extern "C" {
         rcSplitSerialPort = NULL;
         cameraState = RCSPLIT_STATE_UNKNOWN;
     }
-
-    PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
-    uint32_t rcModeActivationMask;
 }
 
 typedef struct testData_s {
@@ -387,20 +387,6 @@ extern "C" {
         return 0; 
     }
 
-    bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range) {
-        
-        if (!IS_RANGE_USABLE(range)) {
-            return false;
-        }
-
-        const uint16_t channelValue = constrain(rcData[auxChannelIndex + NON_AUX_CHANNEL_COUNT], CHANNEL_RANGE_MIN, CHANNEL_RANGE_MAX - 1);
-        bool val = (channelValue >= 900 + (range->startStep * 25) &&
-                channelValue < 900 + (range->endStep * 25));
-
-        return val;
-    }
-
-
     void sbufWriteString(sbuf_t *dst, const char *string) 
     { 
         UNUSED(dst); UNUSED(string); 
@@ -440,18 +426,6 @@ extern "C" {
         }
     }
 
-    void updateActivatedModes(void)
-    {
-        rcModeActivationMask = 0;
-
-        for (int index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
-            const modeActivationCondition_t *modeActivationCondition = modeActivationConditions(index);
-
-            if (isRangeActive(modeActivationCondition->auxChannelIndex, &modeActivationCondition->range)) {
-                ACTIVATE_RC_MODE(modeActivationCondition->modeId);
-            }
-        }
-    }
-    
+    bool feature(uint32_t) { return false;}
     void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) { UNUSED(instance); UNUSED(data); UNUSED(count); }
 }
