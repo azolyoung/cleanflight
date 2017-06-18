@@ -16,7 +16,7 @@
 #
 
 # The target to build, see VALID_TARGETS below
-TARGET    ?= SPRACINGF3NEO
+TARGET    ?= SPRACINGF3
 
 # Compile-time options
 OPTIONS   ?=
@@ -664,6 +664,7 @@ COMMON_SRC = \
             build/version.c \
             $(TARGET_DIR_SRC) \
             main.c \
+            common/bitarray.c \
             common/encoding.c \
             common/filter.c \
             common/maths.c \
@@ -687,7 +688,9 @@ COMMON_SRC = \
             drivers/resource.c \
             drivers/rcc.c \
             drivers/serial.c \
+            drivers/serial_pinconfig.c \
             drivers/serial_uart.c \
+            drivers/serial_uart_pinconfig.c \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
             drivers/system.c \
@@ -733,6 +736,7 @@ FC_SRC = \
             fc/fc_rc.c \
             fc/rc_adjustments.c \
             fc/rc_controls.c \
+            fc/rc_modes.c \
             fc/cli.c \
             fc/settings.c \
             flight/altitude.c \
@@ -905,6 +909,9 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             config/feature.c \
             config/parameter_group.c \
             config/config_streamer.c \
+            drivers/serial_pinconfig.c \
+            drivers/serial_uart_init.c \
+            drivers/serial_uart_pinconfig.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \
             io/serial_4way_stk500v2.c \
@@ -960,6 +967,7 @@ STM32F10x_COMMON_SRC = \
             drivers/gpio_stm32f10x.c \
             drivers/inverter.c \
             drivers/light_ws2811strip_stdperiph.c \
+            drivers/serial_uart_init.c \
             drivers/serial_uart_stm32f10x.c \
             drivers/system_stm32f10x.c \
             drivers/timer_stm32f10x.c
@@ -972,6 +980,7 @@ STM32F30x_COMMON_SRC = \
             drivers/gpio_stm32f30x.c \
             drivers/light_ws2811strip_stdperiph.c \
             drivers/pwm_output_dshot.c \
+            drivers/serial_uart_init.c \
             drivers/serial_uart_stm32f30x.c \
             drivers/system_stm32f30x.c \
             drivers/timer_stm32f30x.c
@@ -986,6 +995,7 @@ STM32F4xx_COMMON_SRC = \
             drivers/inverter.c \
             drivers/light_ws2811strip_stdperiph.c \
             drivers/pwm_output_dshot.c \
+            drivers/serial_uart_init.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
             drivers/timer_stm32f4xx.c
@@ -1021,7 +1031,10 @@ SITLEXCLUDES = \
             drivers/light_led.c \
             drivers/system.c \
             drivers/rcc.c \
+            drivers/serial_pinconfig.c \
             drivers/serial_uart.c \
+            drivers/serial_uart_init.c \
+            drivers/serial_uart_pinconfig.c \
             drivers/rx_xn297.c \
             drivers/display_ug2864hsweg01.c \
             telemetry/crsf.c \

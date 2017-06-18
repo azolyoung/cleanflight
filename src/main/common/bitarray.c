@@ -15,29 +15,25 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 
-#include <platform.h>
+#include "bitarray.h"
 
-#ifdef TARGET_CONFIG
+#define BITARRAY_BIT_OP(array, bit, op) ((array)[(bit) / (sizeof((array)[0]) * 8)] op (1 << ((bit) % (sizeof((array)[0]) * 8))))
 
-#include "io/serial.h"
-
-#include "rx/rx.h"
-
-#include "sensors/barometer.h"
-
-#include "telemetry/telemetry.h"
-
-
-void targetConfiguration(void)
+bool bitArrayGet(const void *array, unsigned bit)
 {
-    barometerConfigMutable()->baro_hardware = BARO_DEFAULT;
-    rxConfigMutable()->sbus_inversion = 1;
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP; // So SPRacingF3OSD users don't have to change anything.
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    telemetryConfigMutable()->halfDuplex = 0;
-    telemetryConfigMutable()->telemetry_inversion = 0;
+    return BITARRAY_BIT_OP((uint32_t*)array, bit, &);
 }
-#endif
+
+void bitArraySet(void *array, unsigned bit)
+{
+    BITARRAY_BIT_OP((uint32_t*)array, bit, |=);
+}
+
+void bitArrayClr(void *array, unsigned bit)
+{
+    BITARRAY_BIT_OP((uint32_t*)array, bit, &=~);
+}
+

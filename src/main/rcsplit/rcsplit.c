@@ -40,7 +40,7 @@
 
 // communicate with camera device variables
 serialPort_t *rcSplitSerialPort = NULL;
-rcsplit_switch_state_t switchStates[BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI + 1];
+rcsplit_switch_state_t switchStates[BOXCAMERACHANGEMODE - BOXCAMERAWIFI + 1];
 rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
 
 static unsigned char crc_high_first(unsigned char *ptr, unsigned char len)
@@ -87,8 +87,8 @@ static void rcSplitProcessMode()
     if (RCSPLIT_STATE_IS_READY != cameraState) 
         return ;
 
-    for (boxId_e i = BOXRCSPLITWIFI; i <= BOXRCSPLITCHANGEMODE; i++) {
-        uint8_t switchIndex = i - BOXRCSPLITWIFI;
+    for (boxId_e i = BOXCAMERAWIFI; i <= BOXCAMERACHANGEMODE; i++) {
+        uint8_t switchIndex = i - BOXCAMERAWIFI;
         if (IS_RC_MODE_ACTIVE(i)) {
             // check last state of this mode, if it's true, then ignore it. 
             // Here is a logic to make a toggle control for this mode
@@ -98,13 +98,13 @@ static void rcSplitProcessMode()
 
             uint8_t argument = RCSPLIT_CTRL_ARGU_INVALID;
             switch (i) {
-                case BOXRCSPLITWIFI:
+                case BOXCAMERAWIFI:
                     argument = RCSPLIT_CTRL_ARGU_WIFI_BTN;
                     break;
-                case BOXRCSPLITPOWER:
+                case BOXCAMERAPOWER:
                     argument = RCSPLIT_CTRL_ARGU_POWER_BTN;
                     break;
-                case BOXRCSPLITCHANGEMODE:
+                case BOXCAMERACHANGEMODE:
                     argument = RCSPLIT_CTRL_ARGU_CHANGE_MODE;
                     break;
                 default:
@@ -136,8 +136,8 @@ bool rcSplitInit(void)
     }
 
     // set init value to true, to avoid the action auto run when the flight board start and the switch is on.
-    for (boxId_e i = BOXRCSPLITWIFI; i <= BOXRCSPLITCHANGEMODE; i++) {
-        uint8_t switchIndex = i - BOXRCSPLITWIFI;
+    for (boxId_e i = BOXCAMERAWIFI; i <= BOXCAMERACHANGEMODE; i++) {
+        uint8_t switchIndex = i - BOXCAMERAWIFI;
         switchStates[switchIndex].boxId = 1 << i;
         switchStates[switchIndex].isActivated = true; 
     }

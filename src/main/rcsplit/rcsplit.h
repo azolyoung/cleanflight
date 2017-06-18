@@ -53,4 +53,4 @@ void rcSplitProcess(timeUs_t currentTimeUs);
 // only for unit test
 extern rcsplit_state_e cameraState;
 extern serialPort_t *rcSplitSerialPort;
-extern rcsplit_switch_state_t switchStates[BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI + 1];
+extern rcsplit_switch_state_t switchStates[BOXCAMERACHANGEMODE - BOXCAMERAWIFI + 1];

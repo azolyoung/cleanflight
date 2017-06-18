@@ -51,7 +51,7 @@ extern "C" {
 
     bool unitTestIsSwitchActivited(boxId_e boxId)
     {
-        uint8_t adjustBoxID = boxId - BOXRCSPLITWIFI;
+        uint8_t adjustBoxID = boxId - BOXCAMERAWIFI;
         rcsplit_switch_state_t switchState = switchStates[adjustBoxID];
         return switchState.isActivated;
     }
@@ -139,26 +139,25 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     EXPECT_EQ(true, result);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
-
-    for (uint8_t i = 0; i <= (BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI); i++) {
+    for (uint8_t i = 0; i <= (BOXCAMERACHANGEMODE - BOXCAMERAWIFI); i++) {
         memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
 
     // bind aux1 to wifi button with range [900,1600]
     modeActivationConditionsMutable(0)->auxChannelIndex = 0;
-    modeActivationConditionsMutable(0)->modeId = BOXRCSPLITWIFI;
+    modeActivationConditionsMutable(0)->modeId = BOXCAMERAWIFI;
     modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
     modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // bind aux2 to power button with range [1900, 2100]
     modeActivationConditionsMutable(1)->auxChannelIndex = 1;
-    modeActivationConditionsMutable(1)->modeId = BOXRCSPLITPOWER;
+    modeActivationConditionsMutable(1)->modeId = BOXCAMERAPOWER;
     modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
     modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // bind aux3 to change mode with range [1300, 1600]
     modeActivationConditionsMutable(2)->auxChannelIndex = 2;
-    modeActivationConditionsMutable(2)->modeId = BOXRCSPLITCHANGEMODE;
+    modeActivationConditionsMutable(2)->modeId = BOXCAMERACHANGEMODE;
     modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1300);
     modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
@@ -172,9 +171,9 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     // runn process loop
     rcSplitProcess(0);
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERAWIFI));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERAPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERACHANGEMODE));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
@@ -189,26 +188,26 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
     EXPECT_EQ(true, result);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
-    for (uint8_t i = 0; i <= BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI; i++) {
+    for (uint8_t i = 0; i <= BOXCAMERACHANGEMODE - BOXCAMERAWIFI; i++) {
         memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
     
 
     // bind aux1 to wifi button with range [900,1600]
     modeActivationConditionsMutable(0)->auxChannelIndex = 0;
-    modeActivationConditionsMutable(0)->modeId = BOXRCSPLITWIFI;
+    modeActivationConditionsMutable(0)->modeId = BOXCAMERAWIFI;
     modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
     modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // bind aux2 to power button with range [1900, 2100]
     modeActivationConditionsMutable(1)->auxChannelIndex = 1;
-    modeActivationConditionsMutable(1)->modeId = BOXRCSPLITPOWER;
+    modeActivationConditionsMutable(1)->modeId = BOXCAMERAPOWER;
     modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
     modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // bind aux3 to change mode with range [1300, 1600]
     modeActivationConditionsMutable(2)->auxChannelIndex = 2;
-    modeActivationConditionsMutable(2)->modeId = BOXRCSPLITCHANGEMODE;
+    modeActivationConditionsMutable(2)->modeId = BOXCAMERACHANGEMODE;
     modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
     modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
@@ -225,9 +224,9 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERAWIFI));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERAPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERACHANGEMODE));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeCombine)
@@ -242,26 +241,26 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     EXPECT_EQ(true, result);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
-    for (uint8_t i = 0; i <= BOXRCSPLITCHANGEMODE - BOXRCSPLITWIFI; i++) {
+    for (uint8_t i = 0; i <= BOXCAMERACHANGEMODE - BOXCAMERAWIFI; i++) {
         memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
     
 
     // bind aux1 to wifi button with range [900,1600]
     modeActivationConditionsMutable(0)->auxChannelIndex = 0;
-    modeActivationConditionsMutable(0)->modeId = BOXRCSPLITWIFI;
+    modeActivationConditionsMutable(0)->modeId = BOXCAMERAWIFI;
     modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
     modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // bind aux2 to power button with range [1900, 2100]
     modeActivationConditionsMutable(1)->auxChannelIndex = 1;
-    modeActivationConditionsMutable(1)->modeId = BOXRCSPLITPOWER;
+    modeActivationConditionsMutable(1)->modeId = BOXCAMERAPOWER;
     modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
     modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
     // bind aux3 to change mode with range [1300, 1600]
     modeActivationConditionsMutable(2)->auxChannelIndex = 2;
-    modeActivationConditionsMutable(2)->modeId = BOXRCSPLITCHANGEMODE;
+    modeActivationConditionsMutable(2)->modeId = BOXCAMERACHANGEMODE;
     modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1900);
     modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(2100);
 
@@ -278,9 +277,9 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERAWIFI));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERAPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERACHANGEMODE));
 
 
     // // make the binded mode inactive
@@ -289,22 +288,22 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1900;
     updateActivatedModes();
     rcSplitProcess((timeUs_t)0);
-    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERAWIFI));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERAPOWER));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERACHANGEMODE));
 
 
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1899;
     updateActivatedModes();
     rcSplitProcess((timeUs_t)0);
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERACHANGEMODE));
 
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2001;
     updateActivatedModes();
     rcSplitProcess((timeUs_t)0);
-    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITWIFI));
-    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXRCSPLITPOWER));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXRCSPLITCHANGEMODE));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERAWIFI));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERAPOWER));
+    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERACHANGEMODE));
 }
 
 extern "C" {

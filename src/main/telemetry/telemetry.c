@@ -35,7 +35,7 @@
 #include "io/serial.h"
 
 #include "fc/config.h"
-#include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "msp/msp_serial.h"
@@ -56,7 +56,9 @@
 
 PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
 
+#ifndef TELEMETRY_DEFAULT_INVERSION
 #define TELEMETRY_DEFAULT_INVERSION 1
+#endif
 
 #ifndef TELEMETRY_DEFAULT_HALFDUPLEX
 #define TELEMETRY_DEFAULT_HALFDUPLEX 1
