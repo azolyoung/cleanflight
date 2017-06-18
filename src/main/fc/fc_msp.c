@@ -145,15 +145,10 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { BOXGOV, "GOVERNOR", 18 },
     { BOXOSD, "OSD DISABLE SW", 19 },
     { BOXTELEMETRY, "TELEMETRY", 20 },
-    { BOXCAMERAWIFI, "RCSplit Wi-Fi Btn", 21}, //  simulate wifi button in camera
-    { BOXCAMERAPOWER, "RCSplit Power Btn", 22}, // simulate power button in camera
-    { BOXCAMERACHANGEMODE, "RCSplit Change Mode", 23}, // change camera mode
-    // disable these boxes temporarily, for runcam split test
-    { BOXGTUNE, "GTUNE", 24 },
-    { BOXSONAR, "SONAR", 24 },
-    { BOXSERVO1, "SERVO1", 24 },
+    { BOXGTUNE, "GTUNE", 21 },
+    { BOXSONAR, "SONAR", 22 },
+    { BOXSERVO1, "SERVO1", 23 },
     { BOXSERVO2, "SERVO2", 24 },
-    // end disable
     { BOXSERVO3, "SERVO3", 25 },
     { BOXBLACKBOX, "BLACKBOX", 26 },
     { BOXFAILSAFE, "FAILSAFE", 27 },
@@ -161,6 +156,9 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { BOX3DDISABLESWITCH, "DISABLE 3D SWITCH", 29},
     { BOXFPVANGLEMIX, "FPV ANGLE MIX", 30},
     { BOXBLACKBOXERASE, "BLACKBOX ERASE (>30s)", 31 },
+    { BOXCAMERAWIFI, "CAMERA WIFI", 32},
+    { BOXCAMERAPOWER, "CAMERA POWER", 33},
+    { BOXCAMERACHANGEMODE, "CAMERA CHANGE MODE", 34 },
 };
 
 // mask of enabled IDs, calculated on startup based on enabled features. boxId_e is used as bit index
