@@ -264,6 +264,8 @@
 #define MSP_GPS_CONFIG           132    //out message         GPS configuration
 #define MSP_COMPASS_CONFIG       133    //out message         Compass configuration
 
+#define MSP_RCSPLIT_TOGGLE_WIFI       134    //out message         Toggle RunCam Split Wifi
+
 #define MSP_SET_RAW_RC           200    //in message          8 rc chan
 #define MSP_SET_RAW_GPS          201    //in message          fix, numsat, lat, lon, alt, speed
 #define MSP_SET_PID              202    //in message          P I D coeff (9 are used currently)

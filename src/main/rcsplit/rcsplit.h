@@ -54,3 +54,6 @@ void rcSplitProcess(timeUs_t currentTimeUs);
 extern rcsplit_state_e cameraState;
 extern serialPort_t *rcSplitSerialPort;
 extern rcsplit_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
+
+// for telemetry test
+void rcToggleSplitWifi();

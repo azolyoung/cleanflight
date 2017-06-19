@@ -161,3 +161,12 @@ void rcSplitProcess(timeUs_t currentTimeUs)
     // process rcsplit custom mode if has any changed
     rcSplitProcessMode();
 }
+
+void rcToggleSplitWifi()
+{
+    if (RCSPLIT_STATE_IS_READY != cameraState) 
+        return ;
+
+    beeperConfirmationBeeps(3);
+    sendCtrlCommand(RCSPLIT_CTRL_ARGU_WIFI_BTN);
+}
