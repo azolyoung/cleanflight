@@ -80,8 +80,6 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
-#include "rcsplit/rcsplit.h"
-
 
 // June 2013     V2.2-dev
 

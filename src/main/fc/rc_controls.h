@@ -21,7 +21,6 @@
 
 #include "config/parameter_group.h"
 
-
 typedef enum rc_alias {
     ROLL = 0,
     PITCH,

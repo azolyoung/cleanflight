@@ -108,8 +108,6 @@
 
 #include "telemetry/telemetry.h"
 
-#include "rcsplit/rcsplit.h"
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -121,7 +119,6 @@ static const char * const flightControllerIdentifier = CLEANFLIGHT_IDENTIFIER; /
 static const char * const boardIdentifier = TARGET_BOARD_IDENTIFIER;
 
 #ifndef USE_OSD_SLAVE
-
 // permanent IDs must uniquely identify BOX meaning, DO NOT REUSE THEM!
 static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { BOXARM, "ARM", 0 },
@@ -1363,6 +1360,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         }
 #endif
         break;
+
     default:
         return false;
     }
@@ -1998,6 +1996,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             systemConfigMutable()->name[i] = sbufReadU8(src);
         }
         break;
+
     default:
         // we do not know how to handle the (valid) message, indicate error MSP $M!
         return MSP_RESULT_ERROR;
