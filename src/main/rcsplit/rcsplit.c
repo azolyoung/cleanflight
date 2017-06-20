@@ -164,9 +164,10 @@ void rcSplitProcess(timeUs_t currentTimeUs)
 
 void rcToggleSplitWifi()
 {
+    beeperConfirmationBeeps(3);
+    
     if (RCSPLIT_STATE_IS_READY != cameraState) 
         return ;
 
-    beeperConfirmationBeeps(3);
     sendCtrlCommand(RCSPLIT_CTRL_ARGU_WIFI_BTN);
 }

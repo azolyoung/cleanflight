@@ -1363,9 +1363,6 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         }
 #endif
         break;
-    case MSP_RCSPLIT_TOGGLE_WIFI:
-        rcToggleSplitWifi();
-        break;
 
     default:
         return false;
@@ -1519,7 +1516,10 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         }
         pidInitConfig(currentPidProfile);
         break;
-
+    case MSP_RCSPLIT_TOGGLE_WIFI:
+        rcToggleSplitWifi();
+        break;
+        
     case MSP_SET_MODE_RANGE:
         i = sbufReadU8(src);
         if (i < MAX_MODE_ACTIVATION_CONDITION_COUNT) {
