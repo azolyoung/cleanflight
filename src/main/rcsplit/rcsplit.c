@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 
 #include <platform.h>
 
@@ -37,6 +38,15 @@
 #include "drivers/serial.h"
 
 #include "rcsplit/rcsplit.h"
+
+typedef enum {
+    RCCAMERAPARAM_RESOLUTION = 11,
+    RCCAMERAPARAM_TIME = 15,
+    RCCAMERAPARAM_WHITEBLANCE = 21,
+    RCCAMERAPARAM_EXPOSURE = 22,
+    RCCAMERAPARAM_FIELDOFVIEW = 23,
+    RCCAMERAPARAM_LIGHTMETERING = 24,
+} rcsplit_camera_params_id_e;
 
 // communicate with camera device variables
 serialPort_t *rcSplitSerialPort = NULL;
@@ -162,12 +172,52 @@ void rcSplitProcess(timeUs_t currentTimeUs)
     rcSplitProcessMode();
 }
 
-void rcToggleSplitWifi()
+void rcLoadCameraParams(sbuf_t *dst)
 {
-    beeperConfirmationBeeps(3);
+    sbufWriteU8(dst, 2); // 1920x1080P@30fps
+    sbufWriteU8(dst, 2); // recording
     
-    if (RCSPLIT_STATE_IS_READY != cameraState) 
-        return ;
+    // sd card capiticy
+    const char *sdCardCapiticy = "15.6/16.0";
+    sbufWriteU8(dst, strlen(sdCardCapiticy));
+    sbufWriteString(dst, sdCardCapiticy);
 
-    sendCtrlCommand(RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    // fw version
+    const char *fwVersion = "May 5 2017 Ver.1.0";
+    sbufWriteU8(dst, strlen(fwVersion));
+    sbufWriteString(dst, fwVersion);
+
+    // 相机时间
+    const char *cameraTime = "2017-06-27 12:00:00";
+    sbufWriteString(dst, cameraTime);
+
+    sbufWriteU8(dst, 3); // Cloudy
+    sbufWriteU8(dst, 15); // -0.5
+    sbufWriteU8(dst, 3); // Narrow
+    sbufWriteU8(dst, 1); // Average metering
+}
+
+void rcSaveCameraParams(sbuf_t *dst)
+{
+    rcsplit_camera_params_id_e paramsID = (rcsplit_camera_params_id_e)sbufReadU8(dst);
+    switch (paramsID) {
+    case RCCAMERAPARAM_RESOLUTION:
+        beeperConfirmationBeeps(1);
+        break;
+    case RCCAMERAPARAM_TIME:
+        beeperConfirmationBeeps(2);
+        break;
+    case RCCAMERAPARAM_WHITEBLANCE:
+        beeperConfirmationBeeps(3);
+        break;
+    case RCCAMERAPARAM_EXPOSURE:
+        beeperConfirmationBeeps(4);
+        break;
+    case RCCAMERAPARAM_FIELDOFVIEW:
+        beeperConfirmationBeeps(5);
+        break;
+    case RCCAMERAPARAM_LIGHTMETERING:
+        beeperConfirmationBeeps(6);
+        break;
+    }
 }

@@ -1362,6 +1362,9 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         }
 #endif
         break;
+    case MSP_RCSPLIT_PARAMS:
+        rcLoadCameraParams(dst);
+        break;
 
     default:
         return false;
@@ -1515,9 +1518,6 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             currentPidProfile->pid[i].D = sbufReadU8(src);
         }
         pidInitConfig(currentPidProfile);
-        break;
-    case MSP_RCSPLIT_TOGGLE_WIFI:
-        rcToggleSplitWifi();
         break;
         
     case MSP_SET_MODE_RANGE:
@@ -2001,6 +2001,10 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         for (unsigned int i = 0; i < MIN(MAX_NAME_LENGTH, dataSize); i++) {
             systemConfigMutable()->name[i] = sbufReadU8(src);
         }
+        break;
+    
+    case MSP_RCSPLIT_SETPARAMS:
+        rcSaveCameraParams(src);
         break;
 
     default:
