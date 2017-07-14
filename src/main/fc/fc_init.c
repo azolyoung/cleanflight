@@ -102,6 +102,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/display_rccamera.h"
 
 #include "scheduler/scheduler.h"
 
@@ -575,6 +576,9 @@ void init(void)
     // If there is a max7456 chip for the OSD then use it
     osdDisplayPort = max7456DisplayPortInit(vcdProfile());
     // osdInit  will register with CMS by itself.
+    osdSlaveInit(osdDisplayPort);
+#elif defined(USE_RCCAMERA_DISPLAYPORT)
+    osdDisplayPort = rccameraDisplayPortInit();
     osdSlaveInit(osdDisplayPort);
 #endif
 #endif
