@@ -19,10 +19,19 @@
 
 #ifdef USE_RCCAMERA_DISPLAYPORT
 
-#define RC_OSD_VIDEO_BUFFER_CHARS_NTSC   390
-#define RC_OSD_VIDEO_BUFFER_CHARS_PAL    480
-#define RC_OSD_VIDEO_LINES_NTSC          13
-#define RC_OSD_VIDEO_LINES_PAL           16
+#define RCCAMERA_SCREEN_WIDTH 320
+#define RCCAMERA_SCREEN_HEIGHT 240
+
+#define RCCAMERA_FONT_WIDTH 5
+#define RCCAMERA_FONT_HEIGHT 7
+#define RCCAMERA_HORIZONTAL_PADDING 1
+#define RCCAMERA_VERTICAL_PADDING 1
+
+#define RCCAMERA_CHARACTER_WIDTH_TOTAL (RCCAMERA_FONT_WIDTH + RCCAMERA_HORIZONTAL_PADDING)
+#define RCCAMERA_CHARACTER_HEIGHT_TOTAL (RCCAMERA_FONT_HEIGHT + RCCAMERA_VERTICAL_PADDING)
+
+#define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT (RCCAMERA_SCREEN_WIDTH / RCCAMERA_CHARACTER_WIDTH_TOTAL)
+#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT (RCCAMERA_SCREEN_HEIGHT / RCCAMERA_CHARACTER_HEIGHT_TOTAL)
 
 displayPort_t rccameraDisplayPort;
 
@@ -105,9 +114,16 @@ static const displayPortVTable_t rccameraDisplayPortVTable = {
     .txBytesFree = txBytesFree,
 };
 
-displayPort_t *rccameraDisplayPortInit()
+displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort)
 {
+    if (!cameraSerialPort) {
+        return NULL;
+    }
+
+    rccameraDisplayPort.device = cameraSerialPort;
     displayInit(&rccameraDisplayPort, &rccameraDisplayPortVTable);
+    rccameraDisplayPort.rows = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
+    rccameraDisplayPort.cols = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
 
     return &rccameraDisplayPort;
 }
