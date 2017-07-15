@@ -544,6 +544,7 @@ void init(void)
 
 #if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)) || defined(USE_OSD_SLAVE))
     displayPort_t *osdDisplayPort = NULL;
+    displayPort_t *rcsplitDisplayPort = NULL;
 #endif
 
 #if defined(OSD) && !defined(USE_OSD_SLAVE)
@@ -562,16 +563,23 @@ void init(void)
 #endif
 
 #if defined(USE_OSD_SLAVE) && !defined(OSD)
+#if defined(USE_RCCAMERA_DISPLAYPORT)
+    // check if user has choose MSP and RunCam Split with some UART, If yes, then use it as a DisplayPort for Osd Slave
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
+    if (portConfig->functionMask & FUNCTION_MSP) {
+        osdDisplayPort = rccameraDisplayPortInit();
+    }
+#endif
+
+    if (osdDisplayPort == NULL) {
 #if defined(USE_MAX7456)
-    // If there is a max7456 chip for the OSD then use it
-    osdDisplayPort = max7456DisplayPortInit(vcdProfile());
-    // osdInit  will register with CMS by itself.
-    osdSlaveInit(osdDisplayPort);
-#elif defined(USE_RCCAMERA_DISPLAYPORT)
-    osdDisplayPort = rccameraDisplayPortInit();
-    osdSlaveInit(osdDisplayPort);
+        // If there is a max7456 chip for the OSD then use it
+        osdDisplayPort = max7456DisplayPortInit(vcdProfile());
+        // osdInit  will register with CMS by itself.
+        osdSlaveInit(osdDisplayPort);
 #endif
-#endif
+    }
+#endif // USE_OSD_SLAVE
 
 #if defined(CMS) && defined(USE_MSP_DISPLAYPORT)
     // If BFOSD is not active, then register MSP_DISPLAYPORT as a CMS device.
