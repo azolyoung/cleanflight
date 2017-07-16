@@ -28,20 +28,6 @@
 
 #ifdef USE_RCCAMERA_DISPLAYPORT
 
-#define RCCAMERA_SCREEN_WIDTH 320
-#define RCCAMERA_SCREEN_HEIGHT 240
-
-#define RCCAMERA_FONT_WIDTH 5
-#define RCCAMERA_FONT_HEIGHT 7
-#define RCCAMERA_HORIZONTAL_PADDING 1
-#define RCCAMERA_VERTICAL_PADDING 1
-
-#define RCCAMERA_CHARACTER_WIDTH_TOTAL (RCCAMERA_FONT_WIDTH + RCCAMERA_HORIZONTAL_PADDING)
-#define RCCAMERA_CHARACTER_HEIGHT_TOTAL (RCCAMERA_FONT_HEIGHT + RCCAMERA_VERTICAL_PADDING)
-
-#define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT (RCCAMERA_SCREEN_WIDTH / RCCAMERA_CHARACTER_WIDTH_TOTAL)
-#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT (RCCAMERA_SCREEN_HEIGHT / RCCAMERA_CHARACTER_HEIGHT_TOTAL)
-
 displayPort_t rccameraDisplayPort;
 
 static int grab(displayPort_t *displayPort)
@@ -59,6 +45,18 @@ static int release(displayPort_t *displayPort)
 static int clearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+
+    sbuf_t buf;
+    uint16_t expectedPacketSize = 0;
+
+    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
+    rcCamOSDGenerateClearPacket(&buf);
+
+    serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
+
+    free(buf.ptr);
+
     return 0;
 }
 
@@ -88,6 +86,8 @@ static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const 
     rcCamOSDGenerateWritePacket(&buf, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
 
     serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
+
+    free(buf.ptr);
 
     return 0;
 }
