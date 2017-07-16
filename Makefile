@@ -714,6 +714,8 @@ COMMON_SRC = \
             io/statusindicator.c \
             io/transponder_ir.c \
             io/rcsplit.c \
+            io/rcsplit_packet_helper.c \
+            io/displayport_rccamera.c \
             msp/msp_serial.c \
             scheduler/scheduler.c \
             sensors/battery.c \

@@ -18,11 +18,5 @@
 
 #pragma once
 
-void rcCamOSDGenerateWritePacket(sbuf_t *dst, uint16_t x, uint16_t y, const char *characters, uint6_t charactersLen);
-
-
-
-// for unit test
-void rcCamOSDPasrePacket(sbuf_t *src, rcsplit_packet_v2_t *outPacket);
-void rcCamOSDParseWriteCommandData(uint8_t *data, uint16_t dataLen, rcsplit_osd_write_chars_data_t *outData);
-void rcCamOSDParseClearCommandData(uint8_t *data, uint16_t dataLen, rcsplit_osd_clear_screen_data_t *outData);
+uint8_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint16_t skipDataLocation, uint16_t skipDataLength);
+uint16_t rcCamOSDGenerateWritePacket(sbuf_t *dst, uint16_t x, uint16_t y, uint8_t align, const char *characters, uint8_t charactersLen);
