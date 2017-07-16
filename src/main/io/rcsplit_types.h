@@ -23,6 +23,20 @@
   #define RCPACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
 #endif
 
+#define RCCAMERA_SCREEN_WIDTH 320
+#define RCCAMERA_SCREEN_HEIGHT 240
+
+#define RCCAMERA_FONT_WIDTH 5
+#define RCCAMERA_FONT_HEIGHT 7
+#define RCCAMERA_HORIZONTAL_PADDING 1
+#define RCCAMERA_VERTICAL_PADDING 1
+
+#define RCCAMERA_CHARACTER_WIDTH_TOTAL (RCCAMERA_FONT_WIDTH + RCCAMERA_HORIZONTAL_PADDING)
+#define RCCAMERA_CHARACTER_HEIGHT_TOTAL (RCCAMERA_FONT_HEIGHT + RCCAMERA_VERTICAL_PADDING)
+
+#define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT (RCCAMERA_SCREEN_WIDTH / RCCAMERA_CHARACTER_WIDTH_TOTAL)
+#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT (RCCAMERA_SCREEN_HEIGHT / RCCAMERA_CHARACTER_HEIGHT_TOTAL)
+
 typedef enum {
     RCSPLIT_OSD_TEXT_ALIGN_RIGHT = 0,
     RCSPLIT_OSD_TEXT_ALIGN_LEFT = 1,
@@ -62,7 +76,7 @@ typedef struct {
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_CLEAR
 RCPACKED(
 typedef struct {
-    rcsplit_osd_text_align_e textAlign;
+    uint8_t align;
     uint16_t start_x;
     uint16_t start_y;
     uint16_t end_x;

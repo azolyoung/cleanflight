@@ -118,3 +118,26 @@ uint16_t rcCamOSDGenerateWritePacket(sbuf_t *buf, uint16_t x, uint16_t y, uint8_
 
     return packetSize;
 }
+
+uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf)
+{
+    if (rcSplitSerialPort == NULL)
+        return 0;
+
+    // fill the data struct of command RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS
+    uint16_t dataLen = sizeof(rcsplit_osd_clear_screen_data_t);
+    rcsplit_osd_clear_screen_data_t *data = (rcsplit_osd_clear_screen_data_t*)malloc(dataLen);
+    data->align = 0x01;
+    data->start_x = 0;
+    data->start_y = 0;
+    data->end_x = RCCAMERA_SCREEN_WIDTH - 1;
+    data->end_y = RCCAMERA_SCREEN_HEIGHT - 1;
+
+    // generate packet
+    uint16_t packetSize = rcCamOSDGeneratePacket(buf, RCSPLIT_PACKET_CMD_OSD_CLEAR, (uint8_t*)data, dataLen);
+
+    free(data);
+    data = NULL;
+
+    return packetSize;
+}
