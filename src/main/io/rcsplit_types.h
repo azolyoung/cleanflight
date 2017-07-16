@@ -17,21 +17,29 @@
 
 #pragma once
 
+#ifdef __GNUC__
+  #define RCPACKED( __Declaration__ ) __Declaration__ __attribute__((packed))
+#else
+  #define RCPACKED( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop) )
+#endif
+
 typedef enum {
     RCSPLIT_OSD_TEXT_ALIGN_RIGHT = 0,
     RCSPLIT_OSD_TEXT_ALIGN_LEFT = 1,
 } rcsplit_osd_text_align_e;
 
 // The V1 packet struct for runcam split
+RCPACKED(
 typedef struct {
     uint8_t header;
     uint8_t command;
     uint8_t argument;
     uint8_t crc8;
     uint8_t tail;
-} rcsplit_packet_v1_t;
+}) rcsplit_packet_v1_t;
 
 // The V2 packet struct for runcam split
+RCPACKED(
 typedef struct {
     uint8_t header;
     uint8_t command;
@@ -39,21 +47,24 @@ typedef struct {
     uint8_t *data;
     uint8_t crc8;
     uint8_t tail;
-} rcsplit_packet_v2_t;
+}) rcsplit_packet_v2_t;
 
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS
+RCPACKED(
 typedef struct {
-    rcsplit_osd_text_align_e align;
+    uint8_t align;
     uint16_t x;
     uint16_t y;
-    uint8_t *characters;
-} rcsplit_osd_write_chars_data_t;
+    uint8_t charactersLen;
+    uint8_t *characters; 
+}) rcsplit_osd_write_chars_data_t;
 
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_CLEAR
+RCPACKED(
 typedef struct {
     rcsplit_osd_text_align_e textAlign;
     uint16_t start_x;
     uint16_t start_y;
     uint16_t end_x;
     uint16_t end_y;
-} rcsplit_osd_clear_screen_data_t;
+}) rcsplit_osd_clear_screen_data_t;

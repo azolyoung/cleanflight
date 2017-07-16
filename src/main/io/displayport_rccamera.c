@@ -16,6 +16,15 @@
  */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "drivers/display.h"
+
+#include "io/serial.h"
+#include "io/rcsplit.h"
+#include "io/rcsplit_types.h"
+#include "io/rcsplit_packet_helper.h"
 
 #ifdef USE_RCCAMERA_DISPLAYPORT
 
@@ -62,19 +71,35 @@ static int drawScreen(displayPort_t *displayPort)
 static int screenSize(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return maxScreenSize;
+    return displayPort->rows * displayPort->cols;
+}
+
+static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, uint16_t len)
+{
+    UNUSED(displayPort);
+
+    sbuf_t buf;
+    uint16_t expectedPacketSize = 0;
+
+    uint16_t adjustedXPos = x * RCCAMERA_CHARACTER_WIDTH_TOTAL;
+    uint16_t adjustedYPos = y * RCCAMERA_CHARACTER_WIDTH_TOTAL;
+    expectedPacketSize = rcCamOSDGenerateWritePacket(NULL, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
+    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
+    rcCamOSDGenerateWritePacket(&buf, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
+
+    serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
+
+    return 0;
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
 {
-    UNUSED(displayPort);
-    return 0;
+    return _writeString(displayPort, x, y, s, strlen(s));
 }
 
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
 {
-    UNUSED(displayPort);
-    return 0;
+    return _writeString(displayPort, x, y, (const char *)&c, 1);
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)

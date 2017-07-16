@@ -102,7 +102,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
-#include "io/display_rccamera.h"
+// #include "io/display_rccamera.h"
 
 #include "scheduler/scheduler.h"
 
@@ -554,7 +554,6 @@ void init(void)
 
 #if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)) || defined(USE_OSD_SLAVE))
     displayPort_t *osdDisplayPort = NULL;
-    displayPort_t *rcsplitDisplayPort = NULL;
 #endif
 
 #if defined(OSD) && !defined(USE_OSD_SLAVE)
@@ -578,6 +577,7 @@ void init(void)
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
     if (portConfig->functionMask & FUNCTION_MSP) {
         osdDisplayPort = rccameraDisplayPortInit();
+        osdSlaveInit(osdDisplayPort);
     }
 #endif
 
