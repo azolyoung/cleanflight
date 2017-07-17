@@ -69,7 +69,7 @@ typedef struct {
     uint8_t align;
     uint16_t x;
     uint16_t y;
-    uint8_t charactersLen;
+    // uint8_t charactersLen;
     uint8_t *characters; 
 }) rcsplit_osd_write_chars_data_t;
 
