@@ -462,28 +462,27 @@ void init(void)
     cmsInit();
 #endif
 
-
-#ifdef USE_RCSPLIT
-    rcSplitInit();
-#endif // USE_RCSPLIT
-
 #if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)) || defined(USE_OSD_SLAVE))
     displayPort_t *osdDisplayPort = NULL;
 #endif
 
 #if defined(OSD) && !defined(USE_OSD_SLAVE)
 #if defined(USE_RCCAMERA_DISPLAYPORT)
-    // serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
-    // if (rcSplitSerialPort) {
-        // rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
+    
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
+    if (portConfig) {
+        beeper(BEEPER_ARMING_GPS_FIX);
+        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
         if (rcSplitSerialPort) {
             osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
             osdInit(osdDisplayPort);
             beeperConfirmationBeeps(10);
+        } else {
+            beeperConfirmationBeeps(9);
         }
-    // } else {
-    //     beeperConfirmationBeeps(10);
-    // }
+    } else {
+        beeperConfirmationBeeps(10);
+    }
 #endif
 
     //The OSD need to be initialised after GYRO to avoid GYRO initialisation failure on some targets
@@ -659,6 +658,9 @@ void init(void)
     fcTasksInit();
 #endif
 
+#ifdef USE_RCSPLIT
+    rcSplitInit();
+#endif // USE_RCSPLIT
 
     systemState |= SYSTEM_STATE_READY;
 }

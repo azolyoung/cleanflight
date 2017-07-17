@@ -96,6 +96,21 @@ static uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8
     return sbufBytesRemaining(src);
 }
 
+uint16_t convertInt16ToBigEndian(uint16_t val)
+{
+    uint16_t r = 0;
+
+    uint16_t tmp = 0x1234;
+    // check current cpu of hardware is using little endian or not, if it is, just convert the int to big endian
+    if(*(char*)&tmp == 0x34) {
+        r = val >> 8;
+        r |= (val & 0xFF) << 8;
+    } else{
+        r = val;
+    }
+    return r;
+}
+
 uint16_t rcCamOSDGenerateWritePacket(sbuf_t *buf, uint16_t x, uint16_t y, uint8_t align, const char *characters, uint8_t charactersLen)
 {
     if (rcSplitSerialPort == NULL)
@@ -105,8 +120,8 @@ uint16_t rcCamOSDGenerateWritePacket(sbuf_t *buf, uint16_t x, uint16_t y, uint8_
     uint16_t dataLen = sizeof(rcsplit_osd_write_chars_data_t) - sizeof(uint8_t*) + charactersLen;
     rcsplit_osd_write_chars_data_t *data = (rcsplit_osd_write_chars_data_t*)malloc(dataLen);
     data->align = align;
-    data->x = x;
-    data->y = y;
+    data->x = convertInt16ToBigEndian(x);
+    data->y = convertInt16ToBigEndian(y);
     // data->charactersLen = charactersLen;
     memcpy(&data->characters, characters, charactersLen);
 

@@ -81,16 +81,17 @@ static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const 
     uint16_t expectedPacketSize = 0;
 
     uint16_t adjustedXPos = x * RCCAMERA_CHARACTER_WIDTH_TOTAL;
-    uint16_t adjustedYPos = y * RCCAMERA_CHARACTER_WIDTH_TOTAL;
+    uint16_t adjustedYPos = y * RCCAMERA_CHARACTER_HEIGHT_TOTAL;
     expectedPacketSize = rcCamOSDGenerateWritePacket(NULL, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
-    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
+    uint8_t *base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
     rcCamOSDGenerateWritePacket(&buf, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
 
     serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
 
-    // free(buf.ptr);
+    free(base);
 
-    beeper(BEEPER_RX_SET);
+    
     return 0;
 }
 
@@ -101,7 +102,12 @@ static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
 
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
 {
-    return _writeString(displayPort, x, y, (const char *)&c, 1);
+    char buf[2];
+
+    buf[0] = c;
+    buf[1] = 0;
+
+    return _writeString(displayPort, x, y, buf, 2);
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)

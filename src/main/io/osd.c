@@ -57,6 +57,7 @@
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
+#include "io/beeper.h"
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -780,8 +781,12 @@ static void osdDrawLogo(int x, int y)
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
 {
-    if (!osdDisplayPortToUse)
+    if (!osdDisplayPortToUse) {
+        beeperConfirmationBeeps(20);
         return;
+    } else {
+        beeperConfirmationBeeps(7);
+    }
 
     BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
 
