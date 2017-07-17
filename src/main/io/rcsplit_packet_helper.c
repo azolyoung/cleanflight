@@ -107,7 +107,7 @@ uint16_t rcCamOSDGenerateWritePacket(sbuf_t *buf, uint16_t x, uint16_t y, uint8_
     data->align = align;
     data->x = x;
     data->y = y;
-    data->charactersLen = charactersLen;
+    // data->charactersLen = charactersLen;
     memcpy(&data->characters, characters, charactersLen);
 
     // generate packet
