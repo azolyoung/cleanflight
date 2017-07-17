@@ -101,6 +101,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/displayport_rccamera.h"
 
 #include "scheduler/scheduler.h"
 
@@ -461,14 +462,33 @@ void init(void)
     cmsInit();
 #endif
 
+
+#ifdef USE_RCSPLIT
+    rcSplitInit();
+#endif // USE_RCSPLIT
+
 #if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)) || defined(USE_OSD_SLAVE))
     displayPort_t *osdDisplayPort = NULL;
 #endif
 
 #if defined(OSD) && !defined(USE_OSD_SLAVE)
+#if defined(USE_RCCAMERA_DISPLAYPORT)
+    // serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
+    // if (rcSplitSerialPort) {
+        // rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
+        if (rcSplitSerialPort) {
+            osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
+            osdInit(osdDisplayPort);
+            beeperConfirmationBeeps(10);
+        }
+    // } else {
+    //     beeperConfirmationBeeps(10);
+    // }
+#endif
+
     //The OSD need to be initialised after GYRO to avoid GYRO initialisation failure on some targets
 
-    if (feature(FEATURE_OSD)) {
+    if (osdDisplayPort == NULL && feature(FEATURE_OSD)) {
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD then use it
         osdDisplayPort = max7456DisplayPortInit(vcdProfile());
@@ -481,11 +501,14 @@ void init(void)
 #endif
 
 #if defined(USE_OSD_SLAVE) && !defined(OSD)
+
 #if defined(USE_MAX7456)
-    // If there is a max7456 chip for the OSD then use it
-    osdDisplayPort = max7456DisplayPortInit(vcdProfile());
-    // osdInit  will register with CMS by itself.
-    osdSlaveInit(osdDisplayPort);
+    if (osdDisplayPort == NULL) {
+        // If there is a max7456 chip for the OSD then use it
+        osdDisplayPort = max7456DisplayPortInit(vcdProfile());
+        // osdInit  will register with CMS by itself.
+        osdSlaveInit(osdDisplayPort);
+    }
 #endif
 #endif
 
@@ -636,9 +659,6 @@ void init(void)
     fcTasksInit();
 #endif
 
-#ifdef USE_RCSPLIT
-    rcSplitInit();
-#endif // USE_RCSPLIT
 
     systemState |= SYSTEM_STATE_READY;
 }

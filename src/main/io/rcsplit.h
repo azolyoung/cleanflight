@@ -35,6 +35,8 @@ typedef enum {
 // packet header and tail
 #define RCSPLIT_PACKET_HEADER           0x55
 #define RCSPLIT_PACKET_CMD_CTRL  0x01
+#define RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS      0x20 // write characters to OSD in rcsplit
+#define RCSPLIT_PACKET_CMD_OSD_CLEAR            0x21
 #define RCSPLIT_PACKET_TAIL     0xaa
 
 

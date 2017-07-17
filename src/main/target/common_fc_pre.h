@@ -132,3 +132,4 @@
 #endif
 
 #define USE_RCSPLIT
+#define USE_RCCAMERA_DISPLAYPORT
