@@ -42,6 +42,36 @@ typedef enum {
     RCSPLIT_OSD_TEXT_ALIGN_LEFT = 1,
 } rcsplit_osd_text_align_e;
 
+// packet header and tail
+#define RCSPLIT_PACKET_HEADER           0x55
+#define RCSPLIT_PACKET_TAIL             0xaa
+
+typedef struct {
+    uint8_t boxId;
+    bool isActivated;
+} rcsplit_switch_state_t;
+
+typedef enum {
+    RCSPLIT_STATE_UNKNOWN = 0,
+    RCSPLIT_STATE_INITIALIZING,
+    RCSPLIT_STATE_IS_READY,
+} rcsplit_state_e;
+
+typedef enum {
+    RCSPLIT_PACKET_CMD_CTRL =                   0x01,
+    RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN =        0x20, // write characters to OSD in rcsplit
+    RCSPLIT_PACKET_CMD_OSD_CLEAR =              0x21,
+} rcsplit_packet_cmd_e;
+
+// the commands of RunCam Split serial protocol
+typedef enum {
+    RCSPLIT_CTRL_ARGU_INVALID = 0x0,
+    RCSPLIT_CTRL_ARGU_WIFI_BTN = 0x1,
+    RCSPLIT_CTRL_ARGU_POWER_BTN = 0x2,
+    RCSPLIT_CTRL_ARGU_CHANGE_MODE = 0x3,
+    RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0xFF,
+} rcsplit_ctrl_argument_e;
+
 // The V1 packet struct for runcam split
 RCPACKED(
 typedef struct {
@@ -57,21 +87,17 @@ RCPACKED(
 typedef struct {
     uint8_t header;
     uint8_t command;
-    uint8_t dataLen;
+    uint16_t dataLen;
     uint8_t *data;
-    uint8_t crc8;
+    uint8_t crc16;
     uint8_t tail;
 }) rcsplit_packet_v2_t;
 
-// The data struct of command RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS
+// The data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
 RCPACKED(
 typedef struct {
-    uint8_t align;
-    uint16_t x;
-    uint16_t y;
-    // uint8_t charactersLen;
-    uint8_t *characters; 
-}) rcsplit_osd_write_chars_data_t;
+    uint8_t characters[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT]; 
+}) rcsplit_osd_draw_screen_data_t;
 
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_CLEAR
 RCPACKED(

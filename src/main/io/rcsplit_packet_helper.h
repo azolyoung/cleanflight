@@ -19,5 +19,5 @@
 #pragma once
 
 uint8_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint16_t skipDataLocation, uint16_t skipDataLength);
-uint16_t rcCamOSDGenerateWritePacket(sbuf_t *dst, uint16_t x, uint16_t y, uint8_t align, const char *characters, uint8_t charactersLen);
+uint16_t rcCamOSDGenerateDrawScreenPacket(sbuf_t *buf, uint8_t *screenBuffer);
 uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf);

@@ -31,6 +31,8 @@
 
 displayPort_t rccameraDisplayPort;
 
+static uint8_t screenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
+
 static int grab(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
@@ -49,13 +51,10 @@ static int clearScreen(displayPort_t *displayPort)
 
     sbuf_t buf;
     uint16_t expectedPacketSize = 0;
-
     expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
     buf.ptr = (uint8_t*)malloc(expectedPacketSize);
     rcCamOSDGenerateClearPacket(&buf);
-
     serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
-
     free(buf.ptr);
 
     return 0;
@@ -64,6 +63,15 @@ static int clearScreen(displayPort_t *displayPort)
 static int drawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+
+    sbuf_t buf;
+    uint16_t expectedPacketSize = 0;
+    expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, screenBuffer);
+    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
+    rcCamOSDGenerateDrawScreenPacket(&buf, screenBuffer);
+    serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
+    free(buf.ptr);
+    
     return 0;
 }
 
@@ -73,41 +81,28 @@ static int screenSize(const displayPort_t *displayPort)
     return displayPort->rows * displayPort->cols;
 }
 
-static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, uint16_t len)
+static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const uint8_t *s, uint16_t len)
 {
     UNUSED(displayPort);
 
-    sbuf_t buf;
-    uint16_t expectedPacketSize = 0;
-
     uint16_t adjustedXPos = x * RCCAMERA_CHARACTER_WIDTH_TOTAL;
     uint16_t adjustedYPos = y * RCCAMERA_CHARACTER_HEIGHT_TOTAL;
-    expectedPacketSize = rcCamOSDGenerateWritePacket(NULL, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
-    uint8_t *base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    rcCamOSDGenerateWritePacket(&buf, adjustedXPos, adjustedYPos, RCSPLIT_OSD_TEXT_ALIGN_LEFT, s, len);
+    uint8_t i = 0;
+    for (i = 0; i < len; i++)
+        if (adjustedXPos + i < RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT) // Do not write over screen
+            screenBuffer[adjustedYPos * RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT + adjustedXPos + i] = *(s + i);
 
-    serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
-
-    free(base);
-
-    
     return 0;
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
 {
-    return _writeString(displayPort, x, y, s, strlen(s));
+    return _writeString(displayPort, x, y, (const uint8_t*)s, strlen(s));
 }
 
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
 {
-    char buf[2];
-
-    buf[0] = c;
-    buf[1] = 0;
-
-    return _writeString(displayPort, x, y, buf, 2);
+    return _writeString(displayPort, x, y, &c, 1);
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)
