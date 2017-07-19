@@ -42,6 +42,7 @@ extern "C" {
     #include "scheduler/scheduler.h"
     #include "drivers/serial.h"
     #include "io/rcsplit.h"
+    #include "io/rcsplit_packet_helper.h"
 
     #include "rx/rx.h"
 
@@ -63,6 +64,41 @@ extern "C" {
     {
         rcSplitSerialPort = NULL;
         cameraState = RCSPLIT_STATE_UNKNOWN;
+    }
+
+    bool rcCamOSDPasrePacket(sbuf_t *src, rcsplit_packet_v2_t *outPacket)
+    {
+        if (src == NULL || outPacket == NULL) {
+            return false;
+        }
+
+        uint16_t crcFieldOffset = 0;
+        uint8_t *base = src->ptr;
+        outPacket->header = sbufReadU8(src);
+        outPacket->command = sbufReadU8(src);
+        outPacket->dataLen = sbufReadU16(src);
+        printf("parse packet datalen:%d\n", outPacket->dataLen);
+        uint8_t *data = (uint8_t*)malloc(outPacket->dataLen);
+        sbufReadData(src, data, outPacket->dataLen);
+        sbufAdvance(src, outPacket->dataLen); 
+        outPacket->data = data;
+
+        crcFieldOffset = sbufConstPtr(src) - base;
+        outPacket->crc16 = sbufReadU16(src);
+        outPacket->tail = sbufReadU8(src);
+        uint8_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, 1);
+        if (crc != outPacket->crc16) {
+            return false;
+        }
+
+        if (outPacket->header != RCSPLIT_PACKET_HEADER ||
+            outPacket->tail != RCSPLIT_PACKET_TAIL) {
+            return false;
+        }
+
+        sbufSwitchToReader(src, base);
+
+        return true;
     }
 }
 
@@ -306,6 +342,45 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
+TEST(RCSplitTest, TestPacketGenerate)
+{
+    sbuf_t buf;
+    rcsplit_packet_v2_t packet;
+    bool result = false;
+    uint16_t expectedPacketSize = 0;
+    uint16_t actualPacketSize = 0;
+    memset(&testData, 0, sizeof(testData));
+    unitTestResetRCSplit();
+
+    testData.isAllowBufferReadWrite = true;
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    
+    result = rcSplitInit();
+    EXPECT_EQ(true, result);
+
+    // generate a pakcet for RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
+    uint8_t screenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
+    expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, screenBuffer);
+    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
+    actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, screenBuffer);
+    uint8_t *p = buf.ptr;
+    for (int i = 0; i < 30; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+    // check the packet size is expected
+    EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+
+    // parse the packet, check the fields is correct or not.
+    result = rcCamOSDPasrePacket(&buf, &packet);
+    EXPECT_EQ(true, result);
+    EXPECT_EQ(RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN, packet.command);
+
+    free(buf.ptr);
+    buf.ptr = NULL;
+}
+
 extern "C" {
     serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e functionMask, serialReceiveCallbackPtr callback, uint32_t baudRate, portMode_t mode, portOptions_t options)
     {
@@ -411,7 +486,7 @@ extern "C" {
         if (testData.isAllowBufferReadWrite) {
             memcpy(dst->ptr, data, len);
             dst->ptr += len;
-            
+            printf("in write data: %d\n", len);
         }
     }
 
@@ -424,6 +499,56 @@ extern "C" {
             buf->end = buf->ptr;
             buf->ptr = base;
         }
+    }
+
+    uint8_t sbufReadU8(sbuf_t *src)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            return *src->ptr++;
+        }
+
+        return 0;
+    }
+
+    void sbufAdvance(sbuf_t *buf, int size)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            buf->ptr += size;
+        }
+    }
+
+    int sbufBytesRemaining(sbuf_t *buf)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            return buf->end - buf->ptr;
+        }
+        return 0;
+    }
+
+    const uint8_t* sbufConstPtr(const sbuf_t *buf)
+    {
+        return buf->ptr;
+    }
+
+    void sbufReadData(sbuf_t *src, void *data, int len)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            memcpy(data, src->ptr, len);
+        }
+    }
+
+    uint16_t sbufReadU16(sbuf_t *src)
+    {
+        uint16_t ret;
+        ret = sbufReadU8(src);
+        ret |= sbufReadU8(src) << 8;
+        return ret;
+    }
+
+    void sbufWriteU16(sbuf_t *dst, uint16_t val)
+    {
+        sbufWriteU8(dst, val >> 0);
+        sbufWriteU8(dst, val >> 8);
     }
 
     bool feature(uint32_t) { return false;}

@@ -89,7 +89,7 @@ typedef struct {
     uint8_t command;
     uint16_t dataLen;
     uint8_t *data;
-    uint8_t crc16;
+    uint16_t crc16;
     uint8_t tail;
 }) rcsplit_packet_v2_t;
 

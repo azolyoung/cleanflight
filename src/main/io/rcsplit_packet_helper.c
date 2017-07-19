@@ -61,20 +61,22 @@ uint8_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint16_t skipDataLocation
 static uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8_t *data, uint16_t len)
 {
     uint16_t pakcetLen = sizeof(rcsplit_packet_v2_t) - sizeof(uint8_t*) + len;
-
+    printf("ffff:%d\n", pakcetLen);
+    printf("dddd:%d\n", len);
     if (src == NULL) {
         return pakcetLen;
     }
 
     uint8_t *base = src->ptr;
-    uint8_t crcFieldOffset = 0;
+    uint16_t crcFieldOffset = 0;
 
     sbufWriteU8(src, RCSPLIT_PACKET_HEADER);
     sbufWriteU8(src, command);
-    sbufWriteU8(src, len);
+    sbufWriteU16(src, len);
     sbufWriteData(src, data, len);
     crcFieldOffset = sbufConstPtr(src) - base;
-    sbufWriteU8(src, 0);
+    printf("ggg:%d\n", crcFieldOffset);
+    sbufWriteU16(src, 0);
     sbufWriteU8(src, RCSPLIT_PACKET_TAIL);
     
     // calc the crc of the packet, and skip the crc field

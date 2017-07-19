@@ -57,6 +57,12 @@ static int clearScreen(displayPort_t *displayPort)
     serialWriteBuf(rcSplitSerialPort, buf.ptr, sbufBytesRemaining(&buf));
     free(buf.ptr);
 
+    uint16_t bufferLen = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
+    uint16_t x;
+    uint32_t *p = (uint32_t*)&screenBuffer[0];
+    for (x = 0; x < bufferLen/4; x++)
+        p[x] = 0x20202020;
+
     return 0;
 }
 
