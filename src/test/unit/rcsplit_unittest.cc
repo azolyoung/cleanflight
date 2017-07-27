@@ -41,8 +41,10 @@ extern "C" {
 
     #include "scheduler/scheduler.h"
     #include "drivers/serial.h"
+    #include "drivers/display.h"
     #include "io/rcsplit.h"
     #include "io/rcsplit_packet_helper.h"
+    #include "io/displayport_rccamera.h"
 
     #include "rx/rx.h"
 
@@ -76,7 +78,8 @@ extern "C" {
         uint8_t *base = src->ptr;
         outPacket->header = sbufReadU8(src);
         outPacket->command = sbufReadU8(src);
-        outPacket->dataLen = sbufReadU16(src);
+        outPacket->dataLen = sbufReadU8(src) << 8;
+        outPacket->dataLen |= sbufReadU8(src);
         printf("parse packet datalen:%d\n", outPacket->dataLen);
         uint8_t *data = (uint8_t*)malloc(outPacket->dataLen);
         sbufReadData(src, data, outPacket->dataLen);
@@ -84,9 +87,10 @@ extern "C" {
         outPacket->data = data;
 
         crcFieldOffset = sbufConstPtr(src) - base;
-        outPacket->crc16 = sbufReadU16(src);
+        outPacket->crc16 = sbufReadU8(src) << 8;
+        outPacket->crc16 |= sbufReadU8(src);
         outPacket->tail = sbufReadU8(src);
-        uint8_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, 1);
+        uint16_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, sizeof(uint16_t));
         if (crc != outPacket->crc16) {
             return false;
         }
@@ -345,10 +349,12 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
 TEST(RCSplitTest, TestPacketGenerate)
 {
     sbuf_t buf;
-    rcsplit_packet_v2_t packet;
+    
     bool result = false;
     uint16_t expectedPacketSize = 0;
     uint16_t actualPacketSize = 0;
+    uint8_t *p = NULL;
+    uint8_t *base = NULL;
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
 
@@ -359,26 +365,55 @@ TEST(RCSplitTest, TestPacketGenerate)
     result = rcSplitInit();
     EXPECT_EQ(true, result);
 
-    // generate a pakcet for RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
-    uint8_t screenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
-    expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, screenBuffer);
-    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
-    actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, screenBuffer);
-    uint8_t *p = buf.ptr;
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 1; i++) {
+        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 10, i, "AELL", 4);
+        base = (uint8_t*)malloc(expectedPacketSize);
+        buf.ptr = base;
+        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 10, i, "AELL", 4);
+        p = buf.ptr;
+        for (int i = 0; i < actualPacketSize; i++) {
+            printf("%02x ", *p++);
+        }
+        printf("\n");
+        free(base);
+    }
+    
+    
+    base = buf.ptr = NULL;
+
+#if USE_FULL_SCREEN_DRAWING
+    rcsplit_packet_v2_t packet;
+    displayPort_t *osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
+    EXPECT_EQ(true, osdDisplayPort != NULL);
+
+    for (int i = 0; i < RCCAMERA_SCREEN_CHARACTER_ROW_COUNT; i++) {
+        for (int j = 0; j < RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT; j++) {
+            displayWrite(osdDisplayPort, j, i, "A");
+        }
+    }
+
+    expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, rcsplitOSDScreenBuffer);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, rcsplitOSDScreenBuffer);
+    p = buf.ptr;
+    for (int i = 0; i < actualPacketSize; i++) {
         printf("%02x ", *p++);
     }
     printf("\n");
     // check the packet size is expected
     EXPECT_EQ(expectedPacketSize, actualPacketSize); 
 
+
     // parse the packet, check the fields is correct or not.
     result = rcCamOSDPasrePacket(&buf, &packet);
     EXPECT_EQ(true, result);
     EXPECT_EQ(RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN, packet.command);
 
-    free(buf.ptr);
-    buf.ptr = NULL;
+    free(base);
+    base = buf.ptr = NULL;
+#endif
+
 }
 
 extern "C" {
@@ -549,6 +584,12 @@ extern "C" {
     {
         sbufWriteU8(dst, val >> 0);
         sbufWriteU8(dst, val >> 8);
+    }
+
+    void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val)
+    {
+        sbufWriteU8(dst, val >> 8);
+        sbufWriteU8(dst, (uint8_t)val);
     }
 
     bool feature(uint32_t) { return false;}

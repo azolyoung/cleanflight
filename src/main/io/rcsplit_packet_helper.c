@@ -34,10 +34,10 @@
 
 #include "io/rcsplit.h"
 
-uint8_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint16_t skipDataLocation, uint16_t skipDataLength)
+uint16_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint16_t skipDataLocation, uint16_t skipDataLength)
 {
     uint16_t offset = 0;
-    uint8_t crc=0x00;
+    uint16_t crc = 0x29d2;
     sbufSwitchToReader(buf, base);
     int len = sbufBytesRemaining(buf);
     while (len) {
@@ -72,7 +72,7 @@ static uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8
 
     sbufWriteU8(src, RCSPLIT_PACKET_HEADER);
     sbufWriteU8(src, command);
-    sbufWriteU16(src, len);
+    sbufWriteU16BigEndian(src, len);
     sbufWriteData(src, data, len);
     crcFieldOffset = sbufConstPtr(src) - base;
     printf("ggg:%d\n", crcFieldOffset);
@@ -80,11 +80,12 @@ static uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8
     sbufWriteU8(src, RCSPLIT_PACKET_TAIL);
     
     // calc the crc of the packet, and skip the crc field
-    uint8_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, sizeof(uint16_t));
+    uint16_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, sizeof(uint16_t));
     src->ptr = base;
     // write crc value to the position that it should be there
     sbufAdvance(src, crcFieldOffset);
-    sbufWriteU16(src, crc);
+    // sbufWriteU16(src, crc);
+    sbufWriteU16BigEndian(src, crc);
 
     // skip to end, and reset it to read
     sbufAdvance(src, 1); 
@@ -106,6 +107,28 @@ uint16_t convertInt16ToBigEndian(uint16_t val)
         r = val;
     }
     return r;
+}
+
+uint16_t rcCamOSDGenerateDrawStringPacket(sbuf_t *buf, uint8_t x, uint8_t y, const char *text, uint8_t textLen)
+{
+    if (rcSplitSerialPort == NULL)
+        return 0;
+
+    uint16_t dataLen = sizeof(rcsplit_osd_draw_text_data_t) - sizeof(uint8_t*) + textLen;
+    rcsplit_osd_draw_text_data_t *drawTextData = malloc(dataLen);
+    drawTextData->align = RCSPLIT_OSD_TEXT_ALIGN_LEFT;
+    drawTextData->x = convertInt16ToBigEndian(x * RCCAMERA_CHARACTER_WIDTH_TOTAL);
+    drawTextData->y = convertInt16ToBigEndian(y * RCCAMERA_CHARACTER_HEIGHT_TOTAL);
+    memcpy(&drawTextData->characters, text, textLen);
+
+    uint16_t packetSize = rcCamOSDGeneratePacket(buf, 
+                                                RCSPLIT_PACKET_CMD_OSD_DRAW_STRING, 
+                                                (uint8_t*)drawTextData, 
+                                                dataLen);
+    free(drawTextData);
+    drawTextData = NULL;
+
+    return packetSize;
 }
 
 uint16_t rcCamOSDGenerateDrawScreenPacket(sbuf_t *buf, uint8_t *screenBuffer)

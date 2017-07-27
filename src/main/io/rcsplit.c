@@ -18,6 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
 #include <platform.h>
@@ -37,6 +39,7 @@
 #include "drivers/serial.h"
 
 #include "io/rcsplit.h"
+#include "io/rcsplit_packet_helper.h"
 
 // communicate with camera device variables
 serialPort_t *rcSplitSerialPort = NULL;
@@ -64,6 +67,40 @@ static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
     if (!rcSplitSerialPort)
         return ;
 
+    if (argument == 1) {
+        // uint8_t screenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT] = {
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // 'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+        // };
+
+        // sbuf_t buf;
+        // uint16_t expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, screenBuffer);
+        // uint8_t *base = (uint8_t*)malloc(expectedPacketSize);
+        // buf.ptr = base;
+        // uint16_t actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, screenBuffer);
+        // serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
+        // return ;
+
+        sbuf_t buf;
+        uint8_t *base = NULL;
+        uint16_t expectedPacketSize = 0, actualPacketSize = 0;
+        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 5, 5, "Hello", 5);
+        base = (uint8_t*)malloc(expectedPacketSize);
+        buf.ptr = base;
+        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 5, 5, "Hello", 5);
+        serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
+        free(base);
+        return ;
+    }
     uint8_t uart_buffer[5] = {0};
     uint8_t crc = 0;
 

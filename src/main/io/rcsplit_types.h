@@ -26,10 +26,10 @@
 #define RCCAMERA_SCREEN_WIDTH 320
 #define RCCAMERA_SCREEN_HEIGHT 240
 
-#define RCCAMERA_FONT_WIDTH 11
-#define RCCAMERA_FONT_HEIGHT 13
-#define RCCAMERA_HORIZONTAL_PADDING 1
-#define RCCAMERA_VERTICAL_PADDING 1
+#define RCCAMERA_FONT_WIDTH 14
+#define RCCAMERA_FONT_HEIGHT 21
+#define RCCAMERA_HORIZONTAL_PADDING 0
+#define RCCAMERA_VERTICAL_PADDING 0
 
 #define RCCAMERA_CHARACTER_WIDTH_TOTAL (RCCAMERA_FONT_WIDTH + RCCAMERA_HORIZONTAL_PADDING)
 #define RCCAMERA_CHARACTER_HEIGHT_TOTAL (RCCAMERA_FONT_HEIGHT + RCCAMERA_VERTICAL_PADDING)
@@ -59,8 +59,9 @@ typedef enum {
 
 typedef enum {
     RCSPLIT_PACKET_CMD_CTRL =                   0x01,
-    RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN =        0x20, // write characters to OSD in rcsplit
+    RCSPLIT_PACKET_CMD_OSD_DRAW_STRING =        0x20, // write characters to OSD in rcsplit
     RCSPLIT_PACKET_CMD_OSD_CLEAR =              0x21,
+    RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN =        0x22, // draw a screen buffer to rcsplit
 } rcsplit_packet_cmd_e;
 
 // the commands of RunCam Split serial protocol
@@ -92,6 +93,15 @@ typedef struct {
     uint16_t crc16;
     uint8_t tail;
 }) rcsplit_packet_v2_t;
+
+// The data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_STRING
+RCPACKED(
+typedef struct {
+    uint8_t align;
+    uint16_t x;
+    uint16_t y;
+    uint8_t *characters; 
+}) rcsplit_osd_draw_text_data_t;
 
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
 RCPACKED(

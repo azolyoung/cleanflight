@@ -17,5 +17,12 @@
 
 #pragma once
 
+#include "io/rcsplit_types.h"
+
+#define USE_FULL_SCREEN_DRAWING 0
+
+// only for unit test
+extern uint8_t rcsplitOSDScreenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
+
 displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort);
  
