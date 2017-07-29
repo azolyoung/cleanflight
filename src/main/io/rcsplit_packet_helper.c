@@ -152,7 +152,7 @@ uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf)
     // fill the data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
     uint16_t dataLen = sizeof(rcsplit_osd_clear_screen_data_t);
     rcsplit_osd_clear_screen_data_t *data = (rcsplit_osd_clear_screen_data_t*)malloc(dataLen);
-    data->align = 0x01;
+    // data->align = 0x01;
     data->start_x = 0;
     data->start_y = 0;
     data->end_x = convertInt16ToBigEndian(RCCAMERA_SCREEN_WIDTH - 1);

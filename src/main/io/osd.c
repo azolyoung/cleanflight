@@ -782,10 +782,7 @@ static void osdDrawLogo(int x, int y)
 void osdInit(displayPort_t *osdDisplayPortToUse)
 {
     if (!osdDisplayPortToUse) {
-        beeperConfirmationBeeps(20);
         return;
-    } else {
-        beeperConfirmationBeeps(7);
     }
 
     BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
@@ -1142,6 +1139,7 @@ void osdUpdate(timeUs_t currentTimeUs)
 #endif
 
     if (counter++ % DRAW_FREQ_DENOM == 0) {
+        beeperConfirmationBeeps(1);
         osdRefresh(currentTimeUs);
     } else { // rest of time redraw screen 10 chars per idle so it doesn't lock the main idle
         displayDrawScreen(osdDisplayPort);

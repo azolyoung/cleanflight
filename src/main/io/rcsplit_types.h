@@ -112,7 +112,7 @@ typedef struct {
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_CLEAR
 RCPACKED(
 typedef struct {
-    uint8_t align;
+    // uint8_t align;
     uint16_t start_x;
     uint16_t start_y;
     uint16_t end_x;

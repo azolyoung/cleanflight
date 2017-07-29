@@ -52,7 +52,7 @@ static int clearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
 
-#if USE_FULL_SCREEN_DRAWING
+
     sbuf_t buf;
     uint16_t expectedPacketSize = 0;
     uint8_t *base = NULL;
@@ -62,7 +62,9 @@ static int clearScreen(displayPort_t *displayPort)
     rcCamOSDGenerateClearPacket(&buf);
     serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
     free(base);
-
+    beeperConfirmationBeeps(1);
+    
+#if USE_FULL_SCREEN_DRAWING
     uint16_t bufferLen = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
     uint16_t x;
     uint32_t *p = (uint32_t*)&rcsplitOSDScreenBuffer[0];
@@ -116,22 +118,11 @@ static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const 
     uint16_t actualPacketSize = 0;
     uint8_t *base = NULL;
 
-    // expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x, y, s, len);
-    // base = (uint8_t*)malloc(expectedPacketSize);
-    // buf.ptr = base;
-    // actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x, y, s, len);
-
-    static int count = 0;
-
-    
-    expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x, y, "AELL", 4);
+    expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x, y, s, len);
     base = (uint8_t*)malloc(expectedPacketSize);
     buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x, y, "AELL", 4);
-    if (count % 10 == 0) {
-        serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
-    }
-    count++;
+    actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x, y, s, len);
+    serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
     free(base);
 
 #endif

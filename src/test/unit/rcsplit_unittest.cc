@@ -379,6 +379,17 @@ TEST(RCSplitTest, TestPacketGenerate)
     }
     
     
+    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
+    p = base;
+    printf("clear cmd11(%d):", expectedPacketSize);
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
     base = buf.ptr = NULL;
 
 #if USE_FULL_SCREEN_DRAWING
