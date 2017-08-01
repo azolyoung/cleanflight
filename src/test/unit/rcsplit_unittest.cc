@@ -366,10 +366,10 @@ TEST(RCSplitTest, TestPacketGenerate)
     EXPECT_EQ(true, result);
 
     for (int i = 0; i < 1; i++) {
-        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 10, i, "AELL", 4);
+        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 5, 5, "Hello", 5);
         base = (uint8_t*)malloc(expectedPacketSize);
         buf.ptr = base;
-        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 10, i, "AELL", 4);
+        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 5, 5, "Hello", 5);
         p = buf.ptr;
         for (int i = 0; i < actualPacketSize; i++) {
             printf("%02x ", *p++);

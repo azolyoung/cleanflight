@@ -62,7 +62,6 @@ static int clearScreen(displayPort_t *displayPort)
     rcCamOSDGenerateClearPacket(&buf);
     serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
     free(base);
-    beeperConfirmationBeeps(1);
     
 #if USE_FULL_SCREEN_DRAWING
     uint16_t bufferLen = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
@@ -137,6 +136,7 @@ static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
 
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
 {
+    c = '?';
     return _writeString(displayPort, x, y, (const char*)&c, 1);
 }
 
