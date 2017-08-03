@@ -90,44 +90,42 @@ static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
         // serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
         // return ;
 
-        int x1 = 22;
-        int x2 = 23;
-        sbuf_t buf;
-        uint8_t *base = NULL;
-        uint16_t expectedPacketSize = 0, actualPacketSize = 0;
-        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x1, 5, "A", 1);
-        base = (uint8_t*)malloc(expectedPacketSize);
-        buf.ptr = base;
-        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x1, 5, "A", 1);
-        serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
-        free(base);
+        // for (int i = 0; i < 16; i++) {
+        //     sbuf_t buf;
+        //     uint8_t *base = NULL;
+        //     uint16_t expectedPacketSize = 0, actualPacketSize = 0;
+        //     expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 0, i, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+        //     base = (uint8_t*)malloc(expectedPacketSize);
+        //     buf.ptr = base;
+        //     actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 0, i, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30);
+        //     serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
+        //     free(base);
+        // }
 
-        expectedPacketSize = 0, actualPacketSize = 0;
-        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x2, 5, "A", 1);
-        base = (uint8_t*)malloc(expectedPacketSize);
-        buf.ptr = base;
-        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x2, 5, "A", 1);
-        serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
-        free(base);
+        // display logo and help
+        // int x = 3;
+        // int y = 1;
+        // char fontOffset = 160;
+        // for (int row = 0; row < 4; row++) {
+        //     for (int column = 0; column < 24; column++) {
+        //         if (fontOffset != 255)  {// FIXME magic number
+        //             sbuf_t buf;
+        //             uint16_t expectedPacketSize = 0;
+        //             uint16_t actualPacketSize = 0;
+        //             uint8_t *base = NULL;
 
-        expectedPacketSize = 0, actualPacketSize = 0;
-        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x2, 6, "A", 1);
-        base = (uint8_t*)malloc(expectedPacketSize);
-        buf.ptr = base;
-        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x2, 6, "A", 1);
-        serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
-        free(base);
+        //             fontOffset++;
+        //             expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x + column, y + row, "?", 1);
+        //             base = (uint8_t*)malloc(expectedPacketSize);
+        //             buf.ptr = base;
+        //             actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x + column, y + row, "?", 1);
+        //             serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
+        //             free(base);
+        //         }
+        //     }
+        // }
 
-
-        expectedPacketSize = 0, actualPacketSize = 0;
-        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, x1, 6, "A", 1);
-        base = (uint8_t*)malloc(expectedPacketSize);
-        buf.ptr = base;
-        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, x1, 6, "A", 1);
-        serialWriteBuf(rcSplitSerialPort, base, actualPacketSize);
-        free(base);
-
-        return ;
+        // return ;
     }
     // beeperConfirmationBeeps(3);
     uint8_t uart_buffer[5] = {0};

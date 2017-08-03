@@ -1124,9 +1124,9 @@ void osdUpdate(timeUs_t currentTimeUs)
 
     // redraw values in buffer
 #ifdef USE_MAX7456
-#define DRAW_FREQ_DENOM 5
+#define DRAW_FREQ_DENOM 500
 #else
-#define DRAW_FREQ_DENOM 10 // MWOSD @ 115200 baud (
+#define DRAW_FREQ_DENOM 500 // MWOSD @ 115200 baud (
 #endif
 
 #ifdef USE_SLOW_MSP_DISPLAYPORT_RATE_WHEN_UNARMED
@@ -1139,8 +1139,8 @@ void osdUpdate(timeUs_t currentTimeUs)
 #endif
 
     if (counter++ % DRAW_FREQ_DENOM == 0) {
-        beeperConfirmationBeeps(1);
         osdRefresh(currentTimeUs);
+        beeperConfirmationBeeps(1);
     } else { // rest of time redraw screen 10 chars per idle so it doesn't lock the main idle
         displayDrawScreen(osdDisplayPort);
     }

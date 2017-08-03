@@ -476,7 +476,7 @@ void init(void)
         if (rcSplitSerialPort) {
             osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
             osdInit(osdDisplayPort);
-            beeperConfirmationBeeps(10);
+            beeperConfirmationBeeps(3);
         } else {
             beeperConfirmationBeeps(9);
         }

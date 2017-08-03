@@ -21,13 +21,17 @@
 extern "C" {
     #include <stdbool.h>
     #include <stdint.h>
+    #include <stdlib.h>
+    #include <string.h>
     #include <ctype.h>
+    #include <math.h>
 
     #include "platform.h"
 
     #include "common/utils.h"
     #include "common/maths.h"
     #include "common/bitarray.h"
+    #include "common/printf.h"
 
     #include "config/parameter_group.h"
     #include "config/parameter_group_ids.h"
@@ -47,6 +51,9 @@ extern "C" {
     #include "io/displayport_rccamera.h"
 
     #include "rx/rx.h"
+
+    #include "cms/cms.h"
+    #include "build/version.h"
 
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 
@@ -346,6 +353,18 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
+static void osdDrawLogo(displayPort_t *osdDisplayPort, int x, int y)
+{
+    // display logo and help
+    char fontOffset = 160;
+    for (int row = 0; row < 4; row++) {
+        for (int column = 0; column < 24; column++) {
+            if (fontOffset != 255) // FIXME magic number
+                displayWriteChar(osdDisplayPort, x + column, y + row, fontOffset++);
+        }
+    }
+}
+
 TEST(RCSplitTest, TestPacketGenerate)
 {
     sbuf_t buf;
@@ -365,55 +384,73 @@ TEST(RCSplitTest, TestPacketGenerate)
     result = rcSplitInit();
     EXPECT_EQ(true, result);
 
-    for (int i = 0; i < 1; i++) {
-        expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 5, 5, "Hello", 5);
-        base = (uint8_t*)malloc(expectedPacketSize);
-        buf.ptr = base;
-        actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 5, 5, "Hello", 5);
-        p = buf.ptr;
-        for (int i = 0; i < actualPacketSize; i++) {
-            printf("%02x ", *p++);
-        }
-        printf("\n");
-        free(base);
-    }
+    // for (int i = 0; i < 1; i++) {
+    //     expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 5, 5, "Hello", 5);
+    //     base = (uint8_t*)malloc(expectedPacketSize);
+    //     buf.ptr = base;
+    //     actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 5, 5, "Hello", 5);
+    //     p = buf.ptr;
+    //     for (int i = 0; i < actualPacketSize; i++) {
+    //         printf("%02x ", *p++);
+    //     }
+    //     printf("\n");
+    //     free(base);
+    // }
     
     
-    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
-    base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
-    p = base;
-    printf("clear cmd11(%d):", expectedPacketSize);
-    for (int i = 0; i < actualPacketSize; i++) {
-        printf("%02x ", *p++);
-    }
-    printf("\n");
+    // expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
+    // p = base;
+    // printf("clear cmd11(%d):", expectedPacketSize);
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
 
-    base = buf.ptr = NULL;
+    // base = buf.ptr = NULL;
 
-#if USE_FULL_SCREEN_DRAWING
+
     rcsplit_packet_v2_t packet;
     displayPort_t *osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
     EXPECT_EQ(true, osdDisplayPort != NULL);
 
-    for (int i = 0; i < RCCAMERA_SCREEN_CHARACTER_ROW_COUNT; i++) {
-        for (int j = 0; j < RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT; j++) {
-            displayWrite(osdDisplayPort, j, i, "A");
-        }
-    }
+    // displayClearScreen(osdDisplayPort);
+    // osdDrawLogo(osdDisplayPort, 3, 1);
+    // displayWrite(osdDisplayPort, 7, 8,  CMS_STARTUP_HELP_TEXT1);
+    // displayWrite(osdDisplayPort, 11, 9, CMS_STARTUP_HELP_TEXT2);
+    // displayWrite(osdDisplayPort, 11, 10, CMS_STARTUP_HELP_TEXT3);
 
-    expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, rcsplitOSDScreenBuffer);
-    base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, rcsplitOSDScreenBuffer);
-    p = buf.ptr;
-    for (int i = 0; i < actualPacketSize; i++) {
-        printf("%02x ", *p++);
-    }
-    printf("\n");
-    // check the packet size is expected
-    EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, rcsplitOSDScreenBuffer);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, rcsplitOSDScreenBuffer);
+    // p = buf.ptr;
+    // printf("drawlogo:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // displayClearScreen(osdDisplayPort);
+    // for (int i = 0; i < RCCAMERA_SCREEN_CHARACTER_ROW_COUNT; i++) {
+    //     for (int j = 0; j < RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT; j++) {
+    //         displayWrite(osdDisplayPort, j, i, "A");
+    //     }
+    // }
+
+    // expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, rcsplitOSDScreenBuffer);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, rcsplitOSDScreenBuffer);
+    // p = buf.ptr;
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+    // // check the packet size is expected
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
 
 
     // parse the packet, check the fields is correct or not.
@@ -423,8 +460,53 @@ TEST(RCSplitTest, TestPacketGenerate)
 
     free(base);
     base = buf.ptr = NULL;
-#endif
 
+
+    // x:10, y:10; 字符:A
+    // y:50, y:50; 字符:B
+    // y:80, y:80; 字符:C
+    uint8_t dataBuf[3 * 6] = { 0 };
+    uint16_t pos = 0;
+    uint16_t x = 10;
+    uint16_t y = 10;
+    uint8_t c = 'A';
+    dataBuf[pos++] = x >> 8 & 0xFF;
+    dataBuf[pos++] = x & 0xFF;
+    dataBuf[pos++] = y >> 8 & 0xFF;
+    dataBuf[pos++] = y & 0xFF;
+    dataBuf[pos++] = 0;
+    dataBuf[pos++] = c;
+
+    x = 50;
+    y = 50;
+    c = 'B';
+    dataBuf[pos++] = x >> 8 & 0xFF;
+    dataBuf[pos++] = x & 0xFF;
+    dataBuf[pos++] = y >> 8 & 0xFF;
+    dataBuf[pos++] = y & 0xFF;
+    dataBuf[pos++] = 0;
+    dataBuf[pos++] = c;
+
+    x = 80;
+    y = 80;
+    c = 'C';
+    dataBuf[pos++] = x >> 8 & 0xFF;
+    dataBuf[pos++] = x & 0xFF;
+    dataBuf[pos++] = y >> 8 & 0xFF;
+    dataBuf[pos++] = y & 0xFF;
+    dataBuf[pos++] = 0;
+    dataBuf[pos++] = c;
+
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    p = buf.ptr;
+    printf("praticle data:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
 }
 
 extern "C" {

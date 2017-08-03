@@ -19,7 +19,7 @@
 
 #include "io/rcsplit_types.h"
 
-#define USE_FULL_SCREEN_DRAWING 0
+#define USE_FULL_SCREEN_DRAWING 1
 
 // only for unit test
 extern uint8_t rcsplitOSDScreenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
