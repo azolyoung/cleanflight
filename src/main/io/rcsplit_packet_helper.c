@@ -94,20 +94,20 @@ static uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8
     return sbufBytesRemaining(src);
 }
 
-// uint16_t convertInt16ToBigEndian(uint16_t val)
-// {
-//     uint16_t r = 0;
+uint16_t convertInt16ToBigEndian(uint16_t val)
+{
+    uint16_t r = 0;
 
-//     uint16_t tmp = 0x1234;
-//     // check current cpu of hardware is using little endian or not, if it is, just convert the int to big endian
-//     if(*(char*)&tmp == 0x34) {
-//         r = val >> 8;
-//         r |= (val & 0xFF) << 8;
-//     } else{
-//         r = val;
-//     }
-//     return r;
-// }
+    uint16_t tmp = 0x1234;
+    // check current cpu of hardware is using little endian or not, if it is, just convert the int to big endian
+    if(*(char*)&tmp == 0x34) {
+        r = val >> 8;
+        r |= (val & 0xFF) << 8;
+    } else{
+        r = val;
+    }
+    return r;
+}
 
 // uint16_t rcCamOSDGenerateDrawStringPacket(sbuf_t *buf, uint8_t x, uint8_t y, const char *text, uint8_t textLen)
 // {
@@ -166,27 +166,27 @@ static uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8
 //     return packetSize;
 // }
 
-// uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf)
-// {
-//     if (rcSplitSerialPort == NULL)
-//         return 0;
+uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf)
+{
+    if (rcSplitSerialPort == NULL)
+        return 0;
 
-//     // fill the data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
-//     uint16_t dataLen = sizeof(rcsplit_osd_clear_screen_data_t);
-//     rcsplit_osd_clear_screen_data_t *data = (rcsplit_osd_clear_screen_data_t*)malloc(dataLen);
-//     // data->align = 0x01;
-//     data->start_x = 0;
-//     data->start_y = 0;
-//     data->end_x = convertInt16ToBigEndian(RCCAMERA_SCREEN_WIDTH - 1);
-//     data->end_y = convertInt16ToBigEndian(RCCAMERA_SCREEN_HEIGHT - 1);
+    // fill the data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
+    uint16_t dataLen = sizeof(rcsplit_osd_clear_screen_data_t);
+    rcsplit_osd_clear_screen_data_t *data = (rcsplit_osd_clear_screen_data_t*)malloc(dataLen);
+    // data->align = 0x01;
+    data->start_x = 0;
+    data->start_y = 0;
+    data->end_x = convertInt16ToBigEndian(RCCAMERA_SCREEN_WIDTH - 1);
+    data->end_y = convertInt16ToBigEndian(RCCAMERA_SCREEN_HEIGHT - 1);
 
-//     uint16_t packetSize = rcCamOSDGeneratePacket(buf, RCSPLIT_PACKET_CMD_OSD_CLEAR, (uint8_t*)data, dataLen);
+    uint16_t packetSize = rcCamOSDGeneratePacket(buf, RCSPLIT_PACKET_CMD_OSD_CLEAR, (uint8_t*)data, dataLen);
 
-//     free(data);
-//     data = NULL;
+    free(data);
+    data = NULL;
 
-//     return packetSize;
-// }
+    return packetSize;
+}
 
 uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf, uint16_t dataLen)
 {

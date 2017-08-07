@@ -22,5 +22,5 @@ uint16_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint16_t skipDataLocatio
 // uint16_t rcCamOSDGenerateDrawStringPacket(sbuf_t *buf, uint8_t x, uint8_t y, const char *text, uint8_t textlen);
 // uint16_t rcCamOSDGenerateDrawScreenPacket(sbuf_t *buf, uint8_t *screenBuffer);
 // uint16_t rcCamOSDGenerateClearPacketAdvance(sbuf_t *buf, uint16_t startX, uint16_t startY, uint16_t endX, uint16_t endY);
-// uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf);
+uint16_t rcCamOSDGenerateClearPacket(sbuf_t *buf);
 uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf, uint16_t dataLen);

@@ -57,15 +57,15 @@ static int clearScreen(displayPort_t *displayPort)
     UNUSED(displayPort);
 
 
-    // sbuf_t buf;
-    // uint16_t expectedPacketSize = 0;
-    // uint8_t *base = NULL;
-    // expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
-    // base = (uint8_t*)malloc(expectedPacketSize);
-    // buf.ptr = base;
-    // rcCamOSDGenerateClearPacket(&buf);
-    // serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
-    // free(base);
+    sbuf_t buf;
+    uint16_t expectedPacketSize = 0;
+    uint8_t *base = NULL;
+    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    rcCamOSDGenerateClearPacket(&buf);
+    serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
+    free(base);
     
 // #if USE_FULL_SCREEN_DRAWING
     uint16_t bufferLen = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
@@ -81,34 +81,16 @@ static int clearScreen(displayPort_t *displayPort)
 static int drawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-
-    static int delay = 0;
-    delay++;
-    if (delay % 3 != 0) {
-        return ;
-    }
-
     if (!rcsplitLock) {
         rcsplitLock = true;
-    
-    
-    
         static uint16_t pos = 0;
         uint16_t buff_len = 0;
 
-        // uint8_t testbuf[] = { 0x55, 0x23, 0x00, 0x12, 0x00, 0x0a, 0x00, 0x0a, 0x00, 0x41, 0x00, 0x32, 0x00, 0x32, 0x00, 0x42, 0x00, 0x50, 0x00, 0x50, 0x00, 0x43, 0xc4, 0x4e, 0xaa };
-        // serialWriteBuf(rcSplitSerialPort, testbuf, sizeof(testbuf) / sizeof(uint8_t));
-    // beeperConfirmationBeeps(2);
-    // return 0;
         for (int i = 0; i < RCSPLIT_MAX_CHARS2UPDATE; i++) {
             if (rcsplitOSDScreenBuffer[pos] != shadowBuffer[pos]) {
                 uint16_t x = pos % RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_CHARACTER_WIDTH_TOTAL;
                 uint16_t y = pos / RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_CHARACTER_HEIGHT_TOTAL;
-                // uint8_t c = rcsplitOSDScreenBuffer[pos];
-
-                // uint16_t x = 10;
-                // uint16_t y = 10;
-                uint8_t c = 'A';
+                uint8_t c = rcsplitOSDScreenBuffer[pos];
 
                 particleChangeBuffer[buff_len++] = x >> 8 & 0xFF;
                 particleChangeBuffer[buff_len++] = x & 0xFF;
@@ -140,17 +122,6 @@ static int drawScreen(displayPort_t *displayPort)
             free(base);    
         }
 
-        
-        
-        // sbuf_t buf;
-        // uint16_t expectedPacketSize = 0;
-        // uint8_t *base = NULL;
-        // expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, rcsplitOSDScreenBuffer);
-        // base = (uint8_t*)malloc(expectedPacketSize);
-        // buf.ptr = base;
-        // rcCamOSDGenerateDrawScreenPacket(&buf, rcsplitOSDScreenBuffer);
-        // serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
-        // free(base);
         rcsplitLock = false;
     }
     
