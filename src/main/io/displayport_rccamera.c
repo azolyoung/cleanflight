@@ -28,7 +28,7 @@
 
 // #ifdef USE_RCCAMERA_DISPLAYPORT
 
-#define RCSPLIT_MAX_CHARS2UPDATE 100
+#define RCSPLIT_MAX_CHARS2UPDATE 50
 
 displayPort_t rccameraDisplayPort;
 
@@ -84,19 +84,16 @@ static int drawScreen(displayPort_t *displayPort)
     if (!rcsplitLock) {
         rcsplitLock = true;
         static uint16_t pos = 0;
-        uint16_t buff_len = 0;
+        uint8_t buff_len = 0;
 
         for (int i = 0; i < RCSPLIT_MAX_CHARS2UPDATE; i++) {
             if (rcsplitOSDScreenBuffer[pos] != shadowBuffer[pos]) {
-                uint16_t x = pos % RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_CHARACTER_WIDTH_TOTAL;
-                uint16_t y = pos / RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_CHARACTER_HEIGHT_TOTAL;
+                uint8_t x = pos % RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
+                uint8_t y = pos / RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
                 uint8_t c = rcsplitOSDScreenBuffer[pos];
 
-                particleChangeBuffer[buff_len++] = x >> 8 & 0xFF;
-                particleChangeBuffer[buff_len++] = x & 0xFF;
-                particleChangeBuffer[buff_len++] = y >> 8 & 0xFF;
-                particleChangeBuffer[buff_len++] = y & 0xFF;
-                particleChangeBuffer[buff_len++] = 0;
+                particleChangeBuffer[buff_len++] = x;
+                particleChangeBuffer[buff_len++] = y;
                 particleChangeBuffer[buff_len++] = c;
                 shadowBuffer[pos] = rcsplitOSDScreenBuffer[pos];
             }
@@ -108,7 +105,6 @@ static int drawScreen(displayPort_t *displayPort)
         }
 
         if (buff_len) {
-            beeperConfirmationBeeps(3);
             sbuf_t buf;
             uint16_t expectedPacketSize = 0;
             uint8_t *base = NULL;
@@ -231,6 +227,9 @@ displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort)
     displayInit(&rccameraDisplayPort, &rccameraDisplayPortVTable);
     rccameraDisplayPort.rows = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
     rccameraDisplayPort.cols = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;    
+
+    // clear the scrren
+    clearScreen(&rccameraDisplayPort);
 
     return &rccameraDisplayPort;
 }

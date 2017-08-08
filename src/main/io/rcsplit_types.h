@@ -37,16 +37,13 @@
 // #define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT (RCCAMERA_SCREEN_WIDTH / RCCAMERA_CHARACTER_WIDTH_TOTAL)
 // #define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT (RCCAMERA_SCREEN_HEIGHT / RCCAMERA_CHARACTER_HEIGHT_TOTAL)
 #define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT 30
-#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT 16
-
-typedef enum {
-    RCSPLIT_OSD_TEXT_ALIGN_RIGHT = 0,
-    RCSPLIT_OSD_TEXT_ALIGN_LEFT = 1,
-} rcsplit_osd_text_align_e;
+#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_PAL 13
+#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC 16
 
 // packet header and tail
 #define RCSPLIT_PACKET_HEADER           0x55
-#define RCSPLIT_PACKET_TAIL             0xaa
+#define RCSPLIT_PACKET_TAIL             0xaa // it's decrepted on Protocol V2 for split
+#define RCSPLIT_OPENCTO_CAMERA_DEVICE   0x2
 
 typedef struct {
     uint8_t boxId;
@@ -60,11 +57,10 @@ typedef enum {
 } rcsplit_state_e;
 
 typedef enum {
-    RCSPLIT_PACKET_CMD_CTRL =                                   0x01,
-    RCSPLIT_PACKET_CMD_OSD_DRAW_STRING =                        0x20, // write characters to OSD in rcsplit
-    RCSPLIT_PACKET_CMD_OSD_CLEAR =                              0x21,
-    RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN =                        0x22, // draw a screen buffer to rcsplit
-    RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA =          0x23, // draw a screen buffer to rcsplit
+    RCSPLIT_PACKET_CMD_CTRL =                           0x00,
+    RCSPLIT_PACKET_CMD_OSD_CLEAR =                      0x01,
+    RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA =  0x02, // draw partial screen buffer to rcsplit
+
 } rcsplit_packet_cmd_e;
 
 // the commands of RunCam Split serial protocol
@@ -90,42 +86,17 @@ typedef struct {
 RCPACKED(
 typedef struct {
     uint8_t header;
-    uint8_t command;
-    uint16_t dataLen;
+    uint8_t deviceID : 4;
+    uint8_t command : 4;
+    uint8_t dataLen;
     uint8_t *data;
-    uint16_t crc16;
-    uint8_t tail;
+    uint8_t crc8;
 }) rcsplit_packet_v2_t;
-
-// The data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_STRING
-RCPACKED(
-typedef struct {
-    uint8_t align;
-    uint16_t x;
-    uint16_t y;
-    uint8_t *characters; 
-}) rcsplit_osd_draw_text_data_t;
-
-// The data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_SCREEN
-RCPACKED(
-typedef struct {
-    uint8_t characters[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT]; 
-}) rcsplit_osd_draw_screen_data_t;
-
-// The data struct of command RCSPLIT_PACKET_CMD_OSD_CLEAR
-RCPACKED(
-typedef struct {
-    // uint8_t align;
-    uint16_t start_x;
-    uint16_t start_y;
-    uint16_t end_x;
-    uint16_t end_y;
-}) rcsplit_osd_clear_screen_data_t;
 
 // The data struct of command RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA
 RCPACKED(
 typedef struct {
-    uint16_t x;
-    uint16_t y;
-    uint16_t data;
+    uint8_t x;
+    uint8_t y;
+    uint8_t c;
 }) rcsplit_osd_particle_screen_data_t;

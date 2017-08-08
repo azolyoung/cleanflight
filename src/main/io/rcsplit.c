@@ -46,7 +46,7 @@ serialPort_t *rcSplitSerialPort = NULL;
 rcsplit_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
 
-static uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
+uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
 {
     uint8_t i; 
     uint8_t crc=0x00;
