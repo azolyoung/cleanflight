@@ -33,9 +33,9 @@
 displayPort_t rccameraDisplayPort;
 
 // #if USE_FULL_SCREEN_DRAWING
-uint8_t rcsplitOSDScreenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
-static uint8_t shadowBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT];
-static uint16_t rcsplitMaxScreenSize = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
+uint8_t rcsplitOSDScreenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC];
+static uint8_t shadowBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC];
+static uint16_t rcsplitMaxScreenSize = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
 static uint8_t particleChangeBuffer[RCSPLIT_MAX_CHARS2UPDATE*6];
 static bool  rcsplitLock        = false;
 // #endif
@@ -68,7 +68,7 @@ static int clearScreen(displayPort_t *displayPort)
     free(base);
     
 // #if USE_FULL_SCREEN_DRAWING
-    uint16_t bufferLen = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
+    uint16_t bufferLen = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
     uint16_t x;
     uint32_t *p = (uint32_t*)&rcsplitOSDScreenBuffer[0];
     for (x = 0; x < bufferLen/4; x++)
@@ -223,10 +223,9 @@ displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort)
         return NULL;
     }
 
-    // rccameraDisplayPort.device = cameraSerialPort;
     displayInit(&rccameraDisplayPort, &rccameraDisplayPortVTable);
-    rccameraDisplayPort.rows = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT;
-    rccameraDisplayPort.cols = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;    
+    rccameraDisplayPort.rows = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
+    rccameraDisplayPort.cols = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
 
     // clear the scrren
     clearScreen(&rccameraDisplayPort);

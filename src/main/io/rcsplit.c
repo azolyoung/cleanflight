@@ -45,6 +45,21 @@
 serialPort_t *rcSplitSerialPort = NULL;
 rcsplit_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
+rcsplit_osd_camera_info_t cameraInfo;
+
+static uint8_t rcsplitReqBuffer[16];
+static uint8_t rcsplitRespBuffer[16];
+
+typedef enum {
+    RCSPLIT_RECV_STATUS_WAIT_HEADER = 0,
+    RCSPLIT_RECV_STATUS_WAIT_COMMAND,
+    RCSPLIT_RECV_STATUS_WAIT_LENGTH,
+    RCSPLIT_RECV_STATUS_WAIT_DATA,
+    RCSPLIT_RECV_STATUS_WAIT_CRC
+} rcsplitRecvStatus_e;
+
+static int rcsplitReceivePos = 0;
+rcsplitRecvStatus_e rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_HEADER;
 
 uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
 {
@@ -186,6 +201,19 @@ static void rcSplitProcessMode()
     }
 }
 
+static void retriveCameraInfo()
+{
+    sbuf_t buf;
+    uint16_t expectedPacketSize = 0;
+    uint8_t *base = NULL;
+    expectedPacketSize = rcCamOSDGenerateGetCameraInfoPacket(NULL);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    rcCamOSDGenerateGetCameraInfoPacket(&buf);
+    serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
+    free(base);
+}
+
 bool rcSplitInit(void)
 {
     // found the port config with FUNCTION_RUNCAM_SPLIT_CONTROL
@@ -201,6 +229,8 @@ bool rcSplitInit(void)
         return false;
     }
 
+    cameraState = RCSPLIT_STATE_IS_READY;
+
     // set init value to true, to avoid the action auto run when the flight board start and the switch is on.
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
         uint8_t switchIndex = i - BOXCAMERA1;
@@ -208,13 +238,91 @@ bool rcSplitInit(void)
         switchStates[switchIndex].isActivated = true; 
     }
     
-    cameraState = RCSPLIT_STATE_IS_READY;
+    retriveCameraInfo();
 
 #ifdef USE_RCSPLIT
     setTaskEnabled(TASK_RCSPLIT, true);
 #endif
 
     return true;
+}
+
+static void rcsplitResetReceiver()
+{
+    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_HEADER;
+    rcsplitReceivePos = 0;
+}
+
+static char trampHandleResponse(void)
+{
+    uint8_t commandID = rcsplitRespBuffer[1] & 0x0F;
+
+    switch (commandID) {
+    case RCSPLIT_PACKET_CMD_GET_CAMERA_INFO:
+        {
+            // memcpy(&cameraInfo, &rcsplitRespBuffer, sizeof(rcsplit_osd_camera_info_t));
+        }
+        break;
+    }
+
+    return 0;
+}
+
+void rcSplitReceive(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    if (!rcSplitSerialPort)
+        return ;
+
+    while (serialRxBytesWaiting(rcSplitSerialPort)) {
+        uint8_t c = serialRead(rcSplitSerialPort);
+        rcsplitRespBuffer[rcsplitReceivePos++] = c;
+
+        switch(rcsplitReceiveState) {
+            case RCSPLIT_RECV_STATUS_WAIT_HEADER:
+                if (c == RCSPLIT_PACKET_HEADER) {
+                    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_COMMAND;
+                } else {
+                    rcsplitReceivePos = 0;
+                }
+                break;
+
+            case RCSPLIT_RECV_STATUS_WAIT_COMMAND:
+                {
+                    uint8_t deviceID = c & 0xF0 >> 4;
+                    if (deviceID != 0x2) { // not camera device id
+                        rcsplitResetReceiver();
+                    } else {
+                    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_LENGTH; 
+                    }
+                }
+                break;
+
+            case RCSPLIT_RECV_STATUS_WAIT_LENGTH:
+                rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_DATA;
+                break;
+
+            case RCSPLIT_RECV_STATUS_WAIT_DATA:
+                rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_CRC;
+                break;
+            
+            case RCSPLIT_RECV_STATUS_WAIT_CRC:
+            {
+                uint8_t crc = crc_high_first(rcsplitRespBuffer, rcsplitReceivePos);
+                if (crc != c) {
+                    rcsplitResetReceiver();
+                }
+            }
+                
+                break;
+
+            default:
+                rcsplitResetReceiver();
+            }
+    }
+
+    return ;
 }
 
 void rcSplitProcess(timeUs_t currentTimeUs)
@@ -226,4 +334,6 @@ void rcSplitProcess(timeUs_t currentTimeUs)
 
     // process rcsplit custom mode if has any changed
     rcSplitProcessMode();
+
+    rcSplitReceive(currentTimeUs);
 }

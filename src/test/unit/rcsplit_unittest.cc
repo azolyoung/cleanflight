@@ -506,13 +506,12 @@ TEST(RCSplitTest, TestPacketGenerate)
     // y:80, y:80; 字符:C
     rcsplit_osd_particle_screen_data_t testParticalChanges[] = { {10, 10, 'A'}, {20, 20, 'B'}, {30, 30, 'C'}, };
     int testDataCount = sizeof(testParticalChanges) / sizeof(rcsplit_osd_particle_screen_data_t);
-    uint8_t *dataBuf = (uint8_t*)malloc(sizeof(testParticalChanges));
+    uint8_t *dataBuf = (uint8_t*)malloc(255 * 3);
     uint8_t pos = 0;
-    for (int i = 0; i < testDataCount; i++) {
-        rcsplit_osd_particle_screen_data_t data = testParticalChanges[i];
-        dataBuf[pos++] = data.x;
-        dataBuf[pos++] = data.y;
-        dataBuf[pos++] = data.c;
+    for (int i = 192; i < 128 + 64 + 64; i++) {
+        dataBuf[pos++] = i % 30;
+        dataBuf[pos++] = i / 30;
+        dataBuf[pos++] = i;
     }
 
     expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
@@ -520,7 +519,7 @@ TEST(RCSplitTest, TestPacketGenerate)
     buf.ptr = base;
     actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
     p = buf.ptr;
-    printf("praticle data:");
+    printf("praticle data:", pos);
     for (int i = 0; i < actualPacketSize; i++) {
         printf("%02x ", *p++);
     }

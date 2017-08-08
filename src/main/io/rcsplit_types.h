@@ -37,8 +37,8 @@
 // #define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT (RCCAMERA_SCREEN_WIDTH / RCCAMERA_CHARACTER_WIDTH_TOTAL)
 // #define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT (RCCAMERA_SCREEN_HEIGHT / RCCAMERA_CHARACTER_HEIGHT_TOTAL)
 #define RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT 30
-#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_PAL 13
-#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC 16
+#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_PAL 16
+#define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC 13
 
 // packet header and tail
 #define RCSPLIT_PACKET_HEADER           0x55
@@ -60,7 +60,7 @@ typedef enum {
     RCSPLIT_PACKET_CMD_CTRL =                           0x00,
     RCSPLIT_PACKET_CMD_OSD_CLEAR =                      0x01,
     RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA =  0x02, // draw partial screen buffer to rcsplit
-
+    RCSPLIT_PACKET_CMD_GET_CAMERA_INFO =                0x03, // get the base info of camera, e.g video_format(N/P)
 } rcsplit_packet_cmd_e;
 
 // the commands of RunCam Split serial protocol
@@ -100,3 +100,9 @@ typedef struct {
     uint8_t y;
     uint8_t c;
 }) rcsplit_osd_particle_screen_data_t;
+
+RCPACKED(
+typedef struct {
+    uint8_t video_format;
+}) rcsplit_osd_camera_info_t;
+

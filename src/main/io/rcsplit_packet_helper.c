@@ -127,3 +127,12 @@ uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf,
                                                 dataLen);
     return packetSize;
 }
+
+uint16_t rcCamOSDGenerateGetCameraInfoPacket(sbuf_t *buf)
+{
+    uint16_t packetSize = rcCamOSDGeneratePacket(buf, 
+                                                RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, 
+                                                NULL, 
+                                                0);
+    return packetSize;
+}
