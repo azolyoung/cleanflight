@@ -37,6 +37,9 @@
 #include "scheduler/scheduler.h"
 
 #include "drivers/serial.h"
+#include "drivers/display.h"
+
+#include "cms/cms_types.h"
 
 #include "io/rcsplit.h"
 #include "io/rcsplit_packet_helper.h"
@@ -50,6 +53,10 @@ rcsplit_osd_camera_info_t cameraInfo = { RCSPLIT_VIDEOFMT_UNKNOWN  };
 static uint8_t rcsplitReqBuffer[16];
 static uint8_t rcsplitRespBuffer[16];
 static uint8_t resplitRespDataBlockLength = 0;
+
+// 存放当前有多少个菜单项的cms根菜单里
+static uint8_t menuItemCount = 0;
+static rcsplit_cms_menu_data_t **menuItems = NULL;
 
 typedef enum {
     RCSPLIT_RECV_STATUS_WAIT_HEADER = 0,
@@ -299,7 +306,6 @@ void rcSplitReceive(timeUs_t currentTimeUs)
 
             case RCSPLIT_RECV_STATUS_WAIT_COMMAND:
                 {
-                    
                     uint8_t deviceID = (c & 0xF0) >> 4;
                     if (deviceID != 0x2) { // not camera device id
                         rcsplitResetReceiver();
@@ -351,4 +357,48 @@ void rcSplitProcess(timeUs_t currentTimeUs)
 
     // process rcsplit custom mode if has any changed
     rcSplitProcessMode();
+}
+
+static OSD_Entry runcamMenuEntries[] =
+{
+    { "- CAMERA RC -", OME_Label, NULL, NULL, 0 },
+    { "BACK",   OME_Back, NULL, NULL, 0 },
+    { NULL,     OME_END, NULL, NULL, 0 }
+};
+
+CMS_Menu cmsx_menuCameraRuncam = {
+    .GUARD_text = "CAMERARUNCAM",
+    .GUARD_type = OME_MENU,
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = runcamMenuEntries,
+};
+
+void rcCameraCmsUpdateMenu()
+{
+    // 生成菜单项，菜单项总是3个+从相机获取回来的菜单项个数
+    OSD_Entry *menuEntries = (OSD_Entry *)malloc(sizeof(OSD_Entry) * 3 + menuItemCount);
+
+    // 顶部菜单项
+    OSD_Entry headerEntry = { "- CAMERA RC -", OME_Label, NULL, NULL, 0 };
+    memcpy(&(menuEntries[0]), &headerEntry, sizeof(OSD_Entry));
+
+    // 遍历从相机读取回来的菜单项
+    for (int i = 0; i < menuItemCount;i++) {
+        rcsplit_cms_menu_data_t *menuData = menuItems[i];
+        OSD_Entry menuEntry = { menuData->menuName, menuData->menuType, NULL, NULL, 0 };
+        memcpy(&(menuEntries[1 + i]), &menuEntry, sizeof(OSD_Entry));
+    }
+
+    // 生成back菜单项
+    OSD_Entry backEntry = { "BACK", OME_Back, NULL, NULL, 0 };
+    memcpy(&(menuEntries[1 + menuItemCount]), &backEntry, sizeof(OSD_Entry));
+
+    // 生成结束菜单项
+    OSD_Entry lastEntry = { NULL, OME_END, NULL, NULL, 0 };
+    memcpy(&(menuEntries[2 + menuItemCount]), &lastEntry, sizeof(OSD_Entry));
+
+    // 将以上动态生成的菜单项，设置到菜单结构里
+    cmsx_menuCameraRuncam.entries = menuEntries;
 }

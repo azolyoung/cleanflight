@@ -61,6 +61,7 @@ typedef enum {
     RCSPLIT_PACKET_CMD_OSD_CLEAR =                      0x01,
     RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA =  0x02, // draw partial screen buffer to rcsplit
     RCSPLIT_PACKET_CMD_GET_CAMERA_INFO =                0x03, // get the base info of camera, e.g video_format(N/P)
+    RCSPLIT_PACKET_CMD_GET_CONFIGURATIONS =             0x04,
 } rcsplit_packet_cmd_e;
 
 typedef enum {
@@ -112,3 +113,9 @@ typedef struct {
     uint8_t video_format;
 }) rcsplit_osd_camera_info_t;
 
+RCPACKED(
+typedef struct {
+    uint8_t menuNameLength : 4;
+    uint8_t menuType : 4;
+    char *menuName;
+}) rcsplit_cms_menu_data_t;
