@@ -45,7 +45,7 @@
 serialPort_t *rcSplitSerialPort = NULL;
 rcsplit_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
-rcsplit_osd_camera_info_t cameraInfo;
+rcsplit_osd_camera_info_t cameraInfo = { RCSPLIT_VIDEOFMT_UNKNOWN  };
 
 static uint8_t rcsplitReqBuffer[16];
 static uint8_t rcsplitRespBuffer[16];
@@ -253,19 +253,24 @@ static void rcsplitResetReceiver()
     rcsplitReceivePos = 0;
 }
 
-static char trampHandleResponse(void)
+static void rcsplitHandleResponse(void)
 {
     uint8_t commandID = rcsplitRespBuffer[1] & 0x0F;
-
+    uint8_t dataLen = rcsplitRespBuffer[2];
     switch (commandID) {
     case RCSPLIT_PACKET_CMD_GET_CAMERA_INFO:
         {
-            // memcpy(&cameraInfo, &rcsplitRespBuffer, sizeof(rcsplit_osd_camera_info_t));
+            if (dataLen < sizeof(rcsplit_osd_camera_info_t))
+                return ;
+                
+            memcpy(&cameraInfo, rcsplitRespBuffer + 3, sizeof(rcsplit_osd_camera_info_t));
+
+            cameraState = RCSPLIT_STATE_IS_READY;
         }
         break;
     }
 
-    return 0;
+    return ;
 }
 
 void rcSplitReceive(timeUs_t currentTimeUs)
@@ -294,7 +299,7 @@ void rcSplitReceive(timeUs_t currentTimeUs)
                     if (deviceID != 0x2) { // not camera device id
                         rcsplitResetReceiver();
                     } else {
-                    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_LENGTH; 
+                        rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_LENGTH; 
                     }
                 }
                 break;
@@ -312,9 +317,10 @@ void rcSplitReceive(timeUs_t currentTimeUs)
                 uint8_t crc = crc_high_first(rcsplitRespBuffer, rcsplitReceivePos);
                 if (crc != c) {
                     rcsplitResetReceiver();
+                } else {
+                    rcsplitHandleResponse();
                 }
-            }
-                
+            }                
                 break;
 
             default:

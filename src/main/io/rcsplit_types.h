@@ -63,6 +63,12 @@ typedef enum {
     RCSPLIT_PACKET_CMD_GET_CAMERA_INFO =                0x03, // get the base info of camera, e.g video_format(N/P)
 } rcsplit_packet_cmd_e;
 
+typedef enum {
+    RCSPLIT_VIDEOFMT_UNKNOWN = 0,
+    RCSPLIT_VIDEOFMT_PAL,
+    RCSPLIT_VIDEOFMT_NTSC
+} rcsplit_video_format_e;
+
 // the commands of RunCam Split serial protocol
 typedef enum {
     RCSPLIT_CTRL_ARGU_INVALID = 0x0,
