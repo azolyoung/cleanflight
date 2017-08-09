@@ -49,6 +49,7 @@ rcsplit_osd_camera_info_t cameraInfo = { RCSPLIT_VIDEOFMT_UNKNOWN  };
 
 static uint8_t rcsplitReqBuffer[16];
 static uint8_t rcsplitRespBuffer[16];
+static uint8_t resplitRespDataBlockLength = 0;
 
 typedef enum {
     RCSPLIT_RECV_STATUS_WAIT_HEADER = 0,
@@ -209,6 +210,7 @@ static void retriveCameraInfo()
     expectedPacketSize = rcCamOSDGenerateGetCameraInfoPacket(NULL);
     base = (uint8_t*)malloc(expectedPacketSize);
     buf.ptr = base;
+    
     rcCamOSDGenerateGetCameraInfoPacket(&buf);
     serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
     free(base);
@@ -229,7 +231,7 @@ bool rcSplitInit(void)
         return false;
     }
 
-    cameraState = RCSPLIT_STATE_IS_READY;
+    cameraState = RCSPLIT_STATE_INITIALIZING;
 
     // set init value to true, to avoid the action auto run when the flight board start and the switch is on.
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
@@ -268,6 +270,8 @@ static void rcsplitHandleResponse(void)
             cameraState = RCSPLIT_STATE_IS_READY;
         }
         break;
+    case 100:
+        break;
     }
 
     return ;
@@ -295,7 +299,8 @@ void rcSplitReceive(timeUs_t currentTimeUs)
 
             case RCSPLIT_RECV_STATUS_WAIT_COMMAND:
                 {
-                    uint8_t deviceID = c & 0xF0 >> 4;
+                    
+                    uint8_t deviceID = (c & 0xF0) >> 4;
                     if (deviceID != 0x2) { // not camera device id
                         rcsplitResetReceiver();
                     } else {
@@ -306,15 +311,19 @@ void rcSplitReceive(timeUs_t currentTimeUs)
 
             case RCSPLIT_RECV_STATUS_WAIT_LENGTH:
                 rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_DATA;
+                resplitRespDataBlockLength = c;
                 break;
 
             case RCSPLIT_RECV_STATUS_WAIT_DATA:
-                rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_CRC;
+                if ((rcsplitReceivePos - resplitRespDataBlockLength) == 3) {
+                    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_CRC;
+                    
+                } 
                 break;
             
             case RCSPLIT_RECV_STATUS_WAIT_CRC:
             {
-                uint8_t crc = crc_high_first(rcsplitRespBuffer, rcsplitReceivePos);
+                uint8_t crc = crc_high_first(rcsplitRespBuffer, rcsplitReceivePos - 1);
                 if (crc != c) {
                     rcsplitResetReceiver();
                 } else {
@@ -338,8 +347,8 @@ void rcSplitProcess(timeUs_t currentTimeUs)
     if (rcSplitSerialPort == NULL)
         return ;
 
+    rcSplitReceive(currentTimeUs);
+
     // process rcsplit custom mode if has any changed
     rcSplitProcessMode();
-
-    rcSplitReceive(currentTimeUs);
 }

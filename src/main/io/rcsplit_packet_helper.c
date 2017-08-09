@@ -73,8 +73,7 @@ uint8_t rcCamCalcPacketCRC(sbuf_t *buf, uint8_t *base, uint8_t skipDataLocation,
 uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8_t *data, uint16_t len)
 {
     uint16_t pakcetLen = sizeof(rcsplit_packet_v2_t) - sizeof(uint8_t*) + len;
-    printf("ffff:%d\n", pakcetLen);
-    printf("dddd:%d\n", len);
+
     if (src == NULL) {
         return pakcetLen;
     }
@@ -83,7 +82,7 @@ uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8_t *dat
     uint8_t crcFieldOffset = 0;
     uint8_t combinedCommand = RCSPLIT_OPENCTO_CAMERA_DEVICE << 4 & 0xF0;
     combinedCommand |= command & 0x0F;
-
+ 
     sbufWriteU8(src, RCSPLIT_PACKET_HEADER);
     sbufWriteU8(src, combinedCommand);
     sbufWriteU8(src, len);
@@ -91,7 +90,6 @@ uint16_t rcCamOSDGeneratePacket(sbuf_t *src, uint8_t command, const uint8_t *dat
         sbufWriteData(src, data, len);
     }
     crcFieldOffset = sbufConstPtr(src) - base;
-    printf("ggg:%d\n", crcFieldOffset);
     sbufWriteU8(src, 0);
     
     // calc the crc of the packet, and skip the crc field
@@ -130,9 +128,10 @@ uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf,
 
 uint16_t rcCamOSDGenerateGetCameraInfoPacket(sbuf_t *buf)
 {
+    uint8_t data = 1;
     uint16_t packetSize = rcCamOSDGeneratePacket(buf, 
                                                 RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, 
-                                                NULL, 
-                                                0);
+                                                &data, 
+                                                1);
     return packetSize;
 }

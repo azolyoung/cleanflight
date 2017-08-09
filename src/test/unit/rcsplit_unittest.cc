@@ -56,6 +56,18 @@ extern "C" {
     #include "build/version.h"
 
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
+    typedef struct testData_s {
+        bool isRunCamSplitPortConfigurated;
+        bool isRunCamSplitOpenPortSupported;
+        int8_t maxTimesOfRespDataAvailable;
+        bool isAllowBufferReadWrite;
+        uint8_t *responseData;
+        uint8_t responseDataLen;
+    } testData_t;
+
+    static testData_t testData;
+
+    static uint8_t getCameraInfoResponseData[] = { 0x55, 0x23, 0x01, 0x01, 0x3b };
 
     rcsplit_state_e unitTestRCsplitState()
     {
@@ -75,6 +87,13 @@ extern "C" {
         cameraState = RCSPLIT_STATE_UNKNOWN;
     }
 
+    void unitTestSetDeviceToReadyStatus()
+    {
+        testData.responseData = getCameraInfoResponseData;
+        testData.responseDataLen = sizeof(getCameraInfoResponseData);
+        testData.maxTimesOfRespDataAvailable = testData.responseDataLen + 1;
+    }
+
     bool rcCamOSDPasrePacket(sbuf_t *src, rcsplit_packet_v2_t *outPacket)
     {
         if (src == NULL || outPacket == NULL) {
@@ -88,7 +107,6 @@ extern "C" {
         command = sbufReadU8(src);
         outPacket->deviceID = command >> 4;
         if (outPacket->deviceID != RCSPLIT_OPENCTO_CAMERA_DEVICE) {
-            printf("device id incorrect\n");
             return false;
         }
             
@@ -117,15 +135,6 @@ extern "C" {
     }
 }
 
-typedef struct testData_s {
-    bool isRunCamSplitPortConfigurated;
-    bool isRunCamSplitOpenPortSupported;
-    int8_t maxTimesOfRespDataAvailable;
-    bool isAllowBufferReadWrite;
-} testData_t;
-
-static testData_t testData;
-
 TEST(RCSplitTest, TestRCSplitInitWithoutPortConfigurated)
 {
     memset(&testData, 0, sizeof(testData));
@@ -151,10 +160,14 @@ TEST(RCSplitTest, TestRCSplitInit)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
 
     bool result = rcSplitInit();
+
+    rcSplitProcess((timeUs_t)0);
+
     EXPECT_EQ(true, result);
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 }
@@ -163,6 +176,7 @@ TEST(RCSplitTest, TestRecvWhoAreYouResponse)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     
@@ -173,6 +187,10 @@ TEST(RCSplitTest, TestRecvWhoAreYouResponse)
     // so the "who are you response" will full received, and cause the state change to RCSPLIT_STATE_IS_READY;
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
+    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    testData.responseData = responseData;
+    testData.responseDataLen = sizeof(responseData);
+
     rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
@@ -222,15 +240,16 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     // runn process loop
     rcSplitProcess(0);
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA1));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA2));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA1));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA2));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
@@ -271,6 +290,9 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
+    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    testData.responseData = responseData;
+    testData.responseDataLen = sizeof(responseData);
     rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
@@ -284,6 +306,7 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
@@ -324,6 +347,9 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
+    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    testData.responseData = responseData;
+    testData.responseDataLen = sizeof(responseData);
     rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
@@ -444,58 +470,70 @@ TEST(RCSplitTest, TestPacketGenerate)
     //     }
     // }
 
-    expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    // expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("wifi button:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_POWER_BTN);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_POWER_BTN);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("power button:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_CHANGE_MODE);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_CHANGE_MODE);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("change mode button:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("clear fullscreen:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+    expectedPacketSize = rcCamOSDGenerateGetCameraInfoPacket(NULL);
     base = (uint8_t*)malloc(expectedPacketSize);
     buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    actualPacketSize = rcCamOSDGenerateGetCameraInfoPacket(&buf);
     EXPECT_EQ(expectedPacketSize, actualPacketSize); 
     p = buf.ptr;
-    printf("wifi button:");
+    printf("get camera info:");
     for (int i = 0; i < actualPacketSize; i++) {
         printf("%02x ", *p++);
     }
     printf("\n");
 
-    expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_POWER_BTN);
-    base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_POWER_BTN);
-    EXPECT_EQ(expectedPacketSize, actualPacketSize); 
-    p = buf.ptr;
-    printf("power button:");
-    for (int i = 0; i < actualPacketSize; i++) {
-        printf("%02x ", *p++);
-    }
-    printf("\n");
-
-    expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_CHANGE_MODE);
-    base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_CHANGE_MODE);
-    EXPECT_EQ(expectedPacketSize, actualPacketSize); 
-    p = buf.ptr;
-    printf("change mode button:");
-    for (int i = 0; i < actualPacketSize; i++) {
-        printf("%02x ", *p++);
-    }
-    printf("\n");
-
-    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
-    base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
-    EXPECT_EQ(expectedPacketSize, actualPacketSize); 
-    p = buf.ptr;
-    printf("clear fullscreen:");
-    for (int i = 0; i < actualPacketSize; i++) {
-        printf("%02x ", *p++);
-    }
-    printf("\n");
 
     // parse the packet, check the fields is correct or not.
     result = rcCamOSDPasrePacket(&buf, &packet);
     EXPECT_EQ(true, result);
-    EXPECT_EQ(RCSPLIT_PACKET_CMD_OSD_CLEAR, packet.command);
+    EXPECT_EQ(RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, packet.command);
 
     free(base);
     base = buf.ptr = NULL;
@@ -595,9 +633,9 @@ extern "C" {
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
             static uint8_t i = 0;
-            static uint8_t buffer[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+            static uint8_t *buffer = testData.responseData;
 
-            if (i >= 5) {
+            if (i >= testData.responseDataLen) {
                 i = 0;
             }
 
@@ -631,7 +669,7 @@ extern "C" {
         if (testData.isAllowBufferReadWrite) {
             memcpy(dst->ptr, data, len);
             dst->ptr += len;
-            printf("in write data: %d\n", len);
+            
         }
     }
 
@@ -703,5 +741,10 @@ extern "C" {
     }
 
     bool feature(uint32_t) { return false;}
-    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) { UNUSED(instance); UNUSED(data); UNUSED(count); }
+
+    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) 
+    { 
+        
+        UNUSED(instance); UNUSED(data); UNUSED(count); 
+    }
 }
