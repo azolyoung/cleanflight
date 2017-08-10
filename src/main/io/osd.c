@@ -1140,7 +1140,6 @@ void osdUpdate(timeUs_t currentTimeUs)
 
     if (counter++ % DRAW_FREQ_DENOM == 0) {
         osdRefresh(currentTimeUs);
-        beeperConfirmationBeeps(1);
     } else { // rest of time redraw screen 10 chars per idle so it doesn't lock the main idle
         displayDrawScreen(osdDisplayPort);
     }

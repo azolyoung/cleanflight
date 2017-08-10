@@ -128,7 +128,7 @@ uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf,
 
 uint16_t rcCamOSDGenerateGetCameraInfoPacket(sbuf_t *buf)
 {
-    uint8_t data = 1;
+    uint8_t data = 0x3; // send 0x2 to camera, tell it we are current in Clean Flight
     uint16_t packetSize = rcCamOSDGeneratePacket(buf, 
                                                 RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, 
                                                 &data, 

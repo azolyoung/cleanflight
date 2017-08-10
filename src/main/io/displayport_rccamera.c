@@ -176,7 +176,6 @@ static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
 
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
 {
-    c = '?';
     return _writeString(displayPort, x, y, (const char*)&c, 1);
 }
 

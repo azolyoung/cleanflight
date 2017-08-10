@@ -446,6 +446,7 @@ TEST(RCSplitTest, TestPacketGenerate)
     displayPort_t *osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
     EXPECT_EQ(true, osdDisplayPort != NULL);
 
+
     // displayClearScreen(osdDisplayPort);
     // osdDrawLogo(osdDisplayPort, 3, 1);
     // displayWrite(osdDisplayPort, 7, 8,  CMS_STARTUP_HELP_TEXT1);
@@ -517,6 +518,7 @@ TEST(RCSplitTest, TestPacketGenerate)
     //     printf("%02x ", *p++);
     // }
     // printf("\n");
+
     expectedPacketSize = rcCamOSDGenerateGetCameraInfoPacket(NULL);
     base = (uint8_t*)malloc(expectedPacketSize);
     buf.ptr = base;
@@ -535,29 +537,84 @@ TEST(RCSplitTest, TestPacketGenerate)
     EXPECT_EQ(true, result);
     EXPECT_EQ(RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, packet.command);
 
-    free(base);
-    base = buf.ptr = NULL;
+    // free(base);
+    // base = buf.ptr = NULL;
 
 
-    // x:10, y:10; 字符:A
-    // y:50, y:50; 字符:B
-    // y:80, y:80; 字符:C
-    rcsplit_osd_particle_screen_data_t testParticalChanges[] = { {10, 10, 'A'}, {20, 20, 'B'}, {30, 30, 'C'}, };
-    int testDataCount = sizeof(testParticalChanges) / sizeof(rcsplit_osd_particle_screen_data_t);
-    uint8_t *dataBuf = (uint8_t*)malloc(255 * 3);
-    uint8_t pos = 0;
-    for (int i = 192; i < 128 + 64 + 64; i++) {
-        dataBuf[pos++] = i % 30;
-        dataBuf[pos++] = i / 30;
-        dataBuf[pos++] = i;
+
+    uint8_t *dataBuf = (uint8_t*)malloc(2048);
+    uint16_t pos = 0;
+    for (int i = 0; i < 5; i++) {
+        dataBuf[pos++] = 10;
+        dataBuf[pos++] = 10;
+        dataBuf[pos++] = 'A';
     }
-
+    printf("pos:%d\n", pos);
     expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    printf("expectedPacketSize:%d\n", expectedPacketSize);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    printf("actualPacketSize:%d\n", actualPacketSize);
+    p = buf.ptr;
+    printf("praticle data:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    int logoX = 0;
+    int logoY = 0;
+    uint16_t offset = 160;
+    pos = 0;
+    for (int row = 0; row < 2; row++) {
+        for (int column = 0; column < 24; column++) {
+            dataBuf[pos] = logoX + column;
+            pos += 1;
+            dataBuf[pos] = (logoY + row);
+            pos += 1;
+            dataBuf[pos] = offset++;
+            pos += 1;
+            printf("loop: %d, %d, %d\n", row, column, pos);
+        }
+    }
+    printf("post:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    
     base = (uint8_t*)malloc(expectedPacketSize);
     buf.ptr = base;
     actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
     p = buf.ptr;
-    printf("praticle data:", pos);
+    printf("%d\n", actualPacketSize);
+    printf("praticle logo1:", pos);
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    offset = 208;
+    logoY = 2;
+    pos = 0;
+    for (int row = 0; row < 2; row++) {
+        for (int column = 0; column < 24; column++) {
+            dataBuf[pos] = logoX + column;
+            pos += 1;
+            dataBuf[pos] = (logoY + row);
+            pos += 1;
+            dataBuf[pos] = offset++;
+            pos += 1;
+            printf("loop: %d, %d, %d\n", row, column, pos);
+        }
+    }
+    
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    p = buf.ptr;
+    printf("%d\n", actualPacketSize);
+    printf("praticle logo2:", pos);
     for (int i = 0; i < actualPacketSize; i++) {
         printf("%02x ", *p++);
     }

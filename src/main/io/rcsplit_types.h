@@ -61,6 +61,8 @@ typedef enum {
     RCSPLIT_PACKET_CMD_OSD_CLEAR =                      0x01,
     RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA =  0x02, // draw partial screen buffer to rcsplit
     RCSPLIT_PACKET_CMD_GET_CAMERA_INFO =                0x03, // get the base info of camera, e.g video_format(N/P)
+    RCSPLIT_PACKET_CMD_OSD_DRAW_NO_VERT_SPACE_CHARS =   0x04, // this command is almost same with RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA, the difference is: this command will draw the characters without Verticle Space every characters
+    RCSPLIT_PACKET_CMD_V1_CTRL =                        0x01,
 } rcsplit_packet_cmd_e;
 
 typedef enum {
