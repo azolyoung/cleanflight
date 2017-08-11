@@ -229,8 +229,9 @@ ws2811_unittest_SRC := \
 rcsplit_unittest_SRC := \
 		$(USER_DIR)/common/bitarray.c \
 		$(USER_DIR)/fc/rc_modes.c \
+		$(USER_DIR)/io/displayport_rccamera.c \
 		$(USER_DIR)/io/rcsplit.c \
-		$(USER_DIR)/io/rcsplit_packet_helper.c
+		$(USER_DIR)/io/rcsplit_packet_helper.c 
 
 rcsplit_unitest_DEFINES := \
 		USE_UART3 \

@@ -21,13 +21,17 @@
 extern "C" {
     #include <stdbool.h>
     #include <stdint.h>
+    #include <stdlib.h>
+    #include <string.h>
     #include <ctype.h>
+    #include <math.h>
 
     #include "platform.h"
 
     #include "common/utils.h"
     #include "common/maths.h"
     #include "common/bitarray.h"
+    #include "common/printf.h"
 
     #include "config/parameter_group.h"
     #include "config/parameter_group_ids.h"
@@ -41,19 +45,31 @@ extern "C" {
 
     #include "scheduler/scheduler.h"
     #include "drivers/serial.h"
-    #include "io/rcsplit_types.h"
+    #include "drivers/display.h"
     #include "io/rcsplit.h"
     #include "io/rcsplit_packet_helper.h"
+    #include "io/displayport_rccamera.h"
 
     #include "rx/rx.h"
 
-    extern rcsplitState_e cameraState;
-    extern serialPort_t *rcSplitSerialPort;
-    extern rcsplitSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
+    #include "cms/cms.h"
+    #include "build/version.h"
 
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
+    typedef struct testData_s {
+        bool isRunCamSplitPortConfigurated;
+        bool isRunCamSplitOpenPortSupported;
+        int8_t maxTimesOfRespDataAvailable;
+        bool isAllowBufferReadWrite;
+        uint8_t *responseData;
+        uint8_t responseDataLen;
+    } testData_t;
 
-    rcsplitState_e unitTestRCsplitState()
+    static testData_t testData;
+
+    static uint8_t getCameraInfoResponseData[] = { 0x55, 0x23, 0x01, 0x01, 0x3b };
+
+    rcsplit_state_e unitTestRCsplitState()
     {
         return cameraState;
     }
@@ -61,7 +77,7 @@ extern "C" {
     bool unitTestIsSwitchActivited(boxId_e boxId)
     {
         uint8_t adjustBoxID = boxId - BOXCAMERA1;
-        rcsplitSwitchState_t switchState = switchStates[adjustBoxID];
+        rcsplit_switch_state_t switchState = switchStates[adjustBoxID];
         return switchState.isActivated;
     }
 
@@ -71,16 +87,31 @@ extern "C" {
         cameraState = RCSPLIT_STATE_UNKNOWN;
     }
 
+    void unitTestSetDeviceToReadyStatus()
+    {
+        testData.responseData = getCameraInfoResponseData;
+        testData.responseDataLen = sizeof(getCameraInfoResponseData);
+        testData.maxTimesOfRespDataAvailable = testData.responseDataLen + 1;
+    }
+
     bool rcCamOSDPasrePacket(sbuf_t *src, rcsplit_packet_v2_t *outPacket)
     {
         if (src == NULL || outPacket == NULL) {
             return false;
         }
 
-        uint8_t crcFieldOffset = 0;
+        uint16_t crcFieldOffset = 0;
         uint8_t *base = src->ptr;
+        uint8_t command = 0;
         outPacket->header = sbufReadU8(src);
-        outPacket->command = sbufReadU8(src);
+        command = sbufReadU8(src);
+        outPacket->deviceID = command >> 4;
+        if (outPacket->deviceID != RCSPLIT_OPENCTO_CAMERA_DEVICE) {
+            return false;
+        }
+            
+
+        outPacket->command = command & 0x0F;
         outPacket->dataLen = sbufReadU8(src);
         uint8_t *data = (uint8_t*)malloc(outPacket->dataLen);
         sbufReadData(src, data, outPacket->dataLen);
@@ -89,14 +120,12 @@ extern "C" {
 
         crcFieldOffset = sbufConstPtr(src) - base;
         outPacket->crc8 = sbufReadU8(src);
-        outPacket->tail = sbufReadU8(src);
-        uint8_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, 1);
+        uint8_t crc = rcCamCalcPacketCRC(src, base, crcFieldOffset, sizeof(uint8_t));
         if (crc != outPacket->crc8) {
             return false;
         }
 
-        if (outPacket->header != RCSPLIT_PACKET_HEADER ||
-            outPacket->tail != RCSPLIT_PACKET_TAIL) {
+        if (outPacket->header != RCSPLIT_PACKET_HEADER) {
             return false;
         }
 
@@ -104,37 +133,7 @@ extern "C" {
 
         return true;
     }
-
-    bool rcCamOSDParseWriteCharsData(uint8_t *data, rcsplit_osd_write_chars_data_t *outData) {
-        sbuf_t buf;
-
-        if (data == NULL || outData == NULL)
-            return false;
-
-        buf.ptr = data;
-
-        outData->align = sbufReadU8(&buf);
-        outData->x = sbufReadU16(&buf);
-        outData->y = sbufReadU16(&buf);
-        outData->charactersLen = sbufReadU8(&buf);
-
-        uint8_t *characters = (uint8_t*)malloc(outData->charactersLen);
-        sbufReadData(&buf, characters, outData->charactersLen);
-        sbufAdvance(&buf, outData->charactersLen); 
-        outData->characters = characters;
-
-        return true;
-    }
 }
-
-typedef struct testData_s {
-    bool isRunCamSplitPortConfigurated;
-    bool isRunCamSplitOpenPortSupported;
-    int8_t maxTimesOfRespDataAvailable;
-    bool isAllowBufferReadWrite;
-} testData_t;
-
-static testData_t testData;
 
 TEST(RCSplitTest, TestRCSplitInitWithoutPortConfigurated)
 {
@@ -161,10 +160,14 @@ TEST(RCSplitTest, TestRCSplitInit)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
 
     bool result = rcSplitInit();
+
+    rcSplitProcess((timeUs_t)0);
+
     EXPECT_EQ(true, result);
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
 }
@@ -173,6 +176,7 @@ TEST(RCSplitTest, TestRecvWhoAreYouResponse)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     
@@ -183,6 +187,10 @@ TEST(RCSplitTest, TestRecvWhoAreYouResponse)
     // so the "who are you response" will full received, and cause the state change to RCSPLIT_STATE_IS_READY;
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
+    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    testData.responseData = responseData;
+    testData.responseDataLen = sizeof(responseData);
+
     rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
@@ -232,15 +240,16 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     // runn process loop
     rcSplitProcess(0);
 
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA1));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA2));
-    EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA1));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA2));
+    EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
 TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
@@ -281,6 +290,9 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
+    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    testData.responseData = responseData;
+    testData.responseDataLen = sizeof(responseData);
     rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
@@ -294,6 +306,7 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
 {
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
+    unitTestSetDeviceToReadyStatus();
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
@@ -334,6 +347,9 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     // runn process loop
     int8_t randNum = rand() % 127 + 6; 
     testData.maxTimesOfRespDataAvailable = randNum;
+    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    testData.responseData = responseData;
+    testData.responseDataLen = sizeof(responseData);
     rcSplitProcess((timeUs_t)0);
 
     EXPECT_EQ(RCSPLIT_STATE_IS_READY, unitTestRCsplitState());
@@ -370,10 +386,12 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
 TEST(RCSplitTest, TestPacketGenerate)
 {
     sbuf_t buf;
-    rcsplit_packet_v2_t packet;
+    
     bool result = false;
     uint16_t expectedPacketSize = 0;
     uint16_t actualPacketSize = 0;
+    uint8_t *p = NULL;
+    uint8_t *base = NULL;
     memset(&testData, 0, sizeof(testData));
     unitTestResetRCSplit();
 
@@ -384,31 +402,256 @@ TEST(RCSplitTest, TestPacketGenerate)
     result = rcSplitInit();
     EXPECT_EQ(true, result);
 
-    // generate a pakcet for RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS
-    expectedPacketSize = rcCamOSDGenerateWritePacket(NULL, 5, 16, RCSPLIT_OSD_TEXT_ALIGN_LEFT, "hahaha", strlen("hahaha"));
-    buf.ptr = (uint8_t*)malloc(expectedPacketSize);
-    actualPacketSize = rcCamOSDGenerateWritePacket(&buf, 5, 16, RCSPLIT_OSD_TEXT_ALIGN_LEFT, "hahaha", strlen("hahaha"));
+    // for (int i = 0; i < 1; i++) {
+    //     expectedPacketSize = rcCamOSDGenerateDrawStringPacket(NULL, 5, 5, "Hello", 5);
+    //     base = (uint8_t*)malloc(expectedPacketSize);
+    //     buf.ptr = base;
+    //     actualPacketSize = rcCamOSDGenerateDrawStringPacket(&buf, 5, 5, "Hello", 5);
+    //     p = buf.ptr;
+    //     for (int i = 0; i < actualPacketSize; i++) {
+    //         printf("%02x ", *p++);
+    //     }
+    //     printf("\n");
+    //     free(base);
+    // }
+    
+    
+    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
+    p = base;
+    printf("clear cmd11(%d):", expectedPacketSize);
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
 
-    // check the packet size is expected
+    base = buf.ptr = NULL;
+
+
+    rcsplit_packet_v2_t packet;
+    displayPort_t *osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
+    EXPECT_EQ(true, osdDisplayPort != NULL);
+
+
+    // displayClearScreen(osdDisplayPort);
+    // osdDrawLogo(osdDisplayPort, 3, 1);
+    // displayWrite(osdDisplayPort, 7, 8,  CMS_STARTUP_HELP_TEXT1);
+    // displayWrite(osdDisplayPort, 11, 9, CMS_STARTUP_HELP_TEXT2);
+    // displayWrite(osdDisplayPort, 11, 10, CMS_STARTUP_HELP_TEXT3);
+
+    // expectedPacketSize = rcCamOSDGenerateDrawScreenPacket(NULL, rcsplitOSDScreenBuffer);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateDrawScreenPacket(&buf, rcsplitOSDScreenBuffer);
+    // p = buf.ptr;
+    // printf("drawlogo:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // displayClearScreen(osdDisplayPort);
+    // for (int i = 0; i < RCCAMERA_SCREEN_CHARACTER_ROW_COUNT; i++) {
+    //     for (int j = 0; j < RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT; j++) {
+    //         displayWrite(osdDisplayPort, j, i, "A");
+    //     }
+    // }
+
+    // expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_WIFI_BTN);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("wifi button:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_POWER_BTN);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_POWER_BTN);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("power button:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // expectedPacketSize = rcCamOSDGenerateControlPacket(NULL, RCSPLIT_CTRL_ARGU_CHANGE_MODE);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateControlPacket(&buf, RCSPLIT_CTRL_ARGU_CHANGE_MODE);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("change mode button:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    // expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    // base = (uint8_t*)malloc(expectedPacketSize);
+    // buf.ptr = base;
+    // actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
+    // EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    // p = buf.ptr;
+    // printf("clear fullscreen:");
+    // for (int i = 0; i < actualPacketSize; i++) {
+    //     printf("%02x ", *p++);
+    // }
+    // printf("\n");
+
+    expectedPacketSize = rcCamOSDGenerateGetCameraInfoPacket(NULL);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateGetCameraInfoPacket(&buf);
     EXPECT_EQ(expectedPacketSize, actualPacketSize); 
+    p = buf.ptr;
+    printf("get camera info:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
 
     // parse the packet, check the fields is correct or not.
     result = rcCamOSDPasrePacket(&buf, &packet);
     EXPECT_EQ(true, result);
-    EXPECT_EQ(RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS, packet.command);
+    EXPECT_EQ(RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, packet.command);
 
-    // check the data of RCSPLIT_PACKET_CMD_OSD_WRITE_CHARS is correct or not
-    rcsplit_osd_write_chars_data_t data;
-    rcCamOSDParseWriteCharsData(packet.data, &data);
-    EXPECT_EQ(5, data.x);
-    EXPECT_EQ(16, data.y);
-    EXPECT_EQ(RCSPLIT_OSD_TEXT_ALIGN_LEFT, data.align);
-    uint8_t szLen = strlen("hahaha");
-    EXPECT_EQ(szLen, data.charactersLen);
-    EXPECT_EQ(0, memcmp(data.characters, "hahaha", szLen));
+    // free(base);
+    // base = buf.ptr = NULL;
 
-    free(buf.ptr);
-    buf.ptr = NULL;
+
+
+    uint8_t *dataBuf = (uint8_t*)malloc(2048);
+    uint16_t pos = 0;
+    for (int i = 0; i < 80; i++) {
+        dataBuf[pos++] = i % 30;
+        dataBuf[pos++] = 2 + i / 30;
+        dataBuf[pos++] = i;
+    }
+    printf("pos:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    printf("expectedPacketSize:%d\n", expectedPacketSize);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    printf("actualPacketSize:%d\n", actualPacketSize);
+    p = buf.ptr;
+    printf("praticle data:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    dataBuf = (uint8_t*)malloc(2048);
+    pos = 0;
+    for (int i = 80; i < 160; i++) {
+        dataBuf[pos++] = i % 30;
+        dataBuf[pos++] = 2 + i / 30;
+        dataBuf[pos++] = i;
+    }
+    printf("pos:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    printf("expectedPacketSize:%d\n", expectedPacketSize);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    printf("actualPacketSize:%d\n", actualPacketSize);
+    p = buf.ptr;
+    printf("praticle data2:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    int logoX = 0;
+    int logoY = 8;
+    uint16_t offset = 160;
+    pos = 0;
+    for (int row = 0; row < 2; row++) {
+        for (int column = 0; column < 24; column++) {
+            dataBuf[pos] = logoX + column;
+            pos += 1;
+            dataBuf[pos] = (logoY + row);
+            pos += 1;
+            dataBuf[pos] = offset++;
+            pos += 1;
+            printf("loop: %d, %d, %d\n", row, column, pos);
+        }
+    }
+    printf("post:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    p = buf.ptr;
+    printf("%d\n", actualPacketSize);
+    printf("praticle logo1:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    offset = 208;
+    logoY = 10;
+    pos = 0;
+    for (int row = 0; row < 2; row++) {
+        for (int column = 0; column < 24; column++) {
+            dataBuf[pos] = logoX + column;
+            pos += 1;
+            dataBuf[pos] = (logoY + row);
+            pos += 1;
+            dataBuf[pos] = offset++;
+            pos += 1;
+            printf("loop: %d, %d, %d\n", row, column, pos);
+        }
+    }
+    
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    p = buf.ptr;
+    printf("%d\n", actualPacketSize);
+    printf("praticle logo2:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    
+    dataBuf = (uint8_t*)malloc(2048);
+    pos = 0;
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = '>';
+
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = '*';
+    printf("pos:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    printf("expectedPacketSize:%d\n", expectedPacketSize);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    printf("actualPacketSize:%d\n", actualPacketSize);
+    p = buf.ptr;
+    printf("draw same character on same pos:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
 }
 
 extern "C" {
@@ -480,9 +723,9 @@ extern "C" {
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
             static uint8_t i = 0;
-            static uint8_t buffer[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+            static uint8_t *buffer = testData.responseData;
 
-            if (i >= 5) {
+            if (i >= testData.responseDataLen) {
                 i = 0;
             }
 
@@ -509,31 +752,6 @@ extern "C" {
         }
     }
     
-    uint8_t sbufReadU8(sbuf_t *src)
-    {
-        return *src->ptr++;
-    }
-
-    void sbufAdvance(sbuf_t *buf, int size)
-    {
-        buf->ptr += size;
-    }
-
-    int sbufBytesRemaining(sbuf_t *buf)
-    {
-        return buf->end - buf->ptr;
-    }
-
-    const uint8_t* sbufConstPtr(const sbuf_t *buf)
-    {
-        return buf->ptr;
-    }
-
-    void sbufReadData(sbuf_t *src, void *data, int len)
-    {
-        memcpy(data, src->ptr, len);
-    }
-
     void sbufWriteData(sbuf_t *dst, const void *data, int len)
     {
         UNUSED(dst); UNUSED(data); UNUSED(len); 
@@ -556,6 +774,42 @@ extern "C" {
         }
     }
 
+    uint8_t sbufReadU8(sbuf_t *src)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            return *src->ptr++;
+        }
+
+        return 0;
+    }
+
+    void sbufAdvance(sbuf_t *buf, int size)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            buf->ptr += size;
+        }
+    }
+
+    int sbufBytesRemaining(sbuf_t *buf)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            return buf->end - buf->ptr;
+        }
+        return 0;
+    }
+
+    const uint8_t* sbufConstPtr(const sbuf_t *buf)
+    {
+        return buf->ptr;
+    }
+
+    void sbufReadData(sbuf_t *src, void *data, int len)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            memcpy(data, src->ptr, len);
+        }
+    }
+
     uint16_t sbufReadU16(sbuf_t *src)
     {
         uint16_t ret;
@@ -564,7 +818,28 @@ extern "C" {
         return ret;
     }
 
+    void sbufWriteU16(sbuf_t *dst, uint16_t val)
+    {
+        sbufWriteU8(dst, val >> 0);
+        sbufWriteU8(dst, val >> 8);
+    }
+
+    void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val)
+    {
+        sbufWriteU8(dst, val >> 8);
+        sbufWriteU8(dst, (uint8_t)val);
+    }
 
     bool feature(uint32_t) { return false;}
-    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) { UNUSED(instance); UNUSED(data); UNUSED(count); }
+
+    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) 
+    { 
+        
+        UNUSED(instance); UNUSED(data); UNUSED(count); 
+    }
+
+    void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
+    {
+        UNUSED(instance); UNUSED(vTable);
+    }
 }

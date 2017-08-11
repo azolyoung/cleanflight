@@ -560,27 +560,31 @@ void init(void)
     //The OSD need to be initialised after GYRO to avoid GYRO initialisation failure on some targets
 
     if (feature(FEATURE_OSD)) {
+#if defined(USE_RCCAMERA_DISPLAYPORT)
+    
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
+    if (portConfig) {
+        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
+        if (rcSplitSerialPort) {
+            osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
+        }
+    }
+#endif
+
+    if (osdDisplayPort == NULL) {
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD then use it
         osdDisplayPort = max7456DisplayPortInit(vcdProfile());
 #elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
         osdDisplayPort = displayPortMspInit();
 #endif
+    }
         // osdInit  will register with CMS by itself.
         osdInit(osdDisplayPort);
     }
 #endif
 
 #if defined(USE_OSD_SLAVE) && !defined(OSD)
-#if defined(USE_RCCAMERA_DISPLAYPORT)
-    // check if user has choose MSP and RunCam Split with some UART, If yes, then use it as a DisplayPort for Osd Slave
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
-    if (portConfig->functionMask & FUNCTION_MSP) {
-        osdDisplayPort = rccameraDisplayPortInit();
-        osdSlaveInit(osdDisplayPort);
-    }
-#endif
-
     if (osdDisplayPort == NULL) {
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD then use it
