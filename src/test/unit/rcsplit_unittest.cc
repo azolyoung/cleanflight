@@ -428,18 +428,18 @@ TEST(RCSplitTest, TestPacketGenerate)
     // }
     
     
-    // expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
-    // base = (uint8_t*)malloc(expectedPacketSize);
-    // buf.ptr = base;
-    // actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
-    // p = base;
-    // printf("clear cmd11(%d):", expectedPacketSize);
-    // for (int i = 0; i < actualPacketSize; i++) {
-    //     printf("%02x ", *p++);
-    // }
-    // printf("\n");
+    expectedPacketSize = rcCamOSDGenerateClearPacket(NULL);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateClearPacket(&buf);
+    p = base;
+    printf("clear cmd11(%d):", expectedPacketSize);
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
 
-    // base = buf.ptr = NULL;
+    base = buf.ptr = NULL;
 
 
     rcsplit_packet_v2_t packet;
@@ -544,10 +544,10 @@ TEST(RCSplitTest, TestPacketGenerate)
 
     uint8_t *dataBuf = (uint8_t*)malloc(2048);
     uint16_t pos = 0;
-    for (int i = 0; i < 5; i++) {
-        dataBuf[pos++] = 10;
-        dataBuf[pos++] = 10;
-        dataBuf[pos++] = 'A';
+    for (int i = 0; i < 80; i++) {
+        dataBuf[pos++] = i % 30;
+        dataBuf[pos++] = 2 + i / 30;
+        dataBuf[pos++] = i;
     }
     printf("pos:%d\n", pos);
     expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
@@ -563,8 +563,29 @@ TEST(RCSplitTest, TestPacketGenerate)
     }
     printf("\n");
 
+    dataBuf = (uint8_t*)malloc(2048);
+    pos = 0;
+    for (int i = 80; i < 160; i++) {
+        dataBuf[pos++] = i % 30;
+        dataBuf[pos++] = 2 + i / 30;
+        dataBuf[pos++] = i;
+    }
+    printf("pos:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    printf("expectedPacketSize:%d\n", expectedPacketSize);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    printf("actualPacketSize:%d\n", actualPacketSize);
+    p = buf.ptr;
+    printf("praticle data2:");
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
     int logoX = 0;
-    int logoY = 0;
+    int logoY = 8;
     uint16_t offset = 160;
     pos = 0;
     for (int row = 0; row < 2; row++) {
@@ -593,7 +614,7 @@ TEST(RCSplitTest, TestPacketGenerate)
     printf("\n");
 
     offset = 208;
-    logoY = 2;
+    logoY = 10;
     pos = 0;
     for (int row = 0; row < 2; row++) {
         for (int column = 0; column < 24; column++) {
@@ -615,6 +636,30 @@ TEST(RCSplitTest, TestPacketGenerate)
     p = buf.ptr;
     printf("%d\n", actualPacketSize);
     printf("praticle logo2:", pos);
+    for (int i = 0; i < actualPacketSize; i++) {
+        printf("%02x ", *p++);
+    }
+    printf("\n");
+
+    
+    dataBuf = (uint8_t*)malloc(2048);
+    pos = 0;
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = '>';
+
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = 10;
+    dataBuf[pos++] = '*';
+    printf("pos:%d\n", pos);
+    expectedPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(NULL, dataBuf, pos);
+    printf("expectedPacketSize:%d\n", expectedPacketSize);
+    base = (uint8_t*)malloc(expectedPacketSize);
+    buf.ptr = base;
+    actualPacketSize = rcCamOSDGenerateDrawParticleScreenPacket(&buf, dataBuf, pos);
+    printf("actualPacketSize:%d\n", actualPacketSize);
+    p = buf.ptr;
+    printf("draw same character on same pos:");
     for (int i = 0; i < actualPacketSize; i++) {
         printf("%02x ", *p++);
     }
