@@ -36,6 +36,8 @@
 #include "drivers/opentco.h"
 #include "sensors/gyroanalyse.h"
 
+static openTCODevice_t tinyOSDDevice;
+
 uint16_t tinyOSD_maxScreenSize = TINYOSD_VIDEO_BUFFER_CHARS_PAL;
 
 static uint8_t  video_system;
@@ -97,7 +99,7 @@ bool tinyOSDInit(const vcdProfile_t *pVcdProfile)
     //vosRegValue = 16 - pVcdProfile->v_offset;
 
     // open serial port
-    if (!opentcoInit(FUNCTION_TINYOSD)) {
+    if (!opentcoInit(FUNCTION_TINYOSD, OPENTCO_DEVICE_OSD, &tinyOSDDevice)) {
         return false;
     }
 
@@ -119,7 +121,7 @@ int tinyOSDFillRegion(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t 
     UNUSED(displayPort);
 
     // start frame
-    opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_FILL_REGION);
+    opentcoInitializeFrame(&tinyOSDDevice, sbuf, OPENTCO_OSD_COMMAND_FILL_REGION);
 
     // start coordinates
     sbufWriteU8(sbuf, x);
@@ -133,7 +135,7 @@ int tinyOSDFillRegion(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t 
     sbufWriteU8(sbuf, value);
 
     // send
-    opentcoSendFrame(sbuf);
+    opentcoSendFrame(&tinyOSDDevice, sbuf);
 
     // done
     return 0;
@@ -145,7 +147,7 @@ int tinyOSDFillRegion(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t 
 
 static void tinyOSDDrawSticks(void) {
     // start frame
-    opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_SPECIAL);
+    opentcoInitializeFrame(&tinyOSDDevice, sbuf, OPENTCO_OSD_COMMAND_SPECIAL);
 
     // automatic calc of frame length
     uint8_t *lengthPtr = sbufPtr(sbuf);
@@ -167,12 +169,12 @@ static void tinyOSDDrawSticks(void) {
     *lengthPtr = sbufPtr(sbuf) - lengthPtr - 1;
 
     // send
-    opentcoSendFrame(sbuf);
+    opentcoSendFrame(&tinyOSDDevice, sbuf);
 }
 
 static void tinyOSDDrawSpectrum(uint8_t axis) {
     // start frame
-    opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_SPECIAL);
+    opentcoInitializeFrame(&tinyOSDDevice, sbuf, OPENTCO_OSD_COMMAND_SPECIAL);
 
     // automatic calc of frame length
     uint8_t *lengthPtr = sbufPtr(sbuf);
@@ -206,7 +208,7 @@ static void tinyOSDDrawSpectrum(uint8_t axis) {
     *lengthPtr = sbufPtr(sbuf) - lengthPtr - 1;
 
     // send
-    opentcoSendFrame(sbuf);
+    opentcoSendFrame(&tinyOSDDevice, sbuf);
 }
 
 int tinyOSDWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
@@ -214,7 +216,7 @@ int tinyOSDWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c
     UNUSED(displayPort);
 
     // start frame
-    opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_WRITE);
+    opentcoInitializeFrame(&tinyOSDDevice, sbuf, OPENTCO_OSD_COMMAND_WRITE);
 
     // add x/y start coordinate
     sbufWriteU8(sbuf, x);
@@ -224,7 +226,7 @@ int tinyOSDWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c
     sbufWriteU8(sbuf, c);
 
     // send
-    opentcoSendFrame(sbuf);
+    opentcoSendFrame(&tinyOSDDevice, sbuf);
 
     // done
     return 0;
@@ -237,7 +239,7 @@ int tinyOSDWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
     // start frame
     // FIXME: add vertical mode
     // opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_WRITE_BUFFER_V);
-    opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_WRITE_BUFFER_H);
+    opentcoInitializeFrame(&tinyOSDDevice, sbuf, OPENTCO_OSD_COMMAND_WRITE_BUFFER_H);
 
     // automatic calc of frame length
     uint8_t *lengthPtr = sbufPtr(sbuf);
@@ -254,7 +256,7 @@ int tinyOSDWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
     *lengthPtr = sbufPtr(sbuf) - lengthPtr - 1;
 
     // send
-    opentcoSendFrame(sbuf);
+    opentcoSendFrame(&tinyOSDDevice, sbuf);
 
     // done
     return 0;
@@ -264,14 +266,14 @@ void tinyOSDSetRegister(uint8_t reg, uint8_t value)
 
 {
     // start frame
-    opentcoInitializeFrame(sbuf, OPENTCO_DEVICE_OSD, OPENTCO_OSD_COMMAND_SET_REGISTER);
+    opentcoInitializeFrame(&tinyOSDDevice, sbuf, OPENTCO_OSD_COMMAND_SET_REGISTER);
 
     // add register and value
     sbufWriteU8(sbuf, reg);
     sbufWriteU8(sbuf, value);
 
     // send
-    opentcoSendFrame(sbuf);
+    opentcoSendFrame(&tinyOSDDevice, sbuf);
 }
 
 int tinyOSDReloadProfile (displayPort_t * displayPort)
