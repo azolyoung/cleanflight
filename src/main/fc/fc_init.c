@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+ 
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "platform.h"
-
+ 
 #include "blackbox/blackbox.h"
 
 #include "common/axis.h"
@@ -102,7 +102,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
-// #include "io/display_rccamera.h"
+#include "io/displayport_rccamera.h"
 
 #include "scheduler/scheduler.h"
 
@@ -239,7 +239,7 @@ void spiPreInit(void)
 #endif
 }
 #endif
-
+ 
 void init(void)
 {
 #ifdef USE_HAL_DRIVER
@@ -552,8 +552,12 @@ void init(void)
     cmsInit();
 #endif
 
-#if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)) || defined(USE_OSD_SLAVE))
+#if (defined(OSD) || ((defined(USE_MSP_DISPLAYPORT) || defined(USE_RCCAMERA_DISPLAYPORT)) && defined(CMS)) || defined(USE_OSD_SLAVE))
     displayPort_t *osdDisplayPort = NULL;
+#endif
+
+#if defined(USE_RCCAMERA_DISPLAYPORT) || defined(USE_RCSPLIT)
+    bool rcsplitInited = rcSplitInit();
 #endif
 
 #if defined(OSD) && !defined(USE_OSD_SLAVE)
@@ -561,13 +565,8 @@ void init(void)
 
     if (feature(FEATURE_OSD)) {
 #if defined(USE_RCCAMERA_DISPLAYPORT)
-    
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
-    if (portConfig) {
-        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
-        if (rcSplitSerialPort) {
-            osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
-        }
+    if (rcsplitInited  && rcSplitSerialPort) {
+        osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
     }
 #endif
 
@@ -740,10 +739,6 @@ void init(void)
 #else
     fcTasksInit();
 #endif
-
-#ifdef USE_RCSPLIT
-    rcSplitInit();
-#endif // USE_RCSPLIT
 
     systemState |= SYSTEM_STATE_READY;
 }

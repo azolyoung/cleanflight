@@ -80,6 +80,11 @@ typedef enum {
     RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0xFF,
 } rcsplit_ctrl_argument_e;
 
+typedef enum {
+    RCSPLIT_FC_TYPE_BF = 0x2,
+    RCSPLIT_FC_TYPE_CF = 0x3,
+} rcsplit_fc_type_e;
+
 // The V1 packet struct for runcam split
 RCPACKED(
 typedef struct {

@@ -67,7 +67,7 @@ extern "C" {
 
     static testData_t testData;
 
-    static uint8_t getCameraInfoResponseData[] = { 0x55, 0x23, 0x01, 0x01, 0x3b };
+    static uint8_t getCameraInfoResponseData[] = { 0x55, 0x23, 0x01, 0x00, 0x0A };
 
     rcsplit_state_e unitTestRCsplitState()
     {
@@ -431,8 +431,8 @@ TEST(RCSplitTest, TestPacketGenerate)
 
 
     rcsplit_packet_v2_t packet;
-    displayPort_t *osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
-    EXPECT_EQ(true, osdDisplayPort != NULL);
+    // displayPort_t *osdDisplayPort = rccameraDisplayPortInit(rcSplitSerialPort);
+    // EXPECT_EQ(true, osdDisplayPort != NULL);
 
 
     // displayClearScreen(osdDisplayPort);
@@ -751,7 +751,7 @@ extern "C" {
             *dst->ptr++ = val;
         }
     }
-    
+
     void sbufWriteData(sbuf_t *dst, const void *data, int len)
     {
         UNUSED(dst); UNUSED(data); UNUSED(len); 

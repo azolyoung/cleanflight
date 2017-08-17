@@ -25,6 +25,7 @@
 
 bool rcSplitInit(void);
 void rcSplitProcess(timeUs_t currentTimeUs);
+bool isCameraReady();
 
 // only for unit test
 extern rcsplit_state_e cameraState;

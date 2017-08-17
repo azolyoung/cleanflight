@@ -19,25 +19,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "drivers/display.h"
 
 #include "io/beeper.h"
 #include "io/serial.h"
 #include "io/rcsplit.h"
 #include "io/rcsplit_packet_helper.h"
+#include "io/displayport_rccamera.h"
 
-// #ifdef USE_RCCAMERA_DISPLAYPORT
+#ifdef USE_RCCAMERA_DISPLAYPORT
 
 #define RCSPLIT_MAX_CHARS2UPDATE 50
 
-displayPort_t rccameraDisplayPort;
+static displayPort_t rccameraDisplayPort;
 
 // #if USE_FULL_SCREEN_DRAWING
 uint8_t rcsplitOSDScreenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC];
 static uint8_t shadowBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC];
 static uint16_t rcsplitMaxScreenSize = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
 static uint8_t particleChangeBuffer[RCSPLIT_MAX_CHARS2UPDATE*6];
-static bool  rcsplitLock        = false;
+bool  rcsplitLock        = false;
 // #endif
 
 static int grab(displayPort_t *displayPort)
@@ -75,14 +75,21 @@ static int clearScreen(displayPort_t *displayPort)
     //     p[x] = 0x20202020;
 // #endif
 
-    memset(rcsplitOSDScreenBuffer, 0, RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC);
+    memset(rcsplitOSDScreenBuffer, 0x20, RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC);
     return 0;
 }
 
 static int drawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
+
+    // if camera not ready, just return
+    // if (!isCameraReady()) {
+    //     return 0;
+    // }
+
     if (!rcsplitLock) {
+        
         rcsplitLock = true;
         static uint16_t pos = 0;
         uint8_t buff_len = 0;
@@ -114,8 +121,6 @@ static int drawScreen(displayPort_t *displayPort)
             buf.ptr = base;
             rcCamOSDGenerateDrawParticleScreenPacket(&buf, particleChangeBuffer, buff_len);
             serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
-            
-            // uint8_t testbuf[] = { 0x55, 0x23, 0x00, 0x12, 0x00, 0x0a, 0x00, 0x0a, 0x00, 0x41, 0x00, 0x32, 0x00, 0x32, 0x00, 0x42, 0x00, 0x50, 0x00, 0x50, 0x00, 0x43, 0xc4, 0x4e, 0xaa };
             free(base);    
         }
 
@@ -200,10 +205,7 @@ displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort)
     rccameraDisplayPort.rows = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
     rccameraDisplayPort.cols = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
 
-    // clear the scrren
-    clearScreen(&rccameraDisplayPort);
-
     return &rccameraDisplayPort;
 }
 
-// #endif
+#endif

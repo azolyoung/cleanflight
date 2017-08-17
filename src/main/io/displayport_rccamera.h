@@ -18,11 +18,11 @@
 #pragma once
 
 #include "io/rcsplit_types.h"
+#include "drivers/display.h"
 
-#define USE_FULL_SCREEN_DRAWING 1
+extern bool  rcsplitLock;
+displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort);
 
 // only for unit test
 extern uint8_t rcsplitOSDScreenBuffer[RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT * RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC];
-
-displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort);
  

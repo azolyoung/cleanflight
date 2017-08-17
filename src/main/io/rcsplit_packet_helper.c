@@ -130,16 +130,16 @@ uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf,
 
 uint16_t rcCamOSDGenerateGetCameraInfoPacket(sbuf_t *buf)
 {
-    uint8_t data = 0; // send 0x2 to camera, tell it we are current in Clean Flight
+    uint8_t fcType = 0;
     if (strcmp(FC_FIRMWARE_NAME, "Betaflight") == 0) {
-        data = 0x3;
-    } else{
-        data = 0x2;
+        fcType = RCSPLIT_FC_TYPE_BF;
+    } else if (strcmp(FC_FIRMWARE_NAME, "Cleanflight") == 0) {
+        fcType = RCSPLIT_FC_TYPE_CF;
     }
 
     uint16_t packetSize = rcCamOSDGeneratePacket(buf, 
                                                 RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, 
-                                                &data, 
+                                                &fcType, 
                                                 1);
     return packetSize;
 }

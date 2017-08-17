@@ -371,6 +371,9 @@ void fcTasksInit(void)
 #ifdef USE_CAMERA_CONTROL
     setTaskEnabled(TASK_CAMCTRL, true);
 #endif
+#ifdef USE_RCSPLIT
+    setTaskEnabled(TASK_RCSPLIT, true);
+#endif
 }
 #endif
 

@@ -39,6 +39,7 @@
 #include "drivers/serial.h"
 
 #include "io/rcsplit.h"
+#include "io/displayport_rccamera.h"
 #include "io/rcsplit_packet_helper.h"
 
 // communicate with camera device variables
@@ -60,6 +61,8 @@ typedef enum {
 
 static int rcsplitReceivePos = 0;
 rcsplitRecvStatus_e rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_HEADER;
+
+void rcSplitReceive(timeUs_t currentTimeUs);
 
 uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
 {
@@ -143,11 +146,12 @@ static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
 static void rcSplitProcessMode() 
 {
     // if the device not ready, do not handle any mode change event
-    if (RCSPLIT_STATE_IS_READY != cameraState) 
-        return ;
-
+    // if (RCSPLIT_STATE_IS_READY != cameraState) 
+    //     return ;
+    
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
         uint8_t switchIndex = i - BOXCAMERA1;
+        
         if (IS_RC_MODE_ACTIVE(i)) {
             // check last state of this mode, if it's true, then ignore it. 
             // Here is a logic to make a toggle control for this mode
@@ -185,13 +189,14 @@ static void rcSplitProcessMode()
 
 bool rcSplitInit(void)
 {
+    if (rcSplitSerialPort)
+        return true;
+
     // found the port config with FUNCTION_RUNCAM_SPLIT_CONTROL
     // User must set some UART inteface with RunCam Split at peripherals column in Ports tab
-    if (rcSplitSerialPort == NULL) {
-        serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
-        if (portConfig) {
-            rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
-        }
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
+    if (portConfig) {
+        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
     }
 
     if (!rcSplitSerialPort) {
@@ -316,4 +321,9 @@ void rcSplitProcess(timeUs_t currentTimeUs)
 
     // process rcsplit custom mode if has any changed
     rcSplitProcessMode();
+}
+
+bool isCameraReady()
+{
+    return cameraState == RCSPLIT_STATE_IS_READY;
 }
