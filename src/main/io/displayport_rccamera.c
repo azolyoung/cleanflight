@@ -133,7 +133,7 @@ static int drawScreen(displayPort_t *displayPort)
 static int screenSize(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return displayPort->rows * displayPort->cols;
+    return displayPort->rowCount * displayPort->colCount;
 }
 
 static int _writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, uint16_t len)
@@ -181,14 +181,30 @@ static uint32_t txBytesFree(const displayPort_t *displayPort)
     return UINT32_MAX;
 }
 
+static int fillRegion(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t value)
+{
+    UNUSED(displayPort);
+    UNUSED(x);
+    UNUSED(y);
+    UNUSED(width);
+    UNUSED(height);
+    UNUSED(value);
+}
+
+static int reloadProfile(displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+}
+
 static const displayPortVTable_t rccameraDisplayPortVTable = {
     .grab = grab,
     .release = release,
     .clearScreen = clearScreen,
     .drawScreen = drawScreen,
-    .screenSize = screenSize,
+    .fillRegion = fillRegion,
     .writeString = writeString,
     .writeChar = writeChar,
+    .reloadProfile = reloadProfile,
     .isTransferInProgress = isTransferInProgress,
     .heartbeat = heartbeat,
     .resync = resync,
@@ -202,8 +218,8 @@ displayPort_t *rccameraDisplayPortInit(serialPort_t *cameraSerialPort)
     }
 
     displayInit(&rccameraDisplayPort, &rccameraDisplayPortVTable);
-    rccameraDisplayPort.rows = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
-    rccameraDisplayPort.cols = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
+    rccameraDisplayPort.rowCount = RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC;
+    rccameraDisplayPort.colCount = RCCAMERA_SCREEN_CHARACTER_COLUMN_COUNT;
 
     return &rccameraDisplayPort;
 }

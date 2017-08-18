@@ -43,6 +43,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
+#include "drivers/display.h"
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/max7456.h"
@@ -407,11 +408,7 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
 #ifdef USE_OSD_SLAVE
         sbufWriteU8(dst, 1);  // 1 == OSD
 #else
-#if defined(OSD) && defined(USE_MAX7456)
-        sbufWriteU8(dst, 2);  // 2 == FC with OSD
-#else
-        sbufWriteU8(dst, 0);  // 0 == FC
-#endif
+        sbufWriteU8(dst, 2);  // 2 == FC with OSD (capabilities)
 #endif
         break;
 
@@ -603,15 +600,19 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
         break;
     }
 
+
     case MSP_OSD_CONFIG: {
 #define OSD_FLAGS_OSD_FEATURE           (1 << 0)
 #define OSD_FLAGS_OSD_SLAVE             (1 << 1)
 #define OSD_FLAGS_RESERVED_1            (1 << 2)
 #define OSD_FLAGS_RESERVED_2            (1 << 3)
 #define OSD_FLAGS_OSD_HARDWARE_MAX_7456 (1 << 4)
+#define OSD_FLAGS_OSD_HARDWARE_OPENTCO  (1 << 5)
 
+#if defined(USE_OPENTCO) || defined(USE_MAX7456) || defined(USE_OSD_SLAVE)
         uint8_t osdFlags = 0;
-#if defined(OSD)
+#endif
+#if defined(USE_OPENTCO) || defined(USE_MAX7456)
         osdFlags |= OSD_FLAGS_OSD_FEATURE;
 #endif
 #if defined(USE_OSD_SLAVE)
@@ -620,18 +621,25 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
 #ifdef USE_MAX7456
         osdFlags |= OSD_FLAGS_OSD_HARDWARE_MAX_7456;
 #endif
-
-        sbufWriteU8(dst, osdFlags);
-
-#ifdef USE_MAX7456
-        // send video system (AUTO/PAL/NTSC)
-        sbufWriteU8(dst, vcdProfile()->video_system);
-#else
-        sbufWriteU8(dst, 0);
+#ifdef USE_OPENTCO
+        osdFlags |= OSD_FLAGS_OSD_HARDWARE_OPENTCO;
 #endif
 
-#ifdef OSD
+#if (defined(USE_OPENTCO) || defined(USE_MAX7456)) && !defined(USE_OSD_SLAVE)
+        sbufWriteU8(dst, osdFlags);
+
+        // send video system (AUTO/PAL/NTSC)
+        sbufWriteU8(dst, vcdProfile()->video_system);
+
         // OSD specific, not applicable to OSD slaves.
+        sbufWriteU8(dst, osdConfig()->device);
+        sbufWriteU8(dst, osdRowCount());
+        sbufWriteU8(dst, osdColCount());
+
+        // video brightness & inversion
+        sbufWriteU8(dst, displayPortProfile()->invert);
+        sbufWriteU8(dst, displayPortProfile()->blackBrightness);
+        sbufWriteU8(dst, displayPortProfile()->whiteBrightness);
 
         // Configuration
         sbufWriteU8(dst, osdConfig()->units);
@@ -642,9 +650,11 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, osdConfig()->alt_alarm);
 
-        // Element position and visibility
+        // Element position and flags
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdConfig()->item_pos[i]);
+            sbufWriteU8(dst, (uint8_t) osdConfig()->item[i].x);
+            sbufWriteU8(dst, (uint8_t) osdConfig()->item[i].y);
+            sbufWriteU8(dst, (uint8_t) osdConfig()->item[i].flags);
         }
 
         // Post flight statistics
@@ -732,6 +742,13 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst)
             byteCount = constrain(byteCount, 0, 15);        // limit to 16 bytes (128 bits)
             sbufWriteU8(dst, byteCount);
             sbufWriteData(dst, ((uint8_t*)&flightModeFlags) + 4, byteCount);
+
+            // Write arming disable flags
+            // 1 byte, flag count
+            sbufWriteU8(dst, NUM_ARMING_DISABLE_FLAGS);
+            // 4 bytes, flags
+            uint32_t armingDisableFlags = getArmingDisableFlags();
+            sbufWriteU32(dst, armingDisableFlags);
         }
         break;
 
@@ -1125,8 +1142,6 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, motorConfig()->dev.motorPwmRate);
         sbufWriteU16(dst, motorConfig()->digitalIdleOffsetValue);
         sbufWriteU8(dst, gyroConfig()->gyro_use_32khz);
-        //!!TODO gyro_isr_update to be added pending decision
-        //sbufWriteU8(dst, gyroConfig()->gyro_isr_update);
         sbufWriteU8(dst, motorConfig()->dev.motorPwmInversion);
         break;
 
@@ -1520,10 +1535,6 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         if (sbufBytesRemaining(src)) {
             gyroConfigMutable()->gyro_use_32khz = sbufReadU8(src);
         }
-        //!!TODO gyro_isr_update to be added pending decision
-        /*if (sbufBytesRemaining(src)) {
-            gyroConfigMutable()->gyro_isr_update = sbufReadU8(src);
-        }*/
         validateAndFixGyroConfig();
 
         if (sbufBytesRemaining(src)) {
@@ -2000,57 +2011,60 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         batteryConfigMutable()->currentMeterSource = sbufReadU8(src);
         break;
 
-#if defined(OSD) || defined (USE_OSD_SLAVE)
     case MSP_SET_OSD_CONFIG:
         {
-            const uint8_t addr = sbufReadU8(src);
+#if (defined(USE_OPENTCO) || defined(USE_MAX7456)) && !defined(USE_OSD_SLAVE)
+        const uint8_t addr = sbufReadU8(src);
+        if ((int8_t)addr == -1) {
+            /* Set general OSD settings */
+            vcdProfileMutable()->video_system = sbufReadU8(src);
 
-            if ((int8_t)addr == -1) {
-                /* Set general OSD settings */
-#ifdef USE_MAX7456
-                vcdProfileMutable()->video_system = sbufReadU8(src);
-#else
-                sbufReadU8(src); // Skip video system
-#endif
-#if defined(OSD)
-                osdConfigMutable()->units = sbufReadU8(src);
+            osdConfigMutable()->device = sbufReadU8(src);
+            displayPortProfileMutable()->invert = (sbufReadU8(src) != 0) ? true : false;
+            displayPortProfileMutable()->blackBrightness = MIN(100, sbufReadU8(src));
+            displayPortProfileMutable()->whiteBrightness = MIN(100, sbufReadU8(src));
+            // force profile update
+            osdReloadProfile();
 
-                // Alarms
-                osdConfigMutable()->rssi_alarm = sbufReadU8(src);
-                osdConfigMutable()->cap_alarm = sbufReadU16(src);
-                sbufReadU16(src); // Skip unused (previously fly timer)
-                osdConfigMutable()->alt_alarm = sbufReadU16(src);
-#endif
-            } else if ((int8_t)addr == -2) {
-#if defined(OSD)
-                // Timers
-                uint8_t index = sbufReadU8(src);
-                if (index > OSD_TIMER_COUNT) {
-                  return MSP_RESULT_ERROR;
-                }
-                osdConfigMutable()->timers[index] = sbufReadU16(src);
-#endif
-                return MSP_RESULT_ERROR;
-            } else {
-#if defined(OSD)
-                const uint16_t value = sbufReadU16(src);
+            osdConfigMutable()->units  = sbufReadU8(src);
 
-                /* Get screen index, 0 is post flight statistics, 1 and above are in flight OSD screens */
-                const uint8_t screen = (sbufBytesRemaining(src) >= 1) ? sbufReadU8(src) : 1;
+            // Alarms
+            osdConfigMutable()->rssi_alarm = sbufReadU8(src);
+            osdConfigMutable()->cap_alarm = sbufReadU16(src);
+            sbufReadU16(src); // Skip unused (previously fly timer)
+            osdConfigMutable()->alt_alarm = sbufReadU16(src);
 
-                if (screen == 0 && addr < OSD_STAT_COUNT) {
-                    /* Set statistic item enable */
-                    osdConfigMutable()->enabled_stats[addr] = value;
-                } else if (addr < OSD_ITEM_COUNT) {
-                    /* Set element positions */
-                    osdConfigMutable()->item_pos[addr] = value;
-                } else {
-                  return MSP_RESULT_ERROR;
-                }
-#else
-                return MSP_RESULT_ERROR;
-#endif
+        } else if ((int8_t)addr == -2) {
+            // Timers
+            uint8_t index = sbufReadU8(src);
+            if (index > OSD_TIMER_COUNT) {
+              return MSP_RESULT_ERROR;
             }
+            osdConfigMutable()->timers[index] = sbufReadU16(src);
+            return MSP_RESULT_ERROR;
+        } else {
+            /* Get screen index, 0 is post flight statistics, 1 and above are in flight OSD screens */
+            const uint8_t screen = (uint8_t) sbufReadU8(src);
+
+            if (screen == 0 && addr < OSD_STAT_COUNT) {
+                /* Set statistic item enable */
+                osdConfigMutable()->enabled_stats[addr] = (uint16_t) sbufReadU16(src);
+            } else if (addr < OSD_ITEM_COUNT) {
+                /* Set element positions */
+                // read x, y, and flags:
+                osdConfigMutable()->item[addr].x     = (int8_t) sbufReadU8(src);
+                osdConfigMutable()->item[addr].y     = (int8_t) sbufReadU8(src);
+                osdConfigMutable()->item[addr].flags = (int8_t) sbufReadU8(src);
+            } else {
+              return MSP_RESULT_ERROR;
+            }
+
+            // force full screen rewrite
+            osdRedraw();
+        }
+#else
+        return MSP_RESULT_ERROR;
+#endif
         }
         break;
 
@@ -2069,7 +2083,6 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #else
         return MSP_RESULT_ERROR;
 #endif
-#endif // OSD || USE_OSD_SLAVE
 
     default:
 #ifdef USE_OSD_SLAVE
@@ -2078,7 +2091,7 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         return mspFcProcessInCommand(cmdMSP, src);
 #endif
     }
-    return MSP_RESULT_ERROR;
+    return MSP_RESULT_ACK;
 }
 
 /*

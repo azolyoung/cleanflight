@@ -5,6 +5,7 @@ COMMON_SRC = \
             $(TARGET_DIR_SRC) \
             main.c \
             common/bitarray.c \
+            common/crc.c \
             common/encoding.c \
             common/filter.c \
             common/huffman.c \
@@ -70,7 +71,7 @@ COMMON_SRC = \
 OSD_SLAVE_SRC = \
             io/displayport_max7456.c \
             osd_slave/osd_slave_init.c \
-            io/osd_slave.c
+            io/osd_slave.c 
 
 FC_SRC = \
             fc/fc_init.c \
@@ -140,11 +141,14 @@ FC_SRC = \
             drivers/serial_escserial.c \
             drivers/sonar_hcsr04.c \
             drivers/vtx_common.c \
+            drivers/opentco_osd.c \
+            drivers/opentco.c \
             flight/navigation.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
+            io/displayport_opentco.c \
             io/gps.c \
             io/ledstrip.c \
             io/osd.c \

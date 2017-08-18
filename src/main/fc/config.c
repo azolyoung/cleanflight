@@ -134,6 +134,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .debug_mode = DEBUG_MODE,
     .task_statistics = true,
     .cpu_overclock = false,
+    .powerOnArmingGraceTime = 5,
     .boardIdentifier = TARGET_BOARD_IDENTIFIER
 );
 #else
@@ -156,7 +157,10 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
 #endif
 
 #ifdef BEEPER
-PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
+    .dshotForward = true
+);
 #endif
 #ifdef USE_ADC
 PG_REGISTER_WITH_RESET_FN(adcConfig_t, adcConfig, PG_ADC_CONFIG, 0);
@@ -452,10 +456,6 @@ void validateAndFixGyroConfig(void)
         gyroConfigMutable()->gyro_sync_denom = MAX(gyroConfig()->gyro_sync_denom, 3);
 #endif
     }
-
-#if !defined(GYRO_USES_SPI) || !defined(USE_MPU_DATA_READY_SIGNAL)
-    gyroConfigMutable()->gyro_isr_update = false;
-#endif
 
     // check for looptime restrictions based on motor protocol. Motor times have safety margin
     const float pidLooptime = samplingTime * gyroConfig()->gyro_sync_denom * pidConfig()->pid_process_denom;
