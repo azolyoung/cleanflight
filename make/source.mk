@@ -71,7 +71,7 @@ COMMON_SRC = \
 OSD_SLAVE_SRC = \
             io/displayport_max7456.c \
             osd_slave/osd_slave_init.c \
-            io/osd_slave.c 
+            io/osd_slave.c
 
 FC_SRC = \
             fc/fc_init.c \
@@ -134,6 +134,9 @@ FC_SRC = \
             cms/cms_menu_ledstrip.c \
             cms/cms_menu_misc.c \
             cms/cms_menu_osd.c \
+            cms/cms_menu_vtx_rtc6705.c \
+            cms/cms_menu_vtx_smartaudio.c \
+            cms/cms_menu_vtx_tramp.c \
             common/colorconversion.c \
             common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \

@@ -17,9 +17,8 @@
 
 #pragma once
 
-#include "drivers/display.h"
+#include "cms/cms.h"
+#include "cms/cms_types.h"
+extern CMS_Menu cmsx_menuVtxTramp;
 
-#define MAX7456_FEATURESET (DISPLAY_FEATURE_ENABLE | DISPLAY_FEATURE_INVERT | DISPLAY_FEATURE_BRIGHTNESS)
-
-struct vcdProfile_s;
-displayPort_t *max7456DisplayPortInit(const struct vcdProfile_s *vcdProfile);
+void trampCmsUpdateStatusString(void);

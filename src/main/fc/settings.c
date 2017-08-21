@@ -441,6 +441,7 @@ const clivalue_t valueTable[] = {
     { "use_vbat_alerts",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_BATTERY_CONFIG, offsetof(batteryConfig_t, useVBatAlerts) },
     { "use_cbat_alerts",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_BATTERY_CONFIG, offsetof(batteryConfig_t, useConsumptionAlerts) },
     { "cbat_alert_percent",         VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 100 }, PG_BATTERY_CONFIG, offsetof(batteryConfig_t, consumptionWarningPercentage) },
+    { "vbat_cutoff_percent",           VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 100 }, PG_BATTERY_CONFIG, offsetof(batteryConfig_t, lvcPercentage) },
 
 //  PG_VOLTAGE_SENSOR_ADC_CONFIG
     { "vbat_scale",                 VAR_UINT8  | MASTER_VALUE, .config.minmax = { VBAT_SCALE_MIN, VBAT_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, offsetof(voltageSensorADCConfig_t, vbatscale) },
@@ -651,8 +652,8 @@ const clivalue_t valueTable[] = {
     { "osd_ah_max_pit",             VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 90 }, PG_OSD_CONFIG, offsetof(osdConfig_t, ahMaxPitch) },
     { "osd_ah_max_rol",             VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 90 }, PG_OSD_CONFIG, offsetof(osdConfig_t, ahMaxRoll) },
 
-    { "osd_tim1",                   VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, (uint16_t)0xFFFF }, PG_OSD_CONFIG, offsetof(osdConfig_t, timers[OSD_TIMER_1]) },
-    { "osd_tim2",                   VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, (uint16_t)0xFFFF }, PG_OSD_CONFIG, offsetof(osdConfig_t, timers[OSD_TIMER_2]) },
+    { "osd_tim1",                   VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, INT16_MAX }, PG_OSD_CONFIG, offsetof(osdConfig_t, timers[OSD_TIMER_1]) },
+    { "osd_tim2",                   VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, INT16_MAX }, PG_OSD_CONFIG, offsetof(osdConfig_t, timers[OSD_TIMER_2]) },
 
     { "osd_item_vbat",               VAR_INT8 | MODE_ARRAY | MASTER_VALUE, .config.array.length = 3, PG_OSD_CONFIG, offsetof(osdConfig_t, item[OSD_MAIN_BATT_VOLTAGE]) },
     { "osd_item_rssi",               VAR_INT8 | MODE_ARRAY | MASTER_VALUE, .config.array.length = 3, PG_OSD_CONFIG, offsetof(osdConfig_t, item[OSD_RSSI_VALUE]) },
@@ -737,7 +738,7 @@ const clivalue_t valueTable[] = {
 // PG_DISPLAY_PORT_MSP_CONFIG
     { "displayport_profile_col_adjust", VAR_INT8| MASTER_VALUE, .config.minmax = { -6, 0 }, PG_DISPLAY_PORT_PROFILE_CONFIG, offsetof(displayPortProfile_t, colAdjust) },
     { "displayport_profile_row_adjust", VAR_INT8| MASTER_VALUE, .config.minmax = { -3, 0 }, PG_DISPLAY_PORT_PROFILE_CONFIG, offsetof(displayPortProfile_t, rowAdjust) },
-    { "displayport_profile_inv",        VAR_UINT8| MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_DISPLAY_PORT_PROFILE_CONFIG, offsetof(displayPortProfile_t, invert) },
+    { "displayport_profile_enabled_feature", VAR_UINT16| MASTER_VALUE | MODE_DIRECT, .config.minmax = { INT16_MIN, INT16_MAX }, PG_DISPLAY_PORT_PROFILE_CONFIG, offsetof(displayPortProfile_t, enabledFeatures) },
     { "displayport_profile_blk",        VAR_UINT8| MASTER_VALUE, .config.minmax = { 0, 100 }, PG_DISPLAY_PORT_PROFILE_CONFIG, offsetof(displayPortProfile_t, blackBrightness) },
     { "displayport_profile_wht",        VAR_UINT8| MASTER_VALUE, .config.minmax = { 0, 100 }, PG_DISPLAY_PORT_PROFILE_CONFIG, offsetof(displayPortProfile_t, whiteBrightness) },
 

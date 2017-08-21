@@ -66,18 +66,18 @@ void rcSplitReceive(timeUs_t currentTimeUs);
 
 uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
 {
-    uint8_t i; 
+    uint8_t i;
     uint8_t crc=0x00;
     while (len--) {
-        crc ^= *ptr++;  
-        for (i=8; i>0; --i) { 
+        crc ^= *ptr++;
+        for (i=8; i>0; --i) {
             if (crc & 0x80)
                 crc = (crc << 1) ^ 0x31;
             else
                 crc = (crc << 1);
         }
     }
-    return (crc); 
+    return (crc);
 }
 
 static void retriveCameraInfo()
@@ -143,17 +143,17 @@ static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
     serialWriteBuf(rcSplitSerialPort, uart_buffer, 5);
 }
 
-static void rcSplitProcessMode() 
+static void rcSplitProcessMode()
 {
     // if the device not ready, do not handle any mode change event
-    // if (RCSPLIT_STATE_IS_READY != cameraState) 
-    //     return ;
-    
+    if (RCSPLIT_STATE_IS_READY != cameraState)
+        return ;
+
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
         uint8_t switchIndex = i - BOXCAMERA1;
         
         if (IS_RC_MODE_ACTIVE(i)) {
-            // check last state of this mode, if it's true, then ignore it. 
+            // check last state of this mode, if it's true, then ignore it.
             // Here is a logic to make a toggle control for this mode
             if (switchStates[switchIndex].isActivated) {
                 continue;
@@ -174,7 +174,6 @@ static void rcSplitProcessMode()
                 argument = RCSPLIT_CTRL_ARGU_INVALID;
                 break;
             }
-            
             if (argument != RCSPLIT_CTRL_ARGU_INVALID) {
                 sendCtrlCommand(argument);
                 switchStates[switchIndex].isActivated = true;

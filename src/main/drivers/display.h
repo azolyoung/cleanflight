@@ -23,10 +23,27 @@
 typedef struct displayPortProfile_s {
     int8_t colAdjust;
     int8_t rowAdjust;
-    bool invert;
+
     uint8_t blackBrightness;
     uint8_t whiteBrightness;
+
+    uint16_t supportedFeatures;
+    uint16_t enabledFeatures;
 } displayPortProfile_t;
+
+typedef enum {
+    DISPLAY_FEATURE_ENABLE           = (1 << 0),
+    DISPLAY_FEATURE_INVERT           = (1 << 1),
+    DISPLAY_FEATURE_BRIGHTNESS       = (1 << 2),
+    // 3..7
+    DISPLAY_FEATURE_RENDER_LOGO      = (1 << 8),
+    DISPLAY_FEATURE_RENDER_PILOTLOGO = (1 << 9),
+    DISPLAY_FEATURE_RENDER_STICKS    = (1 << 10),
+    DISPLAY_FEATURE_RENDER_SPECTRUM  = (1 << 11),
+    DISPLAY_FEATURE_RENDER_CROSSHAIR = (1 << 12)
+    // 13..15
+} displayFeatures_e;
+
 
 PG_DECLARE(displayPortProfile_t, displayPortProfile);
 
@@ -81,4 +98,7 @@ bool displayIsTransferInProgress(const displayPort_t *instance);
 void displayHeartbeat(displayPort_t *instance);
 void displayResync(displayPort_t *instance);
 uint16_t displayTxBytesFree(const displayPort_t *instance);
+void displayEnableFeature(displayPort_t *displayport, uint16_t features);
+void displayDisableFeature(displayPort_t *displayport, uint16_t features);
+
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable);

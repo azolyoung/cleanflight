@@ -43,7 +43,6 @@
 static sbuf_t max7456StreamBuffer;
 static sbuf_t *sbuf = &max7456StreamBuffer;
 
-
 #ifdef MAX7456_DMA_CHANNEL_TX
 volatile bool dmaTransactionInProgress = false;
 #endif
@@ -66,9 +65,7 @@ static IO_t max7456CsPin        = IO_NONE;
 #define MAX7456_MAX_STRING_LENGTH             CHARS_PER_LINE
 #define MAX7456_MAX_FRAME_LENGTH              (6 + 2 * MAX7456_MAX_STRING_LENGTH)*5  // FIXME: DEBUGGING
 static uint8_t max7456Buffer[MAX7456_MAX_FRAME_LENGTH];
-
 static void max7456ReloadProfilePrivate();
-
 static uint8_t max7456ReadWriteRegister(uint8_t add, uint8_t data)
 {
     spiTransferByte(MAX7456_SPI_INSTANCE, add);
@@ -287,7 +284,16 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
 
 static void max7456ReloadProfilePrivate()
 {
-    if (displayPortProfile()->invert) {
+    if (displayPortProfile()->enabledFeatures & DISPLAY_FEATURE_ENABLE) {
+        videoSignalReg |= OSD_ENABLE;
+    } else {
+        videoSignalReg &= ~OSD_ENABLE;
+    }
+    max7456ReadWriteRegister(MAX7456ADD_VM0, videoSignalReg);
+
+
+    // invert requested?
+    if (displayPortProfile()->enabledFeatures & DISPLAY_FEATURE_INVERT) {
         displayMemoryModeReg |= INVERT_PIXEL_COLOR;
     } else {
         displayMemoryModeReg &= ~INVERT_PIXEL_COLOR;
