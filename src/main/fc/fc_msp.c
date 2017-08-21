@@ -56,6 +56,7 @@
 #include "drivers/vtx_common.h"
 #include "drivers/transponder_ir.h"
 #include "drivers/camera_control.h"
+#include "drivers/opentco_cam.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -674,6 +675,13 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
 #endif
         break;
     }
+
+#if defined(USE_OPENTCO)
+    case MSP_OPENTCO_CAMERA_FEATURES: {
+        sbufWriteU16(dst, opentcoCameraProfile()->supportedFeatures);
+    }
+        break;
+#endif
 
     default:
         return false;

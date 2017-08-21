@@ -57,4 +57,5 @@ int  opentcoOSDHeartbeat(displayPort_t *displayPort);
 void opentcoOSDResync(displayPort_t *displayPort);
 
 uint32_t opentcoOSDTxBytesFree(const displayPort_t *displayPort);
+void opentcoOSDQuerySupportedFeatures();
 

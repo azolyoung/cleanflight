@@ -130,12 +130,13 @@ uint16_t rcCamOSDGenerateDrawParticleScreenPacket(sbuf_t *buf, uint8_t *dataBuf,
 
 uint16_t rcCamOSDGenerateGetCameraInfoPacket(sbuf_t *buf)
 {
-    uint8_t fcType = 0;
+    uint8_t charsetType = 0;
     if (strcmp(FC_FIRMWARE_NAME, "Betaflight") == 0) {
-        fcType = RCSPLIT_FC_TYPE_BF;
+        charsetType = OPENTCO_OSD_CHARSET_BF;
     } else if (strcmp(FC_FIRMWARE_NAME, "Cleanflight") == 0) {
-        fcType = RCSPLIT_FC_TYPE_CF;
+        charsetType = OPENTCO_OSD_CHARSET_CF;
     }
+    opentcoOSDSetRegister(OPENTCO_OSD_CHARSET, charsetType);
 
     uint16_t packetSize = rcCamOSDGeneratePacket(buf, 
                                                 RCSPLIT_PACKET_CMD_GET_CAMERA_INFO, 

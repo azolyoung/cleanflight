@@ -213,6 +213,7 @@
 #define MSP_SET_SENSOR_CONFIG           97
 
 #define MSP_CAMERA_CONTROL              98
+#define MSP_OPENTCO_CAMERA_FEATURES     99
 
 //
 // OSD specific

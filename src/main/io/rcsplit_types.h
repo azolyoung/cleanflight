@@ -45,15 +45,11 @@
 #define RCSPLIT_PACKET_TAIL             0xaa // it's decrepted on Protocol V2 for split
 #define RCSPLIT_OPENCTO_CAMERA_DEVICE   0x2
 
-typedef struct {
-    uint8_t boxId;
-    bool isActivated;
-} rcsplit_switch_state_t;
-
 typedef enum {
     RCSPLIT_STATE_UNKNOWN = 0,
     RCSPLIT_STATE_INITIALIZING,
     RCSPLIT_STATE_IS_READY,
+    RCSPLIT_STATE_INITIALIZE_FAILED,
 } rcsplit_state_e;
 
 typedef enum {

@@ -92,7 +92,7 @@ int opentcoOSDClearScreen(displayPort_t *displayPort)
     return 0;
 }
 
-static void opentcoOSDQuerySupportedFeatures()
+void opentcoOSDQuerySupportedFeatures()
 {
     uint16_t opentcoFeatures;
 

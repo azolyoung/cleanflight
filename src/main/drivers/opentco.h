@@ -61,6 +61,20 @@ typedef enum {
 #define OPENTCO_OSD_REGISTER_VIDEO_FORMAT            0x02  // R/W
 #define OPENTCO_OSD_REGISTER_BRIGHTNESS_BLACK        0x03  // R/W
 #define OPENTCO_OSD_REGISTER_BRIGHTNESS_WHITE        0x04  // R/W
+
+// camera commands
+#define OPENTCO_CAM_COMMAND_REGISTER_ACCESS          0x00
+#define OPENTCO_CAM_COMMAND_CAMERA_CONTROL           0x01
+
+// the behavior of OPENTCO_CAM_COMMAND_CAMERA_CONTROL
+#define OPENTCO_CAM_CONTROL_SIMULATE_WIFI_BTN        0x01
+#define OPENTCO_CAM_CONTROL_SIMULATE_POWER_BTN       0x02
+#define OPENTCO_CAM_CONTROL_SIMULATE_CHANGE_MODE     0x03
+
+#define OPENTCO_CAM_REGISTER_VIDEO_FORMAT            0x01  // R
+#define OPENTCO_CAM_REGISTER_SUPPORTED_FEATURES      0x02  // R
+
+
 #define OPENTCO_MAX_REGISTER                         0x0F
 
 
@@ -79,6 +93,15 @@ typedef enum {
     OPENTCO_OSD_FEATURE_RENDER_CROSSHAIR      = (1 << 12)
     // 13..15
 } opentcoOSDFeatures_e;
+
+typedef enum {
+    OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN    = (1 << 0),
+    OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN     = (1 << 1),
+    OPENTCO_CAM_FEATURE_CHANGE_MODE           = (1 << 2),
+    // 3..9
+    OPENTCO_CAM_FEATURE_OSD                   = (1 << 10),
+    // 11..15
+} opentcoCamFeatures_e;
 
 typedef struct {
     serialPort_t *serialPort;
