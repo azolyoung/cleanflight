@@ -15,11 +15,13 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- #include <stdbool.h>
- #include <stdint.h>
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "drivers/opentco.h"
 
 static opentcoDevice_t openTCOCamDevice;
 static opentcoDevice_t *device = &openTCOCamDevice;
@@ -27,7 +29,7 @@ static uint8_t video_system;
 
 opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 
- PG_REGISTER_WITH_RESET_FN(opentcoCameraProfile_t, opentcoCameraProfile, PG_FPV_CAMERA_CONFIG, 0);
+PG_REGISTER_WITH_RESET_FN(opentcoCameraProfile_t, opentcoCameraProfile, PG_FPV_CAMERA_CONFIG, 0);
 
 static void opentcoCamQuerySupportedFeatures()
 {
@@ -48,6 +50,14 @@ static bool opentcoCamControl(opentcoDevice_t *device, uint8_t controlbehavior, 
     return true;
 }
 
+static bool isFeatureSupported(uint8_t feature)
+{
+    if (opentcoCameraProfile->supportedFeatures & feature)
+        return true;
+
+    return false;
+}
+
 static void opentcoCamProcessMode()
 {
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
@@ -63,13 +73,16 @@ static void opentcoCamProcessMode()
             uint8_t behavior = 0;
             switch (i) {
             case BOXCAMERA1:
-                behavior = OPENTCO_CAM_CONTROL_SIMULATE_WIFI_BTN;
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN)
+                    behavior = OPENTCO_CAM_CONTROL_SIMULATE_WIFI_BTN;
                 break;
             case BOXCAMERA2:
-                behavior = OPENTCO_CAM_CONTROL_SIMULATE_POWER_BTN;
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN))
+                    behavior = OPENTCO_CAM_CONTROL_SIMULATE_POWER_BTN;
                 break;
             case BOXCAMERA3:
-                behavior = OPENTCO_CAM_CONTROL_SIMULATE_CHANGE_MODE;
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_CHANGE_MODE))
+                    behavior = OPENTCO_CAM_CONTROL_SIMULATE_CHANGE_MODE;
                 break;
             default:
                 behavior = 0;

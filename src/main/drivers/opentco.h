@@ -98,9 +98,6 @@ typedef enum {
     OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN    = (1 << 0),
     OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN     = (1 << 1),
     OPENTCO_CAM_FEATURE_CHANGE_MODE           = (1 << 2),
-    // 3..9
-    OPENTCO_CAM_FEATURE_OSD                   = (1 << 10),
-    // 11..15
 } opentcoCamFeatures_e;
 
 typedef struct {
