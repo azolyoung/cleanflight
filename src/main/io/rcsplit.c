@@ -39,30 +39,11 @@
 #include "drivers/serial.h"
 
 #include "io/rcsplit.h"
-#include "io/displayport_rccamera.h"
-#include "io/rcsplit_packet_helper.h"
 
 // communicate with camera device variables
 serialPort_t *rcSplitSerialPort = NULL;
-rcsplit_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
+opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 rcsplit_state_e cameraState = RCSPLIT_STATE_UNKNOWN;
-rcsplit_osd_camera_info_t cameraInfo = { RCSPLIT_VIDEOFMT_UNKNOWN  };
-
-static uint8_t rcsplitRespBuffer[255];
-static uint8_t resplitRespDataBlockLength = 0;
-
-typedef enum {
-    RCSPLIT_RECV_STATUS_WAIT_HEADER = 0,
-    RCSPLIT_RECV_STATUS_WAIT_COMMAND,
-    RCSPLIT_RECV_STATUS_WAIT_LENGTH,
-    RCSPLIT_RECV_STATUS_WAIT_DATA,
-    RCSPLIT_RECV_STATUS_WAIT_CRC
-} rcsplitRecvStatus_e;
-
-static int rcsplitReceivePos = 0;
-rcsplitRecvStatus_e rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_HEADER;
-
-void rcSplitReceive(timeUs_t currentTimeUs);
 
 uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
 {
@@ -78,20 +59,6 @@ uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
         }
     }
     return (crc);
-}
-
-static void retriveCameraInfo()
-{
-    sbuf_t buf;
-    uint16_t expectedPacketSize = 0;
-    uint8_t *base = NULL;
-    expectedPacketSize = rcCamOSDGenerateGetCameraInfoPacket(NULL);
-    base = (uint8_t*)malloc(expectedPacketSize);
-    buf.ptr = base;
-    
-    rcCamOSDGenerateGetCameraInfoPacket(&buf);
-    serialWriteBuf(rcSplitSerialPort, base, expectedPacketSize);
-    free(base);
 }
 
 static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
@@ -130,7 +97,7 @@ static void sendCtrlCommand(rcsplit_ctrl_argument_e argument)
     uint8_t crc = 0;
 
     uart_buffer[0] = RCSPLIT_PACKET_HEADER;
-    uart_buffer[1] = RCSPLIT_PACKET_CMD_V1_CTRL;
+    uart_buffer[1] = RCSPLIT_PACKET_CMD_CTRL;
     uart_buffer[2] = argument;
     uart_buffer[3] = RCSPLIT_PACKET_TAIL;
     crc = crc_high_first(uart_buffer, 4);
@@ -184,8 +151,6 @@ static void rcSplitProcessMode()
     }
 }
 
-
-
 bool rcSplitInit(void)
 {
     if (rcSplitSerialPort)
@@ -202,7 +167,7 @@ bool rcSplitInit(void)
         return false;
     }
 
-    cameraState = RCSPLIT_STATE_INITIALIZING;
+    cameraState = RCSPLIT_STATE_IS_READY;
 
     // set init value to true, to avoid the action auto run when the flight board start and the switch is on.
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
@@ -210,103 +175,12 @@ bool rcSplitInit(void)
         switchStates[switchIndex].boxId = 1 << i;
         switchStates[switchIndex].isActivated = true; 
     }
-    
-    retriveCameraInfo();
 
 #ifdef USE_RCSPLIT
     setTaskEnabled(TASK_RCSPLIT, true);
 #endif
 
     return true;
-}
-
-static void rcsplitResetReceiver()
-{
-    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_HEADER;
-    rcsplitReceivePos = 0;
-}
-
-static void rcsplitHandleResponse(void)
-{
-    uint8_t commandID = rcsplitRespBuffer[1] & 0x0F;
-    uint8_t dataLen = rcsplitRespBuffer[2];
-    switch (commandID) {
-    case RCSPLIT_PACKET_CMD_GET_CAMERA_INFO:
-        {
-            if (dataLen < sizeof(rcsplit_osd_camera_info_t))
-                return ;
-                
-            memcpy(&cameraInfo, rcsplitRespBuffer + 3, sizeof(rcsplit_osd_camera_info_t));
-
-            cameraState = RCSPLIT_STATE_IS_READY;
-        }
-        break;
-    case 100:
-        break;
-    }
-
-    return ;
-}
-
-void rcSplitReceive(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-
-    if (!rcSplitSerialPort)
-        return ;
-
-    while (serialRxBytesWaiting(rcSplitSerialPort)) {      
-        uint8_t c = serialRead(rcSplitSerialPort);
-        rcsplitRespBuffer[rcsplitReceivePos++] = c;
-
-        switch(rcsplitReceiveState) {
-            case RCSPLIT_RECV_STATUS_WAIT_HEADER:
-                if (c == RCSPLIT_PACKET_HEADER) {
-                    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_COMMAND;
-                } else {
-                    rcsplitReceivePos = 0;
-                }
-                break;
-
-            case RCSPLIT_RECV_STATUS_WAIT_COMMAND:
-                {
-                    uint8_t deviceID = (c & 0xF0) >> 4;
-                    if (deviceID != 0x2) { // not camera device id
-                        rcsplitResetReceiver();                        
-                    } else {
-                        rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_LENGTH; 
-                    }
-                }
-                break;
-
-            case RCSPLIT_RECV_STATUS_WAIT_LENGTH:
-                rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_DATA;
-                resplitRespDataBlockLength = c;
-                break;
-
-            case RCSPLIT_RECV_STATUS_WAIT_DATA:
-                if ((rcsplitReceivePos - resplitRespDataBlockLength) == 3) {
-                    rcsplitReceiveState = RCSPLIT_RECV_STATUS_WAIT_CRC;
-                } 
-                break;
-            
-            case RCSPLIT_RECV_STATUS_WAIT_CRC:
-            {
-                uint8_t crc = crc_high_first(rcsplitRespBuffer, rcsplitReceivePos - 1);
-                if (crc == c) {
-                    rcsplitHandleResponse();
-                }
-
-                rcsplitResetReceiver();
-            }                
-                break;
-
-            default:
-                rcsplitResetReceiver();
-            }
-    }
-
-    return ;
 }
 
 void rcSplitProcess(timeUs_t currentTimeUs)
@@ -316,13 +190,6 @@ void rcSplitProcess(timeUs_t currentTimeUs)
     if (rcSplitSerialPort == NULL)
         return ;
 
-    rcSplitReceive(currentTimeUs);
-
     // process rcsplit custom mode if has any changed
     rcSplitProcessMode();
-}
-
-bool isCameraReady()
-{
-    return cameraState == RCSPLIT_STATE_IS_READY;
 }

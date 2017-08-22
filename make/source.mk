@@ -59,9 +59,6 @@ COMMON_SRC = \
             io/statusindicator.c \
             io/transponder_ir.c \
             io/rcsplit.c \
-            io/rcsplit_packet_helper.c \
-            io/rcsplit_packet_helper.c \
-            io/displayport_rccamera.c \
             msp/msp_serial.c \
             scheduler/scheduler.c \
             sensors/battery.c \
@@ -145,6 +142,7 @@ FC_SRC = \
             drivers/sonar_hcsr04.c \
             drivers/vtx_common.c \
             drivers/opentco_osd.c \
+            drivers/opentco_cam.c \
             drivers/opentco.c \
             flight/navigation.c \
             io/dashboard.c \

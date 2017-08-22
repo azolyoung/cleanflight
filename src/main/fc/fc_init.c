@@ -105,7 +105,6 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
-#include "io/displayport_rccamera.h"
 
 #include "scheduler/scheduler.h"
 

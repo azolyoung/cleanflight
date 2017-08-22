@@ -21,15 +21,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/utils.h"
+#include "common/time.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+#include "fc/rc_modes.h"
+#include "scheduler/scheduler.h"
 #include "drivers/opentco.h"
+#include "drivers/opentco_cam.h"
 
 static opentcoDevice_t openTCOCamDevice;
 static opentcoDevice_t *device = &openTCOCamDevice;
-static uint8_t video_system;
 
 opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 
-PG_REGISTER_WITH_RESET_FN(opentcoCameraProfile_t, opentcoCameraProfile, PG_FPV_CAMERA_CONFIG, 0);
+PG_REGISTER(opentcoCameraProfile_t, opentcoCameraProfile, PG_FPV_CAMERA_CONFIG, 0);
 
 static void opentcoCamQuerySupportedFeatures()
 {
@@ -42,7 +48,7 @@ static void opentcoCamQuerySupportedFeatures()
     opentcoCameraProfileMutable()->supportedFeatures = opentcoCamFeatures;
 }
 
-static bool opentcoCamControl(opentcoDevice_t *device, uint8_t controlbehavior, uint16_t val)
+static bool opentcoCamControl(opentcoDevice_t *device, uint8_t controlbehavior)
 {
     opentcoInitializeFrame(device, OPENTCO_CAM_COMMAND_CAMERA_CONTROL);
     sbufWriteU8(device->sbuf, controlbehavior);
@@ -52,10 +58,7 @@ static bool opentcoCamControl(opentcoDevice_t *device, uint8_t controlbehavior, 
 
 static bool isFeatureSupported(uint8_t feature)
 {
-    if (opentcoCameraProfile->supportedFeatures & feature)
-        return true;
-
-    return false;
+    return opentcoCameraProfile()->supportedFeatures & feature;
 }
 
 static void opentcoCamProcessMode()
@@ -73,7 +76,7 @@ static void opentcoCamProcessMode()
             uint8_t behavior = 0;
             switch (i) {
             case BOXCAMERA1:
-                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN)
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN))
                     behavior = OPENTCO_CAM_CONTROL_SIMULATE_WIFI_BTN;
                 break;
             case BOXCAMERA2:
@@ -101,9 +104,7 @@ static void opentcoCamProcessMode()
 void opentcoCamProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-
-    // process camera custom mode if has any changed
-    rcSplitProcessMode();
+    opentcoCamProcessMode();
 }
 
 bool opentcoCamInit(void)
