@@ -65,12 +65,15 @@ typedef enum {
 // camera commands
 #define OPENTCO_CAM_COMMAND_REGISTER_ACCESS          0x00
 #define OPENTCO_CAM_COMMAND_CAMERA_CONTROL           0x01
+#define OPENTCO_CAM_COMMAND_5KEY_SIMULATION_PRESS    0x02
+#define OPENTCO_CAM_COMMAND_5KEY_SIMULATION_RELEASE  0x03
 
 // the behavior of OPENTCO_CAM_COMMAND_CAMERA_CONTROL
 #define OPENTCO_CAM_CONTROL_SIMULATE_WIFI_BTN        0x01
 #define OPENTCO_CAM_CONTROL_SIMULATE_POWER_BTN       0x02
 #define OPENTCO_CAM_CONTROL_SIMULATE_CHANGE_MODE     0x03
 
+#define OPENTCO_CAM_REGISTER_STATUS                  0x00  // R/W
 #define OPENTCO_CAM_REGISTER_VIDEO_FORMAT            0x01  // R
 #define OPENTCO_CAM_REGISTER_SUPPORTED_FEATURES      0x02  // R
 
@@ -95,10 +98,19 @@ typedef enum {
 } opentcoOSDFeatures_e;
 
 typedef enum {
-    OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN    = (1 << 0),
-    OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN     = (1 << 1),
-    OPENTCO_CAM_FEATURE_CHANGE_MODE           = (1 << 2),
+    OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN          = (1 << 0),
+    OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN           = (1 << 1),
+    OPENTCO_CAM_FEATURE_CHANGE_MODE                 = (1 << 2),
+    OPENTCO_CAM_FEATURE_SIMULATE_5KEY_OSD_CABLE     = (1 << 3)
 } opentcoCamFeatures_e;
+
+typedef enum {
+    OPENTCO_CAM_5KEY_SIMULATION_SET         = (1 << 0),
+    OPENTCO_CAM_5KEY_SIMULATION_LEFT        = (1 << 1),
+    OPENTCO_CAM_5KEY_SIMULATION_RIGHT       = (1 << 2),
+    OPENTCO_CAM_5KEY_SIMULATION_UP          = (1 << 3),
+    OPENTCO_CAM_5KEY_SIMULATION_DOWN        = (1 << 4),
+} opentcoCam5KeySimulationKey_e;
 
 typedef struct {
     serialPort_t *serialPort;

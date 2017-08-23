@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "fc/rc_modes.h"
+
 typedef struct {
     uint8_t boxId;
     bool isActivated;
@@ -27,3 +29,13 @@ typedef struct opentcoCameraProfile_s {
 } opentcoCameraProfile_t;
 
 PG_DECLARE(opentcoCameraProfile_t, opentcoCameraProfile);
+
+extern opentcoDevice_t *camDevice;
+
+void opentcoCamProcess(timeUs_t currentTimeUs);
+bool opentcoCamInit(void);
+
+// 5 key osd cable simulation
+
+// used for unit test
+opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];

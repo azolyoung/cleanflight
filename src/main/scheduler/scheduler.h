@@ -116,6 +116,10 @@ typedef enum {
     TASK_RCSPLIT,
 #endif
 
+#ifdef USE_OPENTCO
+    TASK_OPENTCO_CAM,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 

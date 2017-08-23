@@ -629,5 +629,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE
     },
 #endif
+
+#ifdef USE_OPENTCO
+    [TASK_OPENTCO_CAM] = {
+        .taskName = "OPENTCO CAM",
+        .taskFunc = opentcoCamProcess,
+        .desiredPeriod = TASK_PERIOD_HZ(10),
+        .staticPriority = TASK_PRIORITY_IDLE
+    },
+#endif
 #endif
 };

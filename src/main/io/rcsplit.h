@@ -15,19 +15,37 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <stdbool.h>
-#include "common/time.h"
-#include "fc/fc_msp.h"
-#include "fc/rc_modes.h"
-#include "io/rcsplit_types.h"
-
-bool rcSplitInit(void);
-void rcSplitProcess(timeUs_t currentTimeUs);
-bool isCameraReady();
-
-// only for unit test
-extern rcsplit_state_e cameraState;
-extern serialPort_t *rcSplitSerialPort;
-extern rcsplit_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
+ #pragma once
+ 
+ #include <stdbool.h>
+ #include "common/time.h"
+ #include "fc/fc_msp.h"
+ 
+ typedef struct {
+     bool isActivated;
+ } rcsplitSwitchState_t;
+ 
+ typedef enum {
+     RCSPLIT_STATE_UNKNOWN = 0,
+     RCSPLIT_STATE_INITIALIZING,
+     RCSPLIT_STATE_IS_READY,
+ } rcsplitState_e;
+ 
+ // packet header and tail
+ #define RCSPLIT_PACKET_HEADER           0x55
+ #define RCSPLIT_PACKET_CMD_CTRL  0x01
+ #define RCSPLIT_PACKET_TAIL     0xaa
+ 
+ 
+ // the commands of RunCam Split serial protocol
+ typedef enum {
+     RCSPLIT_CTRL_ARGU_INVALID = 0x0,
+     RCSPLIT_CTRL_ARGU_WIFI_BTN = 0x1,
+     RCSPLIT_CTRL_ARGU_POWER_BTN = 0x2,
+     RCSPLIT_CTRL_ARGU_CHANGE_MODE = 0x3,
+     RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0xFF,
+ } rcsplit_ctrl_argument_e;
+ 
+ bool rcSplitInit(void);
+ void rcSplitProcess(timeUs_t currentTimeUs);
+ 

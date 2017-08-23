@@ -244,12 +244,9 @@ ws2811_unittest_SRC := \
 rcsplit_unittest_SRC := \
 		$(USER_DIR)/common/bitarray.c \
 		$(USER_DIR)/fc/rc_modes.c \
-		$(USER_DIR)/io/displayport_rccamera.c \
 		$(USER_DIR)/io/rcsplit.c \
-		$(USER_DIR)/io/rcsplit_packet_helper.c 
 
-rcsplit_unitest_DEFINES := \
-		USE_UART3 \
+rcsplit_unittest_DEFINES := \
 		USE_RCSPLIT \
 
 huffman_unittest_SRC := \
@@ -258,6 +255,16 @@ huffman_unittest_SRC := \
 
 huffman_unittest_DEFINES := \
 		USE_HUFFMAN
+
+opentco_cam_unittest_SRC := \
+		$(USER_DIR)/common/crc.c \
+		$(USER_DIR)/common/bitarray.c \
+		$(USER_DIR)/fc/rc_modes.c \
+		$(USER_DIR)/drivers/opentco_cam.c \
+
+
+opentco_cam_unittest_DEFINES := \
+		USE_OPENTCO 
 
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets
