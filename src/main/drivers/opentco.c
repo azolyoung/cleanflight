@@ -45,13 +45,15 @@ bool opentcoInit(opentcoDevice_t *device)
 
         // open assigned serial port
         device->serialPort = openSerialPort(portConfig->identifier, FUNCTION_OPENTCO, NULL, baudrate, MODE_RXTX, SERIAL_NOT_INVERTED);
-        if (device->serialPort == NULL)
+        if (device->serialPort == NULL) {
             return false;
+        }
         
         // try to detect the given device:
         uint16_t tmp;
         if (opentcoReadRegister(device, 0, &tmp)){
             // success, found port for this device
+            
             return true;
         }
 
@@ -61,7 +63,7 @@ bool opentcoInit(opentcoDevice_t *device)
         // find next portConfig
         portConfig = findNextSerialPortConfig(FUNCTION_OPENTCO);
     }
-
+    printf("ccddaaaa\n");
     device->serialPort = NULL;
     return false;
 }

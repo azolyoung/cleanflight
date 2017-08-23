@@ -119,14 +119,12 @@ void opentcoCamProcess(timeUs_t currentTimeUs)
 bool opentcoCamInit(void)
 {
     // open serial port
-    
     camDevice->id = OPENTCO_DEVICE_CAM;
     
     if (!opentcoInit(camDevice)) {
-        printf("cdcdcddaa\n");
         return false;
     }
-    printf("cdcdcddaa\n");
+
     opentcoCamQuerySupportedFeatures();
 
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {

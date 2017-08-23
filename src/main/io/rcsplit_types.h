@@ -41,25 +41,8 @@
 #define RCCAMERA_SCREEN_CHARACTER_ROW_COUNT_NTSC 13
 
 // packet header and tail
-#define RCSPLIT_PACKET_HEADER           0x55
-#define RCSPLIT_PACKET_TAIL             0xaa // it's decrepted on Protocol V2 for split
+
 #define RCSPLIT_OPENCTO_CAMERA_DEVICE   0x2
-
-typedef enum {
-    RCSPLIT_STATE_UNKNOWN = 0,
-    RCSPLIT_STATE_INITIALIZING,
-    RCSPLIT_STATE_IS_READY,
-    RCSPLIT_STATE_INITIALIZE_FAILED,
-} rcsplit_state_e;
-
-typedef enum {
-    RCSPLIT_PACKET_CMD_CTRL =                           0x00,
-    RCSPLIT_PACKET_CMD_OSD_CLEAR =                      0x01,
-    RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA =  0x02, // draw partial screen buffer to rcsplit
-    RCSPLIT_PACKET_CMD_GET_CAMERA_INFO =                0x03, // get the base info of camera, e.g video_format(N/P)
-    RCSPLIT_PACKET_CMD_OSD_DRAW_NO_VERT_SPACE_CHARS =   0x04, // this command is almost same with RCSPLIT_PACKET_CMD_OSD_DRAW_PARTICLE_SCREEN_DATA, the difference is: this command will draw the characters without Verticle Space every characters
-    RCSPLIT_PACKET_CMD_V1_CTRL =                        0x01,
-} rcsplit_packet_cmd_e;
 
 typedef enum {
     RCSPLIT_VIDEOFMT_UNKNOWN = 0,
@@ -67,14 +50,7 @@ typedef enum {
     RCSPLIT_VIDEOFMT_NTSC
 } rcsplit_video_format_e;
 
-// the commands of RunCam Split serial protocol
-typedef enum {
-    RCSPLIT_CTRL_ARGU_INVALID = 0x0,
-    RCSPLIT_CTRL_ARGU_WIFI_BTN = 0x1,
-    RCSPLIT_CTRL_ARGU_POWER_BTN = 0x2,
-    RCSPLIT_CTRL_ARGU_CHANGE_MODE = 0x3,
-    RCSPLIT_CTRL_ARGU_WHO_ARE_YOU = 0xFF,
-} rcsplit_ctrl_argument_e;
+
 
 typedef enum {
     RCSPLIT_FC_TYPE_BF = 0x2,
