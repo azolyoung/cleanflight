@@ -29,12 +29,19 @@
 #include "drivers/opentco.h"
 #include "drivers/opentco_cam.h"
 
+#include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 
+#include "rx/rx.h"
+
+#define IS_HI(X)  (rcData[X] > 1750)
+#define IS_LO(X)  (rcData[X] < 1250)
+#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
 
 static opentcoDevice_t openTCOCamDevice;
 opentcoDevice_t *camDevice = &openTCOCamDevice;
-
 opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
+bool fpvCameraOSDMenuVisible = false;
 
 PG_REGISTER(opentcoCameraProfile_t, opentcoCameraProfile, PG_FPV_CAMERA_CONFIG, 0);
 
@@ -44,7 +51,7 @@ static void opentcoCamQuerySupportedFeatures()
 
     // fetch available and acitvated features
     opentcoReadRegister(camDevice, OPENTCO_CAM_REGISTER_SUPPORTED_FEATURES,  &opentcoCamFeatures);
-
+    printf("get supported features:%d\n", opentcoCamFeatures);
     // store
     opentcoCameraProfileMutable()->supportedFeatures = opentcoCamFeatures;
 }
@@ -108,12 +115,37 @@ static void opentcoCamProcessMode()
     }
 }
 
+void opentcoCamSimulate5KeyCablePress(cameraControlKey_e key)
+{
+    UNUSED(key);
+}
+
+void opentcoCam5KeyOSDCableUpdate(uint32_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+}
+
 void opentcoCamProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
     // process camera custom mode if has any changed
-    opentcoCamProcessMode();
+    if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN) ||
+        isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN) ||
+        isFeatureSupported(OPENTCO_CAM_FEATURE_CHANGE_MODE)) {
+        opentcoCamProcessMode();
+    }
+
+    if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_5KEY_OSD_CABLE)) {
+        if (IS_MID(THROTTLE) && IS_HI(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
+            if (!fpvCameraOSDMenuVisible) {
+                opentcoCamSimulate5KeyCablePress(CAMERA_CONTROL_KEY_ENTER);
+                setArmingDisabled(ARMING_DISABLED_OPENCAM_OSD_MENU);
+            }
+        }
+
+        opentcoCam5KeyOSDCableUpdate(currentTimeUs);
+    }
 }
 
 bool opentcoCamInit(void)
@@ -126,6 +158,7 @@ bool opentcoCamInit(void)
     }
 
     opentcoCamQuerySupportedFeatures();
+    printf("init success\n");
 
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
         uint8_t switchIndex = i - BOXCAMERA1;

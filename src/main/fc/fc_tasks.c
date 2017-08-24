@@ -42,6 +42,8 @@
 #include "drivers/vtx_common.h"
 #include "drivers/transponder_ir.h"
 #include "drivers/camera_control.h"
+#include "drivers/opentco.h"
+#include "drivers/opentco_cam.h"
 
 #include "fc/config.h"
 #include "fc/fc_msp.h"

@@ -18,6 +18,7 @@
 #pragma once
 
 #include "fc/rc_modes.h"
+#include "drivers/camera_control.h"
 
 typedef struct {
     uint8_t boxId;
@@ -36,6 +37,9 @@ void opentcoCamProcess(timeUs_t currentTimeUs);
 bool opentcoCamInit(void);
 
 // 5 key osd cable simulation
+bool openCamIsSupport5KeyCalbleSimulation();
+void opentcoCamSimulate5KeyCablePress(cameraControlKey_e key);
+
 
 // used for unit test
 opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];

@@ -39,7 +39,7 @@ extern "C" {
 
     #include "fc/rc_controls.h"
     #include "fc/rc_modes.h"
-    
+    #include "fc/runtime_config.h"
 
     #include "io/beeper.h"
     #include "io/serial.h"
@@ -52,6 +52,8 @@ extern "C" {
     #include "drivers/opentco_osd.h"
 
     #include "rx/rx.h"
+
+    
 
     #include "cms/cms.h"
     #include "build/version.h"
@@ -80,9 +82,15 @@ extern "C" {
     void unitTestResetRCSplit()
     {
         camDevice->serialPort = NULL;
+
+        for (int i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
+            uint8_t switchIndex = i - BOXCAMERA1;
+            switchStates[switchIndex].boxId = 1 << i;
+            switchStates[switchIndex].isActivated = false; 
+        }
     }
 
-    uint8_t RESPONSEDATA_WITH_INIT_RESP_AND_FEATURE_RESP[] = { 0x80, 0xA0, 0x00, 0x00, 0x00, 0x9E, 0x80, 0xA0, 0x02, 0x07, 0x00, 0x7C };
+    uint8_t RESPONSEDATA_WITH_INIT_RESP_AND_FEATURE_RESP[] = { 0x80, 0xA0, 0x00, 0x00, 0x00, 0x9E, 0x80, 0xA1, 0x02, 0x07, 0x00, 0x39 };
     void unitTestSetDeviceToReadyStatus()
     {
         testData.readPos = 0;
@@ -801,8 +809,6 @@ extern "C" {
             // try to detect the given device:
             uint16_t tmp;
             if (opentcoReadRegister(device, 0, &tmp)){
-                // success, found port for this device
-                
                 return true;
             }
 
@@ -834,13 +840,16 @@ extern "C" {
         }
     
         // check crc
+        printf("crc check:%d\n", crc);
         if (crc != 0) return false;
     
         // check device and command
         uint8_t valid_devcmd = ((OPENTCO_DEVICE_RESPONSE | device->id) << 4) | OPENTCO_OSD_COMMAND_REGISTER_ACCESS;
+        printf("command check:%d, %d\n", data[0], valid_devcmd);
         if (data[0] != valid_devcmd) return false;
     
         // response to our request?
+        printf("reg check:%d, %d\n", data[1], requested_reg);
         if (data[1] != requested_reg) return false;
     
         // return value
@@ -857,7 +866,7 @@ extern "C" {
             // send read request
 
             opentcoWriteRegister(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
-    
+            printf("read reg:%d\n", reg);
             // wait 100ms for reply
             timeMs_t timeout = millis() + 100;
     
@@ -870,12 +879,14 @@ extern "C" {
                     if (serialRxBytesWaiting(device->serialPort) > 0) {
                         uint8_t rx = serialRead(device->serialPort);
                         if (rx == OPENTCO_PROTOCOL_HEADER) {
+                            printf("found header\n");
                             header_received = true;
                         }
                     }
                 } else {
                     // header found, now wait for the remaining bytes to arrive
                     if (serialRxBytesWaiting(device->serialPort) >= 5) {
+                        printf("try to parse packet\n");
                         // try to decode this packet
                         if (!opentcoDecodeResponse(device, reg, val)) {
                             // received broken / bad response
@@ -920,4 +931,7 @@ extern "C" {
 
     const uint32_t baudRates[] = {0, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
         400000, 460800, 500000, 921600, 1000000, 1500000, 2000000, 2470000}; // see baudRate_e
+
+    uint8_t armingFlags = 0;
+    void setArmingDisabled(armingDisableFlags_e e) { UNUSED(e); }
 }
