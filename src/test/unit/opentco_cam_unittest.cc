@@ -90,7 +90,7 @@ extern "C" {
         }
     }
 
-    uint8_t RESPONSEDATA_WITH_INIT_RESP_AND_FEATURE_RESP[] = { 0x80, 0xA0, 0x00, 0x00, 0x00, 0x9E, 0x80, 0xA1, 0x02, 0x07, 0x00, 0x39 };
+    uint8_t RESPONSEDATA_WITH_INIT_RESP_AND_FEATURE_RESP[] = { 0x80, 0xA0, 0x00, 0x00, 0x00, 0x9E, 0x80, 0xA0, 0x01, 0x07, 0x00, 0x2C };
     void unitTestSetDeviceToReadyStatus()
     {
         testData.readPos = 0;
@@ -305,13 +305,12 @@ TEST(OpenTCOCamTest, TestWifiModeChangeCombine)
     updateActivatedModes();
 
     // runn process loop
-    int8_t randNum = rand() % 127 + 6; 
-    testData.maxTimesOfRespDataAvailable = randNum;
-    uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
-    testData.responseData = responseData;
-    testData.responseDataLen = sizeof(responseData);
+    // int8_t randNum = rand() % 127 + 6; 
+    // testData.maxTimesOfRespDataAvailable = randNum;
+    // uint8_t responseData[] = { 0x55, 0x01, 0xFF, 0xad, 0xaa };
+    // testData.responseData = responseData;
+    // testData.responseDataLen = sizeof(responseData);
     opentcoCamProcess((timeUs_t)0);
-
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA1));
     EXPECT_EQ(true, unitTestIsSwitchActivited(BOXCAMERA2));
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
@@ -836,9 +835,11 @@ extern "C" {
         for(int i = 0; i < 5; i++) {
             uint8_t rx = serialRead(device->serialPort);
             data[i] = rx;
+            printf("%02x ", data[i]);
             crc = crc8_dvb_s2(crc, rx);
         }
-    
+        printf("\n");
+
         // check crc
         printf("crc check:%d\n", crc);
         if (crc != 0) return false;

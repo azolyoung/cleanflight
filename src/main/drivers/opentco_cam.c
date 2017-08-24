@@ -51,7 +51,7 @@ static void opentcoCamQuerySupportedFeatures()
 
     // fetch available and acitvated features
     opentcoReadRegister(camDevice, OPENTCO_CAM_REGISTER_SUPPORTED_FEATURES,  &opentcoCamFeatures);
-    printf("get supported features:%d\n", opentcoCamFeatures);
+
     // store
     opentcoCameraProfileMutable()->supportedFeatures = opentcoCamFeatures;
 }
@@ -88,24 +88,32 @@ static void opentcoCamProcessMode()
             }
 
             uint8_t behavior = 0;
+            bool boxModeChange = false;
             switch (i) {
             case BOXCAMERA1:
-                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN))
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN)) {
                     behavior = OPENTCO_CAM_CONTROL_SIMULATE_WIFI_BTN;
+                    boxModeChange = true;
+                }
                 break;
             case BOXCAMERA2:
-                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN))
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN)) {
                     behavior = OPENTCO_CAM_CONTROL_SIMULATE_POWER_BTN;
+                    boxModeChange = true;
+                }
                 break;
             case BOXCAMERA3:
-                if (isFeatureSupported(OPENTCO_CAM_FEATURE_CHANGE_MODE))
+                if (isFeatureSupported(OPENTCO_CAM_FEATURE_CHANGE_MODE)) {
                     behavior = OPENTCO_CAM_CONTROL_SIMULATE_CHANGE_MODE;
+                    boxModeChange = true;
+                }
                 break;
             default:
                 behavior = 0;
                 break;
             }
-            if (behavior != 0) {
+
+            if (boxModeChange) {
                 opentcoCamControl(camDevice, behavior);
                 switchStates[switchIndex].isActivated = true;
             }
