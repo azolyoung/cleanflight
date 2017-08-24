@@ -835,22 +835,17 @@ extern "C" {
         for(int i = 0; i < 5; i++) {
             uint8_t rx = serialRead(device->serialPort);
             data[i] = rx;
-            printf("%02x ", data[i]);
             crc = crc8_dvb_s2(crc, rx);
         }
-        printf("\n");
 
         // check crc
-        printf("crc check:%d\n", crc);
         if (crc != 0) return false;
     
         // check device and command
         uint8_t valid_devcmd = ((OPENTCO_DEVICE_RESPONSE | device->id) << 4) | OPENTCO_OSD_COMMAND_REGISTER_ACCESS;
-        printf("command check:%d, %d\n", data[0], valid_devcmd);
         if (data[0] != valid_devcmd) return false;
     
         // response to our request?
-        printf("reg check:%d, %d\n", data[1], requested_reg);
         if (data[1] != requested_reg) return false;
     
         // return value
@@ -867,7 +862,6 @@ extern "C" {
             // send read request
 
             opentcoWriteRegister(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
-            printf("read reg:%d\n", reg);
             // wait 100ms for reply
             timeMs_t timeout = millis() + 100;
     
@@ -880,14 +874,12 @@ extern "C" {
                     if (serialRxBytesWaiting(device->serialPort) > 0) {
                         uint8_t rx = serialRead(device->serialPort);
                         if (rx == OPENTCO_PROTOCOL_HEADER) {
-                            printf("found header\n");
                             header_received = true;
                         }
                     }
                 } else {
                     // header found, now wait for the remaining bytes to arrive
                     if (serialRxBytesWaiting(device->serialPort) >= 5) {
-                        printf("try to parse packet\n");
                         // try to decode this packet
                         if (!opentcoDecodeResponse(device, reg, val)) {
                             // received broken / bad response

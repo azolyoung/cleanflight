@@ -166,7 +166,6 @@ bool opentcoCamInit(void)
     }
 
     opentcoCamQuerySupportedFeatures();
-    printf("init success\n");
 
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
         uint8_t switchIndex = i - BOXCAMERA1;
