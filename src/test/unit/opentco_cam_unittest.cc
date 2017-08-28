@@ -68,6 +68,7 @@ extern "C" {
         uint8_t readPos;
         uint8_t *responseData;
         uint8_t responseDataLen;
+        uint32_t millis;
     } testData_t;
 
     static testData_t testData;
@@ -196,7 +197,7 @@ TEST(OpenTCOCamTest, TestWifiModeChangeWithDeviceUnready)
     rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1500;
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1900;
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
-
+    
     updateActivatedModes();
 
     // runn process loop
@@ -361,7 +362,7 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     printf("\n");
 
     OSDDevice.id = OPENTCO_DEVICE_OSD;
-    opentcoOSDFillRegion(NULL, 10, 10, 2, 2, 'A');
+    opentcoOSDFillRegion(NULL, 2, 2, 2, 2, 'A');
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("osd fill region(%d): ", bufferLen);
@@ -371,7 +372,7 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     printf("\n");
 
     OSDDevice.id = OPENTCO_DEVICE_OSD;
-    opentcoOSDWriteString_H(NULL, 7, 2, "ABCDEF1234");
+    opentcoOSDWriteString_H(NULL, 0, 0, "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234");
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("osd write string hort(%d): ", bufferLen);
@@ -381,7 +382,17 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     printf("\n");
 
     OSDDevice.id = OPENTCO_DEVICE_OSD;
-    opentcoOSDWriteString_V(NULL, 3, 3, "ABCDEF1234");
+    opentcoOSDWriteString_H(NULL, 0, 15, "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234");
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("osd write string hort2(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_OSD;
+    opentcoOSDWriteString_V(NULL, 0, 3, "ABCDEFGHIJK");
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("osd write string vert(%d): ", bufferLen);
@@ -401,7 +412,17 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     printf("\n");
 
     OSDDevice.id = OPENTCO_DEVICE_OSD;
-    opentcoWriteRegister(&OSDDevice, OPENTCO_CAM_REGISTER_STATUS | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
+    opentcoWriteRegister(&OSDDevice, OPENTCO_OSD_REGISTER_VIDEO_FORMAT, 1);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("osd write video format(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_OSD;
+    opentcoWriteRegister(&OSDDevice, OPENTCO_OSD_REGISTER_STATUS | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("osd read register status (%d): ", bufferLen);
@@ -411,8 +432,8 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     printf("\n");
 
     OSDDevice.id = OPENTCO_DEVICE_OSD;
-    uint16_t camRegisterFlag = 0;
-    opentcoWriteRegister(&OSDDevice, OPENTCO_CAM_REGISTER_STATUS, camRegisterFlag);
+    uint16_t camRegisterFlag = 1;
+    opentcoWriteRegister(&OSDDevice, OPENTCO_OSD_REGISTER_STATUS, camRegisterFlag);
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("osd write register status (%d): ", bufferLen);
@@ -447,6 +468,37 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("cam write register status (%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    
+    OSDDevice.id = OPENTCO_DEVICE_OSD;
+    camRegisterFlag = OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN | OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN;
+    opentcoWriteRegister(&OSDDevice, 0 | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("osd write 0 register (%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    testData.millis = 0;
+    OSDDevice.id = OPENTCO_DEVICE_OSD;
+    camRegisterFlag = OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN | OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN;
+    uint8_t bbbbb[] = { 0x80, 0x80, 0x80, 0x00, 0x00, 0xDF };
+    testData.readPos = 0;
+    testData.maxTimesOfRespDataAvailable = sizeof(bbbbb);
+    testData.responseData = bbbbb;
+    testData.responseDataLen = sizeof(bbbbb);
+    uint16_t tmp;
+    printf("prepared read\n");
+    opentcoReadRegister(&OSDDevice, 0, &tmp);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam write register status222 (%d): ", bufferLen);
     for (int i = 0; i < bufferLen; i++) {
         printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
     }
@@ -508,9 +560,12 @@ extern "C" {
     { 
         UNUSED(instance);
 
-        testData.maxTimesOfRespDataAvailable--;
+        // printf("left:%d\n", testData.maxTimesOfRespDataAvailable);
+        // if (testData.maxTimesOfRespDataAvailable > 0)
+        //     testData.maxTimesOfRespDataAvailable--;
+
         if (testData.maxTimesOfRespDataAvailable > 0) {
-            return testData.maxTimesOfRespDataAvailable;
+            return testData.maxTimesOfRespDataAvailable--;
         }
 
         return 0;
@@ -521,12 +576,13 @@ extern "C" {
         UNUSED(instance); 
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
-            static uint8_t *buffer = testData.responseData;
-
+            uint8_t *buffer = testData.responseData;
+            printf("ffff\n");
             if (testData.readPos >= testData.responseDataLen) {
                 testData.readPos = 0;
             }
 
+            printf("read data:%02x\n", buffer[testData.readPos]);
             return buffer[testData.readPos++];
         }
 
@@ -661,7 +717,7 @@ extern "C" {
         UNUSED(serialPort);
     }
 
-    uint32_t millis(void) {return 0;}
+    uint32_t millis(void) { return testData.millis++; }
 
     int opentcoOSDWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
     {
@@ -839,14 +895,14 @@ extern "C" {
         }
 
         // check crc
-        if (crc != 0) return false;
+        if (crc != 0) { printf("crc is not zero\n"); return false; }
     
         // check device and command
         uint8_t valid_devcmd = ((OPENTCO_DEVICE_RESPONSE | device->id) << 4) | OPENTCO_OSD_COMMAND_REGISTER_ACCESS;
-        if (data[0] != valid_devcmd) return false;
+        if (data[0] != valid_devcmd) { printf("command not valid:%d, %d\n", data[0], valid_devcmd); return false; }
     
         // response to our request?
-        if (data[1] != requested_reg) return false;
+        if (data[1] != requested_reg) { printf("reg code incorrect: %d, %d\n", data[1], requested_reg);  return false;}
     
         // return value
         *reply = (data[3] << 8) | data[2];
@@ -875,17 +931,21 @@ extern "C" {
                         uint8_t rx = serialRead(device->serialPort);
                         if (rx == OPENTCO_PROTOCOL_HEADER) {
                             header_received = true;
+                            printf("found header1111:%d\n", millis());
                         }
                     }
                 } else {
                     // header found, now wait for the remaining bytes to arrive
+                    printf("prepared to read left len]\n");
                     if (serialRxBytesWaiting(device->serialPort) >= 5) {
                         // try to decode this packet
-                        if (!opentcoDecodeResponse(device, reg, val)) {
+                        printf("starting to decoee\n");
+                        if (!opentcoDecodeResponse(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, val)) {
                             // received broken / bad response
+                            printf("decode failed\n");
                             break;
                         }
-    
+                        printf("decode successed\n");
                         // received valid data
                         return true;
                     }

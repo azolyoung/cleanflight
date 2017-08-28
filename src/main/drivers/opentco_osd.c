@@ -34,6 +34,8 @@
 #include "drivers/vcd.h"
 #include "drivers/opentco.h"
 #include "sensors/gyroanalyse.h"
+#include "config/feature.h"
+#include "fc/config.h"
 
 //uint16_t opentcoOSDMaxScreenSize = OPENTCO_OSD_VIDEO_BUFFER_CHARS_PAL;
 

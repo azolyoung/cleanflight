@@ -25,6 +25,8 @@
 #include "drivers/time.h"
 #include "common/crc.h"
 #include "opentco.h"
+#include "config/feature.h"
+#include "fc/config.h"
 
 #if defined(USE_OPENTCO)
 
@@ -44,7 +46,7 @@ bool opentcoInit(opentcoDevice_t *device)
         uint32_t baudrate = baudRates[portConfig->blackbox_baudrateIndex];
 
         // open assigned serial port
-        device->serialPort = openSerialPort(portConfig->identifier, FUNCTION_OPENTCO, NULL, baudrate, MODE_RXTX, SERIAL_NOT_INVERTED);
+        device->serialPort = openSerialPort(portConfig->identifier, FUNCTION_OPENTCO, NULL, 115200, MODE_RXTX, 0);
         if (device->serialPort == NULL) {
             return false;
         }
@@ -56,7 +58,7 @@ bool opentcoInit(opentcoDevice_t *device)
             
             return true;
         }
-
+        
         // device not found, close port
         closeSerialPort(device->serialPort);
 
@@ -102,11 +104,13 @@ static bool opentcoDecodeResponse(opentcoDevice_t *device, uint8_t requested_reg
 
 bool opentcoReadRegister(opentcoDevice_t *device, uint8_t reg, uint16_t *val)
 {
-    uint32_t max_retries = 3;
+    uint32_t max_retries = 13;
 
     while (max_retries--) {
         // send read request
-        opentcoWriteRegister(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
+        // opentcoWriteRegister(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
+        uint8_t p[] = { 0x80, 0x00, 0x80, 0x00, 0x00, 0x84 };
+        serialWriteBuf(device->serialPort, p, 6);
 
         // wait 100ms for reply
         timeMs_t timeout = millis() + 100;
@@ -118,6 +122,7 @@ bool opentcoReadRegister(opentcoDevice_t *device, uint8_t reg, uint16_t *val)
             if (!header_received) {
                 // read serial bytes until we find a header:
                 if (serialRxBytesWaiting(device->serialPort) > 0) {
+                    featureClear(FEATURE_TELEMETRY);
                     uint8_t rx = serialRead(device->serialPort);
                     if (rx == OPENTCO_PROTOCOL_HEADER) {
                         header_received = true;
@@ -137,6 +142,7 @@ bool opentcoReadRegister(opentcoDevice_t *device, uint8_t reg, uint16_t *val)
                 }
             }
         }
+        break;
     }
 
     // failed n times
