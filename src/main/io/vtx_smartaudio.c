@@ -569,7 +569,7 @@ static void saGetPitFreq(void)
 }
 #endif
 
-void saSetBandAndChannel(uint8_t band, uint8_t channel)
+bool saSetBandAndChannel(uint8_t band, uint8_t channel)
 {
     static uint8_t buf[6] = { 0xAA, 0x55, SACMD(SA_CMD_SET_CHAN), 1 };
 
@@ -577,6 +577,7 @@ void saSetBandAndChannel(uint8_t band, uint8_t channel)
     buf[5] = CRC8(buf, 5);
 
     saQueueCmd(buf, 6);
+    return true;
 }
 
 void saSetMode(int mode)
@@ -608,7 +609,7 @@ void saSetPowerByIndex(uint8_t index)
     saQueueCmd(buf, 6);
 }
 
-bool vtxSmartAudioInit()
+vtxDevice_t *vtxSmartAudioInit()
 {
 #ifdef SMARTAUDIO_DPRINTF
     // Setup debugSerialPort
@@ -626,12 +627,10 @@ bool vtxSmartAudioInit()
     }
 
     if (!smartAudioSerialPort) {
-        return false;
+        return NULL;
     }
 
-    vtxCommonRegisterDevice(&vtxSmartAudio);
-
-    return true;
+    return &vtxSmartAudio;
 }
 
 void vtxSAProcess(uint32_t now)
@@ -705,40 +704,42 @@ void vtxSAProcess(uint32_t now)
 #ifdef VTX_COMMON
 // Interface to common VTX API
 
-vtxDevType_e vtxSAGetDeviceType(void)
+/*vtxDevType_e vtxSAGetDeviceType(void)
 {
     return VTXDEV_SMARTAUDIO;
-}
+}*/
 
 bool vtxSAIsReady(void)
 {
     return !(saDevice.version == 0);
 }
 
-void vtxSASetBandAndChannel(uint8_t band, uint8_t channel)
+bool vtxSASetBandAndChannel(uint8_t band, uint8_t channel)
 {
     if (band && channel)
         saSetBandAndChannel(band - 1, channel - 1);
+    return true;
 }
 
-void vtxSASetPowerByIndex(uint8_t index)
+bool vtxSASetPowerByIndex(uint8_t index)
 {
     if (index == 0) {
         // SmartAudio doesn't support power off.
-        return;
+        return true;
     }
 
     saSetPowerByIndex(index - 1);
+    return true;
 }
 
-void vtxSASetPitMode(uint8_t onoff)
+bool vtxSASetPitMode(uint8_t onoff)
 {
     if (!(vtxSAIsReady() && (saDevice.version == 2)))
-        return;
+        return true;
 
     if (onoff) {
         // SmartAudio can not turn pit mode on by software.
-        return;
+        return true;
     }
 
     uint8_t newmode = SA_MODE_CLR_PITMODE;
@@ -751,7 +752,7 @@ void vtxSASetPitMode(uint8_t onoff)
 
     saSetMode(newmode);
 
-    return;
+    return true;
 }
 
 bool vtxSAGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel)
@@ -784,7 +785,7 @@ bool vtxSAGetPitMode(uint8_t *pOnOff)
 
 static const vtxVTable_t saVTable = {
     .process = vtxSAProcess,
-    .getDeviceType = vtxSAGetDeviceType,
+    //.getDeviceType = vtxSAGetDeviceType,
     .isReady = vtxSAIsReady,
     .setBandAndChannel = vtxSASetBandAndChannel,
     .setPowerByIndex = vtxSASetPowerByIndex,

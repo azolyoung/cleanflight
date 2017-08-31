@@ -90,7 +90,7 @@ int opentcoOSDFillRegion(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8
 int opentcoOSDClearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    opentcoOSDFillRegion(displayPort, 0, 0, 255, 255, ' ');
+    opentcoOSDFillRegion(displayPort, 0, 0, 30, 16, ' ');
     return 0;
 }
 
@@ -126,6 +126,9 @@ bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
     video_system = pVcdProfile->video_system;
     //hosRegValue = 32 - pVcdProfile->h_offset;
     //vosRegValue = 16 - pVcdProfile->v_offset;
+
+    // configure device:
+    device->id = OPENTCO_DEVICE_OSD;
 
     // open serial port
     if (!opentcoInit(device)) {
@@ -368,7 +371,6 @@ void opentcoOSDResync(displayPort_t *displayPort)
     } else {
         displayPort->rowCount = OPENTCO_OSD_VIDEO_LINES_NTSC;
     }
-
     displayPort->colCount = OPENTCO_OSD_VIDEO_COLS;
 }
 

@@ -432,35 +432,38 @@ void vtxTrampProcess(uint32_t currentTimeUs)
 
 // Interface to common VTX API
 
-vtxDevType_e vtxTrampGetDeviceType(void)
+/*vtxDevType_e vtxTrampGetDeviceType(void)
 {
     return VTXDEV_TRAMP;
-}
+}*/
 
 bool vtxTrampIsReady(void)
 {
     return trampStatus > TRAMP_STATUS_OFFLINE;
 }
 
-void vtxTrampSetBandAndChannel(uint8_t band, uint8_t channel)
+bool vtxTrampSetBandAndChannel(uint8_t band, uint8_t channel)
 {
     if (band && channel) {
         trampSetBandAndChannel(band, channel);
         trampCommitChanges();
     }
+    return true;
 }
 
-void vtxTrampSetPowerByIndex(uint8_t index)
+bool vtxTrampSetPowerByIndex(uint8_t index)
 {
     if (index) {
         trampSetRFPower(trampPowerTable[index - 1]);
         trampCommitChanges();
     }
+    return true;
 }
 
-void vtxTrampSetPitMode(uint8_t onoff)
+bool vtxTrampSetPitMode(uint8_t onoff)
 {
     trampSetPitMode(onoff);
+    return true;
 }
 
 bool vtxTrampGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel)
@@ -501,7 +504,7 @@ bool vtxTrampGetPitMode(uint8_t *pOnOff)
 
 static const vtxVTable_t trampVTable = {
     .process = vtxTrampProcess,
-    .getDeviceType = vtxTrampGetDeviceType,
+    //.getDeviceType = vtxTrampGetDeviceType,
     .isReady = vtxTrampIsReady,
     .setBandAndChannel = vtxTrampSetBandAndChannel,
     .setPowerByIndex = vtxTrampSetPowerByIndex,
@@ -513,7 +516,7 @@ static const vtxVTable_t trampVTable = {
 
 #endif
 
-bool vtxTrampInit(void)
+vtxDevice_t *vtxTrampInit(void)
 {
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_TRAMP);
 
@@ -522,14 +525,10 @@ bool vtxTrampInit(void)
     }
 
     if (!trampSerialPort) {
-        return false;
+        return NULL;
     }
 
-#if defined(VTX_COMMON)
-    vtxCommonRegisterDevice(&vtxTramp);
-#endif
-
-    return true;
+    return &vtxTramp;
 }
 
 #endif // VTX_TRAMP

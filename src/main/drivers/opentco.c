@@ -30,44 +30,101 @@
 
 #if defined(USE_OPENTCO)
 
-// openTCO allows multiple devices to share a single uart
-// or to use an indivual uart for every device
+static bool opentcoDetectDevice(opentcoDevice_t *device);
+static void opentcoRegisterDevice(opentcoDevice_t *device);
+static opentcoDevice_t *firstDevice = NULL;
+
+// openTCO allows multiple (virtual) devices to share a single cpu and uart
+// - or -
+// use an indivual uart for every device
+//
 // for now only ONE device of each class (camera, vtx, osd) is supported
 //
 // this function scans all serialports configured as FUNCTION_OPENTCO
 // for a given deviceid and returns the FIRST successful hit
 bool opentcoInit(opentcoDevice_t *device)
 {
-    // scan all opentco serial ports
+    // first: iterate over the open opentcoDevice list in order
+    // to reuse an already opened port:
+    // find attachment point
+    opentcoDevice_t *currentDevice = firstDevice;
+    while(currentDevice != NULL) {
+        // temporarily set serial port
+        device->serialPort = currentDevice->serialPort;
+
+        // try to detect this device on bus
+        if (opentcoDetectDevice(device)) {
+            // found device on this port, store this device
+            opentcoRegisterDevice(device);
+
+            // and done
+            return true;
+        }
+        // next device
+        currentDevice = currentDevice->next;
+    }
+
+    // not found in the current device list, scan all serial ports
+    // (this will skip already opened ports, this is why we need
+    // to scan the list above
+
+    // start with the first one:
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_OPENTCO);
 
     while (portConfig != NULL) {
         // extract baudrate
         uint32_t baudrate = baudRates[portConfig->blackbox_baudrateIndex];
 
-        // open assigned serial port
-        device->serialPort = openSerialPort(portConfig->identifier, FUNCTION_OPENTCO, NULL, 115200, MODE_RXTX, 0);
-        if (device->serialPort == NULL) {
-            return false;
+        // try tp open the serial port
+        device->serialPort = openSerialPort(portConfig->identifier, FUNCTION_OPENTCO, NULL, baudrate, MODE_RXTX, SERIAL_NOT_INVERTED);
+
+        if (device->serialPort != NULL) {
+            // try to detect the given device:
+            if (opentcoDetectDevice(device)) {
+                opentcoRegisterDevice(device);
+                return true;
+            }
+
+            // device not found, close port
+            closeSerialPort(device->serialPort);
         }
-        
-        // try to detect the given device:
-        uint16_t tmp;
-        if (opentcoReadRegister(device, 0, &tmp)){
-            // success, found port for this device
-            
-            return true;
-        }
-        
-        // device not found, close port
-        closeSerialPort(device->serialPort);
 
         // find next portConfig
         portConfig = findNextSerialPortConfig(FUNCTION_OPENTCO);
     }
-    printf("ccddaaaa\n");
+
+    // clear serialport
     device->serialPort = NULL;
     return false;
+}
+
+// device detected on bus?
+static bool opentcoDetectDevice(opentcoDevice_t *device)
+{
+    uint16_t tmp;
+    return opentcoReadRegister(device, 0, &tmp);
+}
+
+// keep a linked list of devices
+static void opentcoRegisterDevice(opentcoDevice_t *device)
+{
+    // new device, should not have next pointer
+    device->next = NULL;
+
+    if (firstDevice == NULL) {
+        // no active device in chain, store this
+        firstDevice = device;
+        return;
+    }
+
+    // find attachment point
+    opentcoDevice_t *currentDevice = firstDevice;
+    while(currentDevice->next != NULL) {
+        currentDevice = currentDevice->next;
+    }
+
+    // add device to list
+    currentDevice->next = device;
 }
 
 static bool opentcoDecodeResponse(opentcoDevice_t *device, uint8_t requested_reg, uint16_t *reply)
@@ -87,14 +144,15 @@ static bool opentcoDecodeResponse(opentcoDevice_t *device, uint8_t requested_reg
     }
 
     // check crc
-    if (crc != 0) return false;
+    if (crc != 0)  {  return false; }
 
     // check device and command
     uint8_t valid_devcmd = ((OPENTCO_DEVICE_RESPONSE | device->id) << 4) | OPENTCO_OSD_COMMAND_REGISTER_ACCESS;
-    if (data[0] != valid_devcmd) return false;
+    if (data[0] != valid_devcmd) { return false; }
 
-    // response to our request?
-    if (data[1] != requested_reg) return false;
+    // response to our request? reply should contain register id WITHOUT read bit set
+    uint8_t valid_reg = requested_reg/* & ~OPENTCO_REGISTER_ACCESS_MODE_READ*/;
+    if (data[1] != valid_reg) { return false; }
 
     // return value
     *reply = (data[3] << 8) | data[2];
@@ -104,13 +162,11 @@ static bool opentcoDecodeResponse(opentcoDevice_t *device, uint8_t requested_reg
 
 bool opentcoReadRegister(opentcoDevice_t *device, uint8_t reg, uint16_t *val)
 {
-    uint32_t max_retries = 13;
+    uint32_t max_retries = 1;
 
     while (max_retries--) {
         // send read request
-        // opentcoWriteRegister(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
-        uint8_t p[] = { 0x80, 0x00, 0x80, 0x00, 0x00, 0x84 };
-        serialWriteBuf(device->serialPort, p, 6);
+        opentcoWriteRegister(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, 0);
 
         // wait 100ms for reply
         timeMs_t timeout = millis() + 100;
@@ -122,7 +178,6 @@ bool opentcoReadRegister(opentcoDevice_t *device, uint8_t reg, uint16_t *val)
             if (!header_received) {
                 // read serial bytes until we find a header:
                 if (serialRxBytesWaiting(device->serialPort) > 0) {
-                    featureClear(FEATURE_TELEMETRY);
                     uint8_t rx = serialRead(device->serialPort);
                     if (rx == OPENTCO_PROTOCOL_HEADER) {
                         header_received = true;
@@ -132,7 +187,7 @@ bool opentcoReadRegister(opentcoDevice_t *device, uint8_t reg, uint16_t *val)
                 // header found, now wait for the remaining bytes to arrive
                 if (serialRxBytesWaiting(device->serialPort) >= 5) {
                     // try to decode this packet
-                    if (!opentcoDecodeResponse(device, reg, val)) {
+                    if (!opentcoDecodeResponse(device, reg | OPENTCO_REGISTER_ACCESS_MODE_READ, val)) {
                         // received broken / bad response
                         break;
                     }
@@ -198,10 +253,11 @@ void opentcoSendFrame(opentcoDevice_t *device)
     sbufSwitchToReader(device->sbuf, device->buffer);
 
     // send data if possible
-    if (!device->locked) {
-        device->locked = true;
+    serialPort_t *serialPort = device->serialPort;
+    if (!serialPort->locked) {
+        serialPort->locked = true;
         serialWriteBuf(device->serialPort, sbufPtr(device->sbuf), sbufBytesRemaining(device->sbuf));
-        device->locked = false;
+        serialPort->locked = false;
     }
 }
 

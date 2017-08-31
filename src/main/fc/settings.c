@@ -61,6 +61,7 @@
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/vtx_rtc6705.h"
+#include "drivers/vtx_common.h"
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
@@ -222,6 +223,14 @@ static const char * const lookupTableOsdDevice[] = {
 #endif
 };
 
+static const char * const lookupTableVtxDevice[] = {
+    "none",
+    "Smartaudio",
+    "Tramp",
+    "RTC6705",
+    "openTCO"
+};
+
 static const char * const lookupTableSuperExpoYaw[] = {
     "OFF", "ON", "ALWAYS"
 };
@@ -298,6 +307,7 @@ const lookupTableEntry_t lookupTables[] = {
 #endif
     { lookupTableBusType, sizeof(lookupTableBusType) / sizeof(char *) },
     { lookupTableOsdDevice, sizeof(lookupTableOsdDevice) / sizeof(char *) },
+    { lookupTableVtxDevice, sizeof(lookupTableVtxDevice) / sizeof(char *) },
 };
 
 const clivalue_t valueTable[] = {
@@ -717,9 +727,16 @@ const clivalue_t valueTable[] = {
 
 // PG_VTX_CONFIG
 #ifdef VTX_RTC6705
-    { "vtx_band",                   VAR_UINT8  | MASTER_VALUE, .config.minmax = { 1, 5 }, PG_VTX_RTC6705_CONFIG, offsetof(vtxRTC6705Config_t, band) },
-    { "vtx_channel",                VAR_UINT8  | MASTER_VALUE, .config.minmax = { 1, 8 }, PG_VTX_RTC6705_CONFIG, offsetof(vtxRTC6705Config_t, channel) },
-    { "vtx_power",                  VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, RTC6705_POWER_COUNT - 1 }, PG_VTX_RTC6705_CONFIG, offsetof(vtxRTC6705Config_t, power) },
+    { "vtx_rtc6705_band",                   VAR_UINT8  | MASTER_VALUE, .config.minmax = { 1, 5 }, PG_VTX_RTC6705_CONFIG, offsetof(vtxRTC6705Config_t, band) },
+    { "vtx_rtc6705_channel",                VAR_UINT8  | MASTER_VALUE, .config.minmax = { 1, 8 }, PG_VTX_RTC6705_CONFIG, offsetof(vtxRTC6705Config_t, channel) },
+    { "vtx_rtc6705_power",                  VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, RTC6705_POWER_COUNT - 1 }, PG_VTX_RTC6705_CONFIG, offsetof(vtxRTC6705Config_t, power) },
+#endif
+
+    { "vtx_device",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_VTX_TYPE }, PG_VTX_DEVICE_CONFIG, offsetof(vtxDeviceConfig_t, device) },
+#if defined(VTX_COMMON)
+    { "vtx_device_band",           VAR_UINT8  | MASTER_VALUE, .config.minmax = { 1, VTX_COMMON_MAX_BAND }, PG_VTX_DEVICE_CONFIG, offsetof(vtxDeviceConfig_t, band) },
+    { "vtx_device_channel",        VAR_UINT8  | MASTER_VALUE, .config.minmax = { 1, VTX_COMMON_MAX_CHANNEL }, PG_VTX_DEVICE_CONFIG, offsetof(vtxDeviceConfig_t, channel) },
+    { "vtx_device_powerindex",          VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, VTX_COMMON_MAX_POWER_COUNT - 1 }, PG_VTX_DEVICE_CONFIG, offsetof(vtxDeviceConfig_t, powerIndex) },
 #endif
 
 // PG_VCD_CONFIG

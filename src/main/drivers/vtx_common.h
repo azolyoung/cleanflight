@@ -14,9 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
 
 /* Created by jflyper */
-
+/*
 typedef enum {
     VTXDEV_UNSUPPORTED = 0, // reserved for MSP
     VTXDEV_RTC6705    = 1,
@@ -26,7 +27,7 @@ typedef enum {
     VTXDEV_OPENTCO    = 5,
     VTXDEV_UNKNOWN    = 0xFF,
 } vtxDevType_e;
-
+*/
 struct vtxVTable_s;
 
 typedef struct vtxDeviceCapability_s {
@@ -34,6 +35,27 @@ typedef struct vtxDeviceCapability_s {
     uint8_t channelCount;
     uint8_t powerCount;
 } vtxDeviceCapability_t;
+
+#define VTX_COMMON_MAX_CHANNEL 8
+#define VTX_COMMON_MAX_BAND 5
+#define VTX_COMMON_MAX_POWER_COUNT 8
+
+typedef enum {
+    VTX_DEVICE_NONE    = 0,
+    VTX_DEVICE_SMARTAUDIO = 1,
+    VTX_DEVICE_TRAMP = 2,
+    VTX_DEVICE_RTC6705 = 3,
+    VTX_DEVICE_OPENTCO = 4,
+    VTX_DEVICE_UNKNOWN = 0xFF
+} vtxDevice_e;
+
+typedef struct vtxDeviceConfig_s {
+    vtxDevice_e device;
+    uint8_t band; // Band = 1, 1-based
+    uint8_t channel; // CH1 = 1, 1-based
+    uint8_t powerIndex; // Lowest/Off = 0
+    uint8_t pitMode; // 0 = non-PIT, 1 = PIT
+} vtxDeviceConfig_t;
 
 typedef struct vtxDevice_s {
     const struct vtxVTable_s * const vTable;
@@ -44,13 +66,9 @@ typedef struct vtxDevice_s {
     char **bandNames;    // char *bandNames[bandCount]
     char **channelNames;    // char *channelNames[channelCount]
     char **powerNames;   // char *powerNames[powerCount]
-
-    uint8_t band; // Band = 1, 1-based
-    uint8_t channel; // CH1 = 1, 1-based
-    uint8_t powerIndex; // Lowest/Off = 0
-    uint8_t pitMode; // 0 = non-PIT, 1 = PIT
-
 } vtxDevice_t;
+
+PG_DECLARE(vtxDeviceConfig_t, vtxDeviceConfig);
 
 // {set,get}BandAndChannel: band and channel are 1 origin
 // {set,get}PowerByIndex: 0 = Power OFF, 1 = device dependent
@@ -58,12 +76,12 @@ typedef struct vtxDevice_s {
 
 typedef struct vtxVTable_s {
     void (*process)(uint32_t currentTimeUs);
-    vtxDevType_e (*getDeviceType)(void);
+    //vtxDevType_e (*getDeviceType)(void);
     bool (*isReady)(void);
 
-    void (*setBandAndChannel)(uint8_t band, uint8_t channel);
-    void (*setPowerByIndex)(uint8_t level);
-    void (*setPitMode)(uint8_t onoff);
+    bool (*setBandAndChannel)(uint8_t band, uint8_t channel);
+    bool (*setPowerByIndex)(uint8_t level);
+    bool (*setPitMode)(uint8_t onoff);
 
     bool (*getBandAndChannel)(uint8_t *pBand, uint8_t *pChannel);
     bool (*getPowerIndex)(uint8_t *pIndex);
@@ -81,10 +99,14 @@ void vtxCommonRegisterDevice(vtxDevice_t *pDevice);
 // VTable functions
 void vtxCommonProcess(uint32_t currentTimeUs);
 uint8_t vtxCommonGetDeviceType(void);
-void vtxCommonSetBandAndChannel(uint8_t band, uint8_t channel);
-void vtxCommonSetPowerByIndex(uint8_t level);
-void vtxCommonSetPitMode(uint8_t onoff);
+bool vtxCommonSetBandAndChannel(uint8_t band, uint8_t channel);
+bool vtxCommonSetPowerByIndex(uint8_t level);
+bool vtxCommonSetPitMode(uint8_t onoff);
 bool vtxCommonGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel);
 bool vtxCommonGetPowerIndex(uint8_t *pIndex);
 bool vtxCommonGetPitMode(uint8_t *pOnOff);
 bool vtxCommonGetDeviceCapability(vtxDeviceCapability_t *pDeviceCapability);
+
+bool vtxCommonGetBandName(uint8_t band, char **name);
+bool vtxCommonGetPowerName(uint8_t index, char **name);
+bool vtxCommonGetChannelName(uint8_t ch, char **name);

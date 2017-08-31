@@ -516,7 +516,7 @@ static void osdDrawSingleElement(uint8_t item)
 
         h = osdGetHeadingIntoDiscreteDirections(h, 16);
 
-        memcpy(buff, compassBar + h, 9);
+        memcpy(buff, compassBar + 0, 9);
         buff[9]=0;
         break;
     }
@@ -595,6 +595,9 @@ static void osdDrawSingleElement(uint8_t item)
         buff[1] = SYM_AH_CENTER;
         buff[2] = SYM_AH_CENTER_LINE_RIGHT;
         buff[3] = 0;
+        if (elemPosX == 14 && elemPosY == 8) {
+            featureClear(FEATURE_TELEMETRY);
+        } 
         break;
 
     case OSD_ARTIFICIAL_HORIZON:

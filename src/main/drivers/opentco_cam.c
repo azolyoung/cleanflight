@@ -64,6 +64,14 @@ static bool opentcoCamControl(opentcoDevice_t *camDevice, uint8_t controlbehavio
     return true;
 }
 
+bool opentcoCamGetCameraStatus(opentcoDevice_t *camDevice, uint8_t statusID)
+{
+    opentcoInitializeFrame(camDevice, OPENTCO_CAM_COMMAND_GET_CAMERA_STATUS);
+    sbufWriteU8(camDevice->sbuf, statusID);
+    opentcoSendFrame(camDevice);
+    return true;
+}
+
 static bool isFeatureSupported(uint8_t feature)
 {
     if (opentcoCameraProfile()->supportedFeatures & feature)

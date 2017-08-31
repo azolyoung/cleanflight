@@ -40,6 +40,7 @@ bool opentcoCamInit(void);
 bool openCamIsSupport5KeyCalbleSimulation();
 void opentcoCamSimulate5KeyCablePress(cameraControlKey_e key);
 
+bool opentcoCamGetCameraStatus(opentcoDevice_t *camDevice, uint8_t statusID);
 
 // used for unit test
 opentco_cam_switch_state_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];

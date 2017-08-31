@@ -20,7 +20,7 @@
 #include "drivers/display.h"
 
 /** PAL or NTSC, value is number of chars total */
-#define OPENTCO_OSD_VIDEO_COLS                35
+#define OPENTCO_OSD_VIDEO_COLS                30
 #define OPENTCO_OSD_VIDEO_LINES_NTSC          13
 #define OPENTCO_OSD_VIDEO_LINES_PAL           16
 #define OPENTCO_OSD_VIDEO_BUFFER_CHARS_NTSC   (OPENTCO_OSD_VIDEO_COLS * OPENTCO_OSD_VIDEO_LINES_NTSC)

@@ -50,6 +50,7 @@ extern "C" {
     #include "drivers/opentco.h"
     #include "drivers/opentco_cam.h"
     #include "drivers/opentco_osd.h"
+    #include "drivers/max7456_symbols.h"
 
     #include "rx/rx.h"
 
@@ -102,6 +103,10 @@ extern "C" {
 
     int opentcoOSDWriteString_H(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *buff);
     int opentcoOSDWriteString_V(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *buff);
+    static bool opentcoCamControl(opentcoDevice_t *camDevice, uint8_t controlbehavior);
+    static bool opentcoCamGetCameraStatus_unittest(opentcoDevice_t *camDevice, uint8_t statusID);
+    static void opentcoCamSimulate5KeyCablePress(opentcoDevice_t *camDevice, opentcoCamSimulationKey_e key);
+    static bool opentcoSimulationHandShake(opentcoDevice_t *camDevice, uint8_t connectflag);
 }
 
 TEST(OpenTCOCamTest, TestRCSplitInitWithoutPortConfigurated)
@@ -362,7 +367,7 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     printf("\n");
 
     OSDDevice.id = OPENTCO_DEVICE_OSD;
-    opentcoOSDFillRegion(NULL, 2, 2, 2, 2, 'A');
+    opentcoOSDFillRegion(NULL, 0, 0, 30, 16, ' ');
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("osd fill region(%d): ", bufferLen);
@@ -499,6 +504,205 @@ TEST(OpenTCOCamTest, TestOpenTcoPacket)
     sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
     bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
     printf("cam write register status222 (%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    // printf("osd drawing logo:\n");
+    // int fontOffset = 160;
+    // int x = 3;
+    // int y = 1;
+    // for (int row = 0; row < 4; row++) {
+    //     for (int column = 0; column < 24; column++) {
+    //         if (fontOffset <= SYM_END_OF_FONT)
+    //         opentcoOSDWriteChar(NULL, x + column, y + row, fontOffset++);
+    //         sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    //         bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    //         for (int i = 0; i < bufferLen; i++) {
+    //             printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    //         }
+    //         printf("\n");
+    //     }
+    // }
+
+    printf("write char to right bottom:\n");
+    opentcoOSDWriteChar(NULL, 29, 15, 'A');
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    printf("write string to right bottom:\n");
+    opentcoOSDWriteString_H(NULL, 29, 15, "B");
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    printf("write help text1:\n");
+    opentcoOSDWriteString_H(NULL, 7, 8, CMS_STARTUP_HELP_TEXT1);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    printf("write help text2:\n");
+    opentcoOSDWriteString_H(NULL, 11, 9, CMS_STARTUP_HELP_TEXT2);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    printf("write help text3:\n");
+    opentcoOSDWriteString_H(NULL, 11, 10, CMS_STARTUP_HELP_TEXT3);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    
+    uint8_t buff[4] = { 0 };
+    buff[0] = SYM_AH_CENTER_LINE;
+    buff[1] = SYM_AH_CENTER;
+    buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+    buff[3] = 0;
+    printf("write center point:\n");
+    opentcoOSDWriteString_H(NULL, 14, 8, (const char *)buff);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    printf("cam simulate wi-fi btn:\n");
+    opentcoCamControl(&OSDDevice, 0x00);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    printf("cam simulate power btn:\n");
+    opentcoCamControl(&OSDDevice, 0x01);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    printf("cam simulate change mode:\n");
+    opentcoCamControl(&OSDDevice, 0x02);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    camRegisterFlag = OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN | OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN;
+    opentcoCamGetCameraStatus_unittest(&OSDDevice, OPENTCO_CAM_STATUS_SDCARD_REMAINING_CAPACITY);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam get sd card capacity (%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    camRegisterFlag = OPENTCO_CAM_FEATURE_SIMULATE_POWER_BTN | OPENTCO_CAM_FEATURE_SIMULATE_WIFI_BTN;
+    opentcoCamGetCameraStatus_unittest(&OSDDevice, OPENTCO_CAM_STATUS_RECORDED_TIME);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam get recorded time (%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoCamSimulate5KeyCablePress(&OSDDevice, OPENTCO_CAM_KEY_DOWN);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam simulae down btn(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoCamSimulate5KeyCablePress(&OSDDevice, OPENTCO_CAM_KEY_UP);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam simulae up btn(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoCamSimulate5KeyCablePress(&OSDDevice, OPENTCO_CAM_KEY_RIGHT);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam simulae right btn(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoCamSimulate5KeyCablePress(&OSDDevice, OPENTCO_CAM_KEY_LEFT);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam simulae left btn(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoCamSimulate5KeyCablePress(&OSDDevice, OPENTCO_CAM_KEY_ENTER);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam simulae set btn(%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoSimulationHandShake(&OSDDevice, 1 << 0);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam hand shake (%d): ", bufferLen);
+    for (int i = 0; i < bufferLen; i++) {
+        printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
+    }
+    printf("\n");
+
+    OSDDevice.id = OPENTCO_DEVICE_CAM;
+    opentcoSimulationHandShake(&OSDDevice, 1 << 1);
+    sbufSwitchToReader(OSDDevice.sbuf, OSDDevice.buffer);
+    bufferLen = sbufBytesRemaining(OSDDevice.sbuf);
+    printf("cam disconnect  (%d): ", bufferLen);
     for (int i = 0; i < bufferLen; i++) {
         printf("%02x ", sbufReadU8(OSDDevice.sbuf)); 
     }
@@ -974,6 +1178,67 @@ extern "C" {
         //FIXME: check if actually written (read response)
         return true;
     }
+
+    static bool opentcoCamControl(opentcoDevice_t *camDevice, uint8_t controlbehavior)
+    {
+        opentcoInitializeFrame(camDevice, OPENTCO_CAM_COMMAND_CAMERA_CONTROL);
+        sbufWriteU8(camDevice->sbuf, controlbehavior);
+        // send
+        crc8_dvb_s2_sbuf_append(camDevice->sbuf, camDevice->buffer);
+
+        return true;
+    }
+    
+    static bool opentcoCamGetCameraStatus_unittest(opentcoDevice_t *camDevice, uint8_t statusID)
+    {
+        opentcoInitializeFrame(camDevice, OPENTCO_CAM_COMMAND_GET_CAMERA_STATUS);
+        sbufWriteU8(camDevice->sbuf, statusID);
+        crc8_dvb_s2_sbuf_append(camDevice->sbuf, camDevice->buffer);
+        return true;
+    }
+
+    static bool opentcoSimulationPress(opentcoDevice_t *camDevice, uint8_t controlbehavior)
+    {
+        opentcoInitializeFrame(camDevice, OPENTCO_CAM_COMMAND_5KEY_SIMULATION_PRESS);
+        sbufWriteU8(camDevice->sbuf, controlbehavior);
+        crc8_dvb_s2_sbuf_append(camDevice->sbuf, camDevice->buffer);
+        return true;
+    }
+
+    static bool opentcoSimulationHandShake(opentcoDevice_t *camDevice, uint8_t connectflag)
+    {
+        opentcoInitializeFrame(camDevice, OPENTCO_CAM_COMMAND_SIMULATION_HANDSHAKE);
+        sbufWriteU8(camDevice->sbuf, connectflag);
+        crc8_dvb_s2_sbuf_append(camDevice->sbuf, camDevice->buffer);
+        return true;
+    }
+
+    static void opentcoCamSimulate5KeyCablePress(opentcoDevice_t *camDevice, opentcoCamSimulationKey_e key)
+    {
+        UNUSED(key);
+   
+        opentcoCam5KeySimulationKey_e behavior = OPENTCO_CAM_5KEY_SIMULATION_LEFT;
+   
+        if(key == OPENTCO_CAM_KEY_LEFT){
+           behavior = OPENTCO_CAM_5KEY_SIMULATION_LEFT;
+        }
+        else if(key == OPENTCO_CAM_KEY_UP){
+           behavior = OPENTCO_CAM_5KEY_SIMULATION_UP;
+        }
+        else if(key == OPENTCO_CAM_KEY_RIGHT){
+           behavior = OPENTCO_CAM_5KEY_SIMULATION_RIGHT;
+        }
+        else if(key == OPENTCO_CAM_KEY_DOWN){
+           behavior = OPENTCO_CAM_5KEY_SIMULATION_DOWN;
+        }
+        else if(key == OPENTCO_CAM_KEY_ENTER){
+           behavior = OPENTCO_CAM_5KEY_SIMULATION_SET;
+        }
+   
+        opentcoSimulationPress(camDevice, behavior);
+    }
+
+    
 
     uint8_t* sbufPtr(sbuf_t *buf)
     {

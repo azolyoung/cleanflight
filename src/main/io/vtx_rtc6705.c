@@ -85,11 +85,9 @@ static vtxDevice_t vtxRTC6705 = {
 };
 #endif
 
-bool vtxRTC6705Init(void)
+vtxDevice_t *vtxRTC6705Init(void)
 {
-    vtxCommonRegisterDevice(&vtxRTC6705);
-
-    return true;
+    return &vtxRTC6705;
 }
 
 void vtxRTC6705Configure(void)
@@ -148,7 +146,7 @@ bool vtxRTC6705IsReady(void)
     return true;
 }
 
-void vtxRTC6705SetBandAndChannel(uint8_t band, uint8_t channel)
+bool vtxRTC6705SetBandAndChannel(uint8_t band, uint8_t channel)
 {
     WAIT_FOR_VTX;
 
@@ -163,9 +161,10 @@ void vtxRTC6705SetBandAndChannel(uint8_t band, uint8_t channel)
         vtxRTC6705ConfigMutable()->band = band;
         vtxRTC6705ConfigMutable()->channel = channel;
     }
+    return true;
 }
 
-void vtxRTC6705SetPowerByIndex(uint8_t index)
+bool vtxRTC6705SetPowerByIndex(uint8_t index)
 {
     WAIT_FOR_VTX;
 
@@ -179,7 +178,7 @@ void vtxRTC6705SetPowerByIndex(uint8_t index)
             // on, power it off
             vtxRTC6705.powerIndex = index;
             rtc6705Disable();
-            return;
+            return true;
         } else {
             // already off
         }
@@ -189,7 +188,7 @@ void vtxRTC6705SetPowerByIndex(uint8_t index)
             // if it's powered down, power it up, wait and configure channel, band and power.
             vtxRTC6705.powerIndex = index;
             vtxRTC6705EnableAndConfigure();
-            return;
+            return true;
         } else {
             // if it's powered up, just set the rf power
             vtxRTC6705.powerIndex = index;
@@ -200,12 +199,13 @@ void vtxRTC6705SetPowerByIndex(uint8_t index)
     vtxRTC6705.powerIndex = index;
     rtc6705SetRFPower(index);
 #endif
+    return true;
 }
 
-void vtxRTC6705SetPitMode(uint8_t onoff)
+bool vtxRTC6705SetPitMode(uint8_t onoff)
 {
     UNUSED(onoff);
-    return;
+    return false;
 }
 
 bool vtxRTC6705GetBandAndChannel(uint8_t *pBand, uint8_t *pChannel)
