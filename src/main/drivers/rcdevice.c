@@ -24,6 +24,7 @@
 #include "common/crc.h"
 #include "rcdevice.h"
 
+// the crc calc function for rcsplit 1.0 and 1.1, this function will deprecate in feature
 static uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
 {
     uint8_t i;
@@ -40,6 +41,7 @@ static uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
     return (crc);
 }
 
+// a send packet method for rcsplit 1.0 and 1.1, this function will deprecate in feature
 static void rcsplitSendCtrlCommand(runcamDevice_t *device, rcsplit_ctrl_argument_e argument)
 {
     if (!device->serialPort)
@@ -62,6 +64,7 @@ static void rcsplitSendCtrlCommand(runcamDevice_t *device, rcsplit_ctrl_argument
     serialWriteBuf(rcSplitSerialPort, uart_buffer, 5);
 }
 
+// decode the device info
 static bool runcamDeviceReceiveDeviceInfo(runcamDevice_t *device)
 {
     const uint8_t expectedDataLen = 16;
@@ -90,6 +93,7 @@ static bool runcamDeviceReceiveDeviceInfo(runcamDevice_t *device)
     return true;
 }
 
+// decode the empty response
 static bool runcamDeviceReceiveEmptyResponse(runcamDevice_t *device)
 {
     uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
@@ -103,6 +107,7 @@ static bool runcamDeviceReceiveEmptyResponse(runcamDevice_t *device)
     return true;
 }
 
+// decode the connection event response
 static bool runcamDeviceReceiveConnectionEventResponse(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t outputBufferLen)
 {
     const uint8_t expectedDataLen = 2;
@@ -124,6 +129,7 @@ static bool runcamDeviceReceiveConnectionEventResponse(runcamDevice_t *device, u
     return true;
 }
 
+// decode the device setting response
 static bool runcamDeviceReceiveSettings(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t outputBufferLen)
 {
     const uint8_t expectedDataLen = 62;
@@ -137,13 +143,22 @@ static bool runcamDeviceReceiveSettings(runcamDevice_t *device, uint8_t *outputB
     return true;
 }
 
+// every time send packet to device, and want to get something from device, 
+// it'd better call the method to clear the rx buffer before the packet send, 
+// else may be the useless data in rx buffer will cause the response decoding failed.
 static void runcamDeviceFlushRxBuffer(runcamDevice_t *device)
 {
     while (serialRxBytesWaiting(device->serialPort)) serialRead(device->serialPort);
 }
 
-static void runcamDeviceInitializeFrame(runcamDevice_t *device, uint8_t command)
+// a common way to send packet to device
+static void runcamDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint8_t *paramData, uint8_t paramDataLen) 
 {
+    // is this device open?
+    if (!device->serialPort) {
+        return;
+    }
+
     // point to the buffer
     device->sbuf = &device->streamBuffer;
     // prepare pointer
@@ -152,18 +167,13 @@ static void runcamDeviceInitializeFrame(runcamDevice_t *device, uint8_t command)
 
     sbufWriteU8(device->sbuf, OPENTCO_PROTOCOL_HEADER);
     sbufWriteU8(device->sbuf, command);
-}
 
-static void runcamDeviceSendFrame(runcamDevice_t *device)
-{
-    // is this device open?
-    if (!device->serialPort) {
-        return;
-    }
+    if (data)
+        sbufWriteData(device->sbuf, data, dataLen);
 
     // add crc over (all) data
     crc8_dvb_s2_sbuf_append(device->sbuf, device->buffer);
-
+    
     // switch to reader
     sbufSwitchToReader(device->sbuf, device->buffer);
 
@@ -176,6 +186,9 @@ static void runcamDeviceSendFrame(runcamDevice_t *device)
     }
 }
 
+// a common way to receive data from device, and will decode the response, 
+// and save the response data(all the fields from response except the header and crc field) to 
+// outputBuffer if the outputBuffer not a NULL pointer.
 static void runcamDeviceSerialReceive(runcamDevice_t *device, uint8_t command, uint8_t *outputBuffer, uint8_t outputBufferLen)
 {
     // wait 100ms for reply
@@ -217,22 +230,16 @@ static void runcamDeviceSerialReceive(runcamDevice_t *device, uint8_t command, u
     return false;
 }
 
-static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_t commandID, sbuf_t *parameters, uint8_t *outputBuffer, uint8_t outputBufferLen)
+// a common way to send a packet to device, and get response from the device.
+static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_t commandID, uint8_t *paramData, uint8_t paramDataLen, uint8_t *outputBuffer, uint8_t outputBufferLen)
 {
     uint32_t max_retries = 3;
     while (max_retries--) {
         // flush rx buffer
         runcamDeviceFlushRxBuffer(device);
 
-        // fill header
-        runcamDeviceInitializeFrame(device, commandID);
-        
-        // fill parameters
-        if (parameters)
-            sbufWriteData(device->sbuf, sbufPtr(parameters), sbufBytesRemaining(parameters))
-
-        // send command
-        runcamDeviceSendFrame(device);
+        // send packet
+        runcamDeviceSendPacket(device, commandID, paramData, paramDataLen);
 
         // waiting response
         if (runcamDeviceSerialReceive(device, commandID, outputBuffer, outputBufferLen))
@@ -242,9 +249,10 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
     return false;
 }
 
+// get the device info(firmware version, protocol version and features, see the definition of runcamDeviceInfo_t to know more)
 static bool runcamDeviceGetDeviceInfo(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t outputBufferLen)
 {
-    return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, NULL, outputBuffer, outputBufferLen);
+    return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, NULL, 0, outputBuffer, outputBufferLen);
 }
 
 static bool runcamDeviceVerify(runcamDevice_t *device)
@@ -284,17 +292,8 @@ static bool runcamDeviceVerify(runcamDevice_t *device)
 
 static runcamDeviceSend5KeyOSDCableConnectionEvent(opentcoDevice_t *device, uint8_t operation)
 {
-    uint8_t buf;
-    sbuf_t parametersBuf;
     uint8_t result = 0;
-    uint8_t *base = &buf;
-    parametersBuf.ptr = base;
-    parametersBuf.end = base + 1;
-
-    sbufWriteU8(&parametersBuf, operation);
-    sbufSwitchToReader(parametersBuf, &buf);
-
-    if (!runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, parametersBuf, &result, sizeof(uint8_t)))
+    if (!runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, &operation, 1, &result, sizeof(uint8_t)))
         return false;
 
     // the high 4 bits is the operationID that we sent
@@ -307,6 +306,15 @@ static runcamDeviceSend5KeyOSDCableConnectionEvent(opentcoDevice_t *device, uint
     return false;
 }
 
+static runcamDeviceInitDataBuf(sbuf_t *data, sbuf_t *base, uint8_t size)
+{
+    data->ptr = base;
+    data->end = base + size;
+}
+
+// init the runcam device, it'll search the UART port with FUNCTION_RCDEVICE id
+// this function will delay 400ms in the first loop to wait the device prepared, as we know, 
+// there are has some camera need about 200~400ms to initialization, and then we can send/receive from it.
 bool runcamDeviceInit(runcamDevice_t *device)
 {
     serialPortFunction_e portID = FUNCTION_RCDEVICE;
@@ -323,7 +331,9 @@ bool runcamDeviceInit(runcamDevice_t *device)
                 while (millis() < timeout) {}
                 isFirstTimeLoad = false;
             }
-            
+
+            // check the device is using rcsplit firmware 1.1(or 1.0) or 'RunCam Device Protocol', 
+            // so we can access it in correct way.
             if (runcamDeviceVerify(device)) {
                 return true;
             }
@@ -340,42 +350,116 @@ bool runcamDeviceInit(runcamDevice_t *device)
 
 bool runcamDeviceSimulateCameraButton(opentcoDevice_t *device, uint8_t operation)
 {
-    runcamDeviceInitializeFrame(device, RCDEVICE_PROTOCOL_COMMAND_CAMERA_BTN_SIMULATION);
-    sbufWriteU8(device->sbuf, operation);
-    runcamDeviceSendFrame(device);
-
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_CAMERA_BTN_SIMULATION, &operation, sizeof(operation));
     return true;
 }
 
+// every time start to control the OSD menu of camera, must call this method to camera 
 bool runcamDeviceOpen5KeyOSDCableConnection(opentcoDevice_t *device)
 {
     return runcamDeviceSend5KeyOSDCableConnectionEvent(device, RCDEVICE_PROTOCOL_5KEY_FUNCTION_OPEN);
 }
 
+// when the control was stop, must call this method to the camera to disconnect with camera.
 bool runcamDeviceClose5KeyOSDCableConnection(opentcoDevice_t *device)
 {
     return runcamDeviceSend5KeyOSDCableConnectionEvent(device, RCDEVICE_PROTOCOL_5KEY_FUNCTION_CLOSE);
 }
 
-bool runcamDeviceSimulate5KeyOSDCablePress(opentcoDevice_t *device, uint8_t operation)
+// simulate button press event of 5 key osd cable with special button
+bool runcamDeviceSimulate5KeyOSDCableButtonPress(opentcoDevice_t *device, uint8_t operation)
 {
-    uint8_t buf;
-    sbuf_t parametersBuf;
-    uint8_t result = 0;
-    uint8_t *base = &buf;
-    parametersBuf.ptr = base;
-    parametersBuf.end = base + 1;
-
-    sbufWriteU8(&parametersBuf, operation);
-    sbufSwitchToReader(parametersBuf, &buf);
-
-    if (runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS, parametersBuf, &result, sizeof(uint8_t)))
+    if (runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS, &operation, 1, &result, sizeof(uint8_t)))
         return true;
 
     return false;
 }
 
-bool runcamDeviceSimulate5KeyOSDCableRelease(opentcoDevice_t *device)
+// simulate button release event of 5 key osd cable
+bool runcamDeviceSimulate5KeyOSDCableButtonRelease(opentcoDevice_t *device)
 {
-    return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE, NULL, &result, sizeof(uint8_t));
+    return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE, NULL, 0, &result, sizeof(uint8_t));
+}
+
+// fill a region with same char on screen, this is used to DisplayPort feature support
+void runcamDeviceDispFillRegion(opentcoDevice_t *device, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t c)
+{
+    uint8_t paramsBuf[5];
+    
+    // fill parameters buf
+    paramsBuf[0] = x;
+    paramsBuf[1] = y;
+    paramsBuf[2] = width;
+    paramsBuf[3] = height;
+    paramsBuf[4] = c;
+
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_FILL_REGION, paramsBuf, sizeof(paramsBuf));
+}
+
+// draw a single char on special position on screen, this is used to DisplayPort feature support
+void runcamDeviceDispWriteChar(opentcoDevice_t *device, uint8_t x, uint8_t y, uint8_t c)
+{
+    uint8_t paramsBuf[3];
+    
+    // fill parameters buf
+    paramsBuf[0] = x;
+    paramsBuf[1] = y;
+    paramsBuf[2] = c;
+
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_FILL_REGION, paramsBuf, sizeof(paramsBuf));
+}
+
+// draw a string on special position on screen, this is used to DisplayPort feature support
+void runcamDeviceDispWriteString(opentcoDevice_t *device, uint8_t x, uint8_t y, const char *text)
+{
+    uint8_t textLen = strlen(text);
+    if (textLen > 60) // if text len more then 60 chars, cut it to 60
+        textLen = 60;
+
+    uint8_t paramsBufLen = 2 + textLen;
+    uint8_t *paramsBuf = malloc(paramsBufLen);
+    paramsBuf[0] = x;
+    paramsBuf[1] = y;
+    memcpy(paramsBuf + 2, text, textLen);
+
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_FILL_REGION, paramsBuf, paramsBufLen);
+
+    free(paramsBuf);
+    paramsBuf = NULL;
+}
+
+// get settings with parent setting id, the type of parent setting must be a FOLDER
+// after this function called, the settings will fill into outSettingList argument, the memory of outSettingList
+// is alloc by runcamDeviceGetSettings, so if you don't need outSettingList, you must call runcamDeviceReleaseSetting
+// to release the memory of outSettingList
+bool runcamDeviceGetSettings(opentcoDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t *outSettingList)
+{
+    return true;
+}
+
+// release the settingList that return by runcamDeviceGetSettings
+void runcamDeviceReleaseSetting(runcamDeviceSetting_t *settingList)
+{
+    return true;
+}
+
+// get the setting details with setting id
+// after this function called, the setting detail will fill into outSettingDetail argument, the memory of outSettingDetail
+// is alloc by runcamDeviceGetSettingDetail, so if you don't need outSettingDetail any more, you must call runcamDeviceReleaseSettingDetail
+// to release the memory of outSettingDetail
+bool runcamDeviceGetSettingDetail(opentcoDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail)
+{
+    return true;
+}
+
+// release the settingDetail that return by runcamDeviceGetSettingDetail
+void runcamDeviceReleaseSettingDetail(runcamDeviceSettingDetail_t *settingDetail)
+{
+
+}
+
+// write new value with to the setting
+bool runcamDeviceWriteSetting(opentcoDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen)
+{
+
 }
