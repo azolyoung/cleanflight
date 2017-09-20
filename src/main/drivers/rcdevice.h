@@ -138,6 +138,13 @@ typedef struct {
 } runcamDeviceSettingDetail_t;
 
 typedef struct {
+    uint8_t resultCode;
+    char *info;
+    char *newValue;
+    uint8_t needUpdateMenuItems;
+} runcamDeviceWriteSettingResponse_t;
+
+typedef struct {
     serialPort_t *serialPort;
     uint8_t buffer[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
     sbuf_t streamBuffer;
@@ -162,8 +169,8 @@ void runcamDeviceDispWriteChar(opentcoDevice_t *device, uint8_t x, uint8_t y, ui
 void runcamDeviceDispWriteString(opentcoDevice_t *device, uint8_t x, uint8_t y, const char *text);
 
 // Device Setting Access
-bool runcamDeviceGetSettings(opentcoDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t *outSettingList);
+bool runcamDeviceGetSettings(opentcoDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t **outSettingList);
 void runcamDeviceReleaseSetting(runcamDeviceSetting_t *settingList);
 bool runcamDeviceGetSettingDetail(opentcoDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail);
 void runcamDeviceReleaseSettingDetail(runcamDeviceSettingDetail_t *settingDetail);
-bool runcamDeviceWriteSetting(opentcoDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen);
+bool runcamDeviceWriteSetting(opentcoDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t **response);
