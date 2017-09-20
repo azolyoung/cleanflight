@@ -20,7 +20,7 @@
 #include "common/streambuf.h"
 #include "drivers/serial.h"
 
-#define RCDEVICE_PROTOCOL_HEADER                        0x55
+#define RCDEVICE_PROTOCOL_HEADER                        0xCC
 
 
 #define RCDEVICE_PROTOCOL_VERSION_STRING_LENGTH         11

@@ -84,13 +84,17 @@ static bool runcamDeviceReceiveDeviceInfo(runcamDevice_t *device)
     uint8_t dataPos = 0;
     uint8_t data[expectedDataLen];
     uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
+    printf("crc:%d ", RCDEVICE_PROTOCOL_HEADER);
     while (serialRxBytesWaiting(device->serialPort) && dataPos < expectedDataLen) {
         uint8_t c = serialRead(device->serialPort);
+        printf("%02x ", c);
         crc = crc8_dvb_s2(crc, c);
         data[dataPos++] = c;
     }
+    printf("\n");
 
-    if (crc != 0) return false;
+    printf("in runcamDeviceReceiveDeviceInfo:%02x\n", crc);
+    if (crc != 0) { printf("crc validation failed\n"); return false; }
 
     uint8_t protocolVersion = data[RCDEVICE_PROTOCOL_VERSION_STRING_LENGTH];
     if (protocolVersion >= RCDEVICE_PROTOCOL_UNKNOWN) return false;
@@ -217,16 +221,20 @@ static bool runcamDeviceSerialReceive(runcamDevice_t *device, uint8_t command, u
     timeMs_t timeout = millis() + 100;
     while (millis() < timeout) {
         if (serialRxBytesWaiting(device->serialPort) > 0) {
-            uint8_t c = serialRead(device->serialPort);
-            printf("read a data: 0x%02x\n", c);
+            
             
             if (!headerReceived) {
-                if (c == RCDEVICE_PROTOCOL_HEADER)
+                uint8_t c = serialRead(device->serialPort);
+                if (c == RCDEVICE_PROTOCOL_HEADER) {
+                    printf("found header\n");
                     headerReceived = true;
+                }
             } else {
                 bool decodeResult = false;
+                printf("command:%d\n", command);
                 switch (command) {
                 case RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO:
+                    printf("try to decode device info\n");
                     decodeResult =runcamDeviceReceiveDeviceInfo(device);
                     break;
                 case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS:
@@ -258,7 +266,7 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
     uint32_t max_retries = 3;
     while (max_retries--) {
         // flush rx buffer
-        runcamDeviceFlushRxBuffer(device);
+        // runcamDeviceFlushRxBuffer(device);
 
         // send packet
         runcamDeviceSendPacket(device, commandID, paramData, paramDataLen);
@@ -518,12 +526,14 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, ru
 
     uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
     uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+    printf("before send data\n");
     bool result = runcamDeviceSendRequestAndWaitingResp(device, 
         RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS, 
         paramsBuf, 
         sizeof(paramsBuf),
         outputBuf,
         &outputBufLen);
+    printf("after send data\n");
 
     if (!result) 
         return false;
@@ -539,6 +549,7 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, ru
 
     // get the remaining chunks
     while (remainingChunk > 0) {
+        printf("remaining chunk count:%d\n", remainingChunk);
         paramsBuf[1] = ++chunkIndex; // chunk index
 
         result = runcamDeviceSendRequestAndWaitingResp(device, 
@@ -574,6 +585,9 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, ru
 // release the settingList that return by runcamDeviceGetSettings
 void runcamDeviceReleaseSetting(runcamDeviceSetting_t *settingList)
 {
+    if (settingList == NULL)
+        return ;
+
     // loop the list, release the fields first
     runcamDeviceSetting_t *listIterator = settingList;
     while (listIterator) {
@@ -756,6 +770,9 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
 // release the settingDetail that return by runcamDeviceGetSettingDetail
 void runcamDeviceReleaseSettingDetail(runcamDeviceSettingDetail_t *settingDetail)
 {
+    if (settingDetail == NULL)
+        return ;
+
     SAFE_FREE(settingDetail->minValue);
     SAFE_FREE(settingDetail->maxValue);
 
@@ -780,6 +797,7 @@ bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t
     uint8_t *paramsBuf = (uint8_t*)malloc(paramsBufLen);
     paramsBuf[0] = settingID;
     memcpy(paramsBuf + 1, paramData, paramDataLen);
+    
 
     uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
     uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];

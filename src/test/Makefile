@@ -259,6 +259,7 @@ huffman_unittest_DEFINES := \
 
 
 rcdevice_protocol_unittest_SRC := \
+		$(USER_DIR)/common/crc.c \
 		$(USER_DIR)/common/bitarray.c \
 		$(USER_DIR)/fc/rc_modes.c \
 		$(USER_DIR)/drivers/rcdevice.c

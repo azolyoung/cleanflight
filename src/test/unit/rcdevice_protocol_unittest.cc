@@ -56,6 +56,7 @@ typedef struct testData_s {
     uint8_t *responesBuf;
     uint8_t responseDataLen;
     uint8_t responseDataReadPos;
+    uint32_t millis;
 } testData_t;
 
 static testData_t testData;
@@ -67,6 +68,7 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t data[] = { 0xcc, 0x56, 0x65, 0x72, 0x31, 0x2e, 0x30, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x37, 0x5e };
     testData.responesBuf = (uint8_t*)malloc(sizeof(data));
@@ -101,6 +103,24 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
 
     printf("prepare write string:\n");
     runcamDeviceDispWriteString(&device, 2, 2, "hahahaAAII");
+    printf("\n");
+
+    printf("prepare get settings of root level:\n");
+    runcamDeviceSetting_t *settings = NULL;
+    runcamDeviceGetSettings(&device, 0, &settings);
+    runcamDeviceReleaseSetting(settings);
+    printf("\n");
+
+    printf("prepare get setting charset detail:\n");
+    runcamDeviceSettingDetail_t *settingDetail = NULL;
+    runcamDeviceGetSettingDetail(&device, 0, &settingDetail);
+    runcamDeviceReleaseSettingDetail(settingDetail);
+    printf("\n");
+
+    printf("prepare update charset setting:\n");
+    runcamDeviceWriteSettingResponse_t *updateSettingResponse;
+    uint8_t newCharSetIndex = 1;
+    runcamDeviceWriteSetting(&device, 0, &newCharSetIndex, 1, &updateSettingResponse);
     printf("\n");
 }
 
@@ -160,7 +180,6 @@ extern "C" {
         UNUSED(instance);
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
-            testData.maxTimesOfRespDataAvailable--;
             return 1;
         }
 
@@ -172,14 +191,13 @@ extern "C" {
         UNUSED(instance); 
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
-            static uint8_t i = 0;
             uint8_t *buffer = testData.responesBuf;
 
-            if (i >= testData.responseDataLen) {
-                i = 0;
+            if (testData.responseDataReadPos >= testData.responseDataLen) {
+                testData.responseDataReadPos = 0;
             }
-
-            return buffer[i++];
+            testData.maxTimesOfRespDataAvailable--;
+            return buffer[testData.responseDataReadPos++];
         }
 
         return 0; 
@@ -224,6 +242,105 @@ extern "C" {
         }
     }
 
-    bool feature(uint32_t) { return false;}
-    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) { UNUSED(instance); UNUSED(data); UNUSED(count); }
+    uint8_t sbufReadU8(sbuf_t *src)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            return *src->ptr++;
+        }
+
+        return 0;
+    }
+
+    void sbufAdvance(sbuf_t *buf, int size)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            buf->ptr += size;
+        }
+    }
+
+    int sbufBytesRemaining(sbuf_t *buf)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            return buf->end - buf->ptr;
+        }
+        return 0;
+    }
+
+    const uint8_t* sbufConstPtr(const sbuf_t *buf)
+    {
+        return buf->ptr;
+    }
+
+    void sbufReadData(sbuf_t *src, void *data, int len)
+    {
+        if (testData.isAllowBufferReadWrite) {
+            memcpy(data, src->ptr, len);
+        }
+    }
+
+    uint16_t sbufReadU16(sbuf_t *src)
+    {
+        uint16_t ret;
+        ret = sbufReadU8(src);
+        ret |= sbufReadU8(src) << 8;
+        return ret;
+    }
+
+    void sbufWriteU16(sbuf_t *dst, uint16_t val)
+    {
+        sbufWriteU8(dst, val >> 0);
+        sbufWriteU8(dst, val >> 8);
+    }
+
+    void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val)
+    {
+        sbufWriteU8(dst, val >> 8);
+        sbufWriteU8(dst, (uint8_t)val);
+    }
+
+    bool feature(uint32_t) { return false; }
+
+    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) 
+    { 
+        UNUSED(instance); UNUSED(data); UNUSED(count); 
+        
+        for (const uint8_t *p = data; count > 0; count--, p++) {
+            printf("%02x ", *p);
+            // serialWrite(instance, *p);
+        }
+
+        // reset the input buffer
+        testData.responseDataReadPos = 0;
+        testData.maxTimesOfRespDataAvailable = testData.responseDataLen + 1;
+    }
+
+    serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function)
+    {
+        UNUSED(function);
+
+        return NULL;
+    }
+
+    void closeSerialPort(serialPort_t *serialPort)
+    {
+        UNUSED(serialPort);
+    }
+
+    uint8_t* sbufPtr(sbuf_t *buf)
+    {
+        return buf->ptr;
+    }
+
+    uint32_t sbufReadU32(sbuf_t *src)
+    {
+        uint32_t ret;
+        ret = sbufReadU8(src);
+        ret |= sbufReadU8(src) <<  8;
+        ret |= sbufReadU8(src) << 16;
+        ret |= sbufReadU8(src) << 24;
+        return ret;
+    }
+    
+
+    uint32_t millis(void) { return testData.millis++; }
 }
