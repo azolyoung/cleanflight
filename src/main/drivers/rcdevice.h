@@ -19,11 +19,6 @@
 
 #define RCDEVICE_PROTOCOL_HEADER                        0x55
 
-typedef enum {
-    RCDEVICE_PROTOCOL_RCSPLIT_VERSION       = 0x00, // this is used to indicate the device that using rcsplit firmware version that <= 1.1.0
-    RCDEVICE_PROTOCOL_VERSION_1_0           = 0x01,
-    RCDEVICE_PROTOCOL_UNKNOWN
-} rcdevice_protocol_version_e;
 
 #define RCDEVICE_PROTOCOL_VERSION_STRING_LENGTH         11
 #define RCDEVICE_PROTOCOL_MAX_DATA_SIZE                 62
@@ -72,6 +67,12 @@ typedef enum {
 #define RCDEVICE_PROTOCOL_5KEY_FUNCTION_OPEN        0x01
 #define RCDEVICE_PROTOCOL_5KEY_FUNCTION_CLOSE       0x02
 
+typedef enum {
+    RCDEVICE_PROTOCOL_RCSPLIT_VERSION       = 0x00, // this is used to indicate the device that using rcsplit firmware version that <= 1.1.0
+    RCDEVICE_PROTOCOL_VERSION_1_0           = 0x01,
+    RCDEVICE_PROTOCOL_UNKNOWN
+} rcdevice_protocol_version_e;
+
 // Reserved setting ids
 typedef enum {
     RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET        = 0,
@@ -96,6 +97,17 @@ typedef enum {
     RCDEVICE_PROTOCOL_SETTINGID_RESERVED19          = 19,
 } rcdeviceReservedSettingID_e;
 
+typedef enum {
+    RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8             = 0,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_INT8              = 1,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16            = 2,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_INT16             = 3,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT             = 4,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION    = 5,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_STRING            = 6,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER            = 7,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_INFO              = 8,
+} rcdeviceSettingType_e;
 
 typedef struct {
     char firmwareVersion[RCDEVICE_PROTOCOL_VERSION_STRING_LENGTH];
@@ -120,7 +132,7 @@ typedef struct {
     uint8_t *minValue;
     uint8_t *maxValue;
     uint8_t decimalPoint;
-    int32_t stepSize;
+    uint8_t *stepSize;
     uint8_t maxStringSize;
     runcamDeviceSettingTextSelection_t *textSelections;
 } runcamDeviceSettingDetail_t;
@@ -147,7 +159,7 @@ bool runcamDeviceSimulate5KeyOSDCableButtonRelease(opentcoDevice_t *device);
 // DisplayPort feature support
 void runcamDeviceDispFillRegion(opentcoDevice_t *device, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t c);
 void runcamDeviceDispWriteChar(opentcoDevice_t *device, uint8_t x, uint8_t y, uint8_t c);
-void runcamDeviceDispWriteString(opentcoDevice_t *device, uint8_t x, uint8_t y, const char *text)
+void runcamDeviceDispWriteString(opentcoDevice_t *device, uint8_t x, uint8_t y, const char *text);
 
 // Device Setting Access
 bool runcamDeviceGetSettings(opentcoDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t *outSettingList);
