@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include "common/streambuf.h"
+#include "drivers/serial.h"
+
 #define RCDEVICE_PROTOCOL_HEADER                        0x55
 
 
@@ -124,7 +127,7 @@ typedef struct _runcamDeviceSetting {
 
 typedef struct _runcamDeviceSettingTextSelection {
     char *text;
-    _runcamDeviceSettingTextSelection *next;
+    struct _runcamDeviceSettingTextSelection *next;
 } runcamDeviceSettingTextSelection_t;
 
 typedef struct {
@@ -155,22 +158,22 @@ typedef struct {
 bool runcamDeviceInit(runcamDevice_t *device);
 
 // camera button simulation
-bool runcamDeviceSimulateCameraButton(opentcoDevice_t *device, uint8_t operation);
+bool runcamDeviceSimulateCameraButton(runcamDevice_t *device, uint8_t operation);
 
 // 5 key osd cable simulation
-bool runcamDeviceOpen5KeyOSDCableConnection(opentcoDevice_t *device);
-bool runcamDeviceClose5KeyOSDCableConnection(opentcoDevice_t *device);
-bool runcamDeviceSimulate5KeyOSDCableButtonPress(opentcoDevice_t *device, uint8_t operation);
-bool runcamDeviceSimulate5KeyOSDCableButtonRelease(opentcoDevice_t *device);
+bool runcamDeviceOpen5KeyOSDCableConnection(runcamDevice_t *device);
+bool runcamDeviceClose5KeyOSDCableConnection(runcamDevice_t *device);
+bool runcamDeviceSimulate5KeyOSDCableButtonPress(runcamDevice_t *device, uint8_t operation);
+bool runcamDeviceSimulate5KeyOSDCableButtonRelease(runcamDevice_t *device);
 
 // DisplayPort feature support
-void runcamDeviceDispFillRegion(opentcoDevice_t *device, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t c);
-void runcamDeviceDispWriteChar(opentcoDevice_t *device, uint8_t x, uint8_t y, uint8_t c);
-void runcamDeviceDispWriteString(opentcoDevice_t *device, uint8_t x, uint8_t y, const char *text);
+void runcamDeviceDispFillRegion(runcamDevice_t *device, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t c);
+void runcamDeviceDispWriteChar(runcamDevice_t *device, uint8_t x, uint8_t y, uint8_t c);
+void runcamDeviceDispWriteString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text);
 
 // Device Setting Access
-bool runcamDeviceGetSettings(opentcoDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t **outSettingList);
+bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t **outSettingList);
 void runcamDeviceReleaseSetting(runcamDeviceSetting_t *settingList);
-bool runcamDeviceGetSettingDetail(opentcoDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail);
+bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t **outSettingDetail);
 void runcamDeviceReleaseSettingDetail(runcamDeviceSettingDetail_t *settingDetail);
-bool runcamDeviceWriteSetting(opentcoDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t **response);
+bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t **response);

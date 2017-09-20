@@ -128,9 +128,9 @@ bool rcSplitInit(void)
 {
     // found the port config with FUNCTION_RUNCAM_SPLIT_CONTROL
     // User must set some UART inteface with RunCam Split at peripherals column in Ports tab
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCSPLIT);
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RCDEVICE);
     if (portConfig) {
-        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCSPLIT, NULL, 115200, MODE_RXTX, 0);
+        rcSplitSerialPort = openSerialPort(portConfig->identifier, FUNCTION_RCDEVICE, NULL, 115200, MODE_RXTX, 0);
     }
 
     if (!rcSplitSerialPort) {

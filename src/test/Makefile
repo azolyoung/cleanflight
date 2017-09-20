@@ -257,6 +257,12 @@ huffman_unittest_SRC := \
 huffman_unittest_DEFINES := \
 		USE_HUFFMAN
 
+
+rcdevice_protocol_unittest_SRC := \
+		$(USER_DIR)/common/bitarray.c \
+		$(USER_DIR)/fc/rc_modes.c \
+		$(USER_DIR)/drivers/rcdevice.c
+
 # Please tweak the following variable definitions as needed by your
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
@@ -281,7 +287,6 @@ COMMON_FLAGS = \
 	-Wextra \
 	-Werror \
 	-ggdb3 \
-	-pthread \
 	-O0 \
 	-DUNIT_TEST \
 	-isystem $(GTEST_DIR)/inc \

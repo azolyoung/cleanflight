@@ -45,29 +45,7 @@ extern "C" {
 
     #include "rx/rx.h"
 
-    extern rcsplitState_e cameraState;
-    extern serialPort_t *rcSplitSerialPort;
-    extern rcsplitSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
-
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
-
-    rcsplitState_e unitTestRCsplitState()
-    {
-        return cameraState;
-    }
-
-    bool unitTestIsSwitchActivited(boxId_e boxId)
-    {
-        uint8_t adjustBoxID = boxId - BOXCAMERA1;
-        rcsplitSwitchState_t switchState = switchStates[adjustBoxID];
-        return switchState.isActivated;
-    }
-
-    void unitTestResetRCSplit()
-    {
-        rcSplitSerialPort = NULL;
-        cameraState = RCSPLIT_STATE_UNKNOWN;
-    }
 }
 
 typedef struct testData_s {
@@ -91,7 +69,7 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
     testData.isRunCamSplitPortConfigurated = true;
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t data[] = { 0xcc, 0x56, 0x65, 0x72, 0x31, 0x2e, 0x30, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x37, 0x5e };
-    testData.responesBuf = malloc(sizeof(data));
+    testData.responesBuf = (uint8_t*)malloc(sizeof(data));
     testData.responseDataLen = sizeof(data);
     testData.maxTimesOfRespDataAvailable = testData.responseDataLen;
     memcpy(testData.responesBuf, data, sizeof(data));
@@ -118,14 +96,12 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
     printf("\n");
 
     printf("prepare write char:\n");
-    runcamDeviceDispFillRegion(&device, 10, 10, 'Q');
+    runcamDeviceDispWriteChar(&device, 10, 10, 'Q');
     printf("\n");
 
     printf("prepare write string:\n");
     runcamDeviceDispWriteString(&device, 2, 2, "hahahaAAII");
     printf("\n");
-
-    bool runcamDeviceSimulateCameraButton(opentcoDevice_t *device, uint8_t operation);
 }
 
 extern "C" {
@@ -197,7 +173,7 @@ extern "C" {
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
             static uint8_t i = 0;
-            uint8_t *buffer = testData.responesBuf
+            uint8_t *buffer = testData.responesBuf;
 
             if (i >= testData.responseDataLen) {
                 i = 0;
