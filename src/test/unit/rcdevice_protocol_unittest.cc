@@ -71,6 +71,7 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
     testData.isAllowBufferReadWrite = true;
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t data[] = { 0xcc, 0x56, 0x65, 0x72, 0x31, 0x2e, 0x30, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x37, 0x5e };
+    // uint8_t data[] = { 0xCC , 0x56 , 0x31 , 0x2E , 0x31 , 0x2E , 0x30 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x01 , 0x01 , 0x00, 0xaa, 0xcc, 0x00, 0x1d, 0x00, 0x43, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x00, 0x42, 0x46, 0x00, 0x01, 0x41, 0x45, 0x00, 0x31, 0x32, 0x00, 0x02, 0x46, 0x4f, 0x56, 0x00, 0x57, 0x69, 0x64, 0x65, 0x00, 0x21};
     testData.responesBuf = (uint8_t*)malloc(sizeof(data));
     testData.responseDataLen = sizeof(data);
     testData.maxTimesOfRespDataAvailable = testData.responseDataLen;
@@ -106,8 +107,18 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
     printf("\n");
 
     printf("prepare get settings of root level:\n");
+    uint8_t data2[] = { 0xcc, 0x00, 0x1d, 0x00, 0x43, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x00, 0x42, 0x46, 0x00, 0x01, 0x41, 0x45, 0x00, 0x31, 0x32, 0x00, 0x02, 0x46, 0x4f, 0x56, 0x00, 0x57, 0x69, 0x64, 0x65, 0x00, 0x21};
+    testData.responesBuf = (uint8_t*)malloc(sizeof(data2));
+    testData.responseDataLen = sizeof(data2);
+    testData.maxTimesOfRespDataAvailable = testData.responseDataLen;
+    memcpy(testData.responesBuf, data2, sizeof(data2));
     runcamDeviceSetting_t *settings = NULL;
     runcamDeviceGetSettings(&device, 0, &settings);
+    runcamDeviceSetting_t *iterator = settings;
+    while (iterator) {
+        printf("%d\t\t%s\t\t%s\n", iterator->id, iterator->name, iterator->value);
+        iterator = iterator->next;
+    }
     runcamDeviceReleaseSetting(settings);
     printf("\n");
 
@@ -180,7 +191,7 @@ extern "C" {
         UNUSED(instance);
 
         if (testData.maxTimesOfRespDataAvailable > 0) {
-            return 1;
+            return testData.maxTimesOfRespDataAvailable;
         }
 
         return 0;
