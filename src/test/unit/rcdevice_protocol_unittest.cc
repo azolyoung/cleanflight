@@ -124,7 +124,13 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
 
     printf("prepare get setting charset detail:\n");
     runcamDeviceSettingDetail_t *settingDetail = NULL;
+    uint8_t data3[] = { 0xcc, 0x00, 0x01, 0x00, 0xF2, 0x02, 0x73 };
+    testData.responesBuf = (uint8_t*)malloc(sizeof(data3));
+    testData.responseDataLen = sizeof(data3);
+    testData.maxTimesOfRespDataAvailable = testData.responseDataLen;
+    memcpy(testData.responesBuf, data3, sizeof(data3));
     runcamDeviceGetSettingDetail(&device, 0, &settingDetail);
+    printf("setting type:%02x, min value:%02x, max value:%02x, step size:%02x\n", settingDetail->type, *(settingDetail->minValue), *(settingDetail->maxValue), *(settingDetail->stepSize));
     runcamDeviceReleaseSettingDetail(settingDetail);
     printf("\n");
 
@@ -132,6 +138,38 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
     runcamDeviceWriteSettingResponse_t *updateSettingResponse;
     uint8_t newCharSetIndex = 1;
     runcamDeviceWriteSetting(&device, 0, &newCharSetIndex, 1, &updateSettingResponse);
+    printf("\n");
+
+    printf("open 5 key osd cable connection:\n");
+    runcamDeviceOpen5KeyOSDCableConnection(&device);
+    printf("\n");
+
+    printf("close 5 key osd cable connection:\n");
+    runcamDeviceClose5KeyOSDCableConnection(&device);
+    printf("\n");
+
+    printf("5 key osd cable button press set:\n");
+    runcamDeviceSimulate5KeyOSDCableButtonPress(&device, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
+    printf("\n");
+
+    printf("5 key osd cable button press left:\n");
+    runcamDeviceSimulate5KeyOSDCableButtonPress(&device, RCDEVICE_PROTOCOL_5KEY_SIMULATION_LEFT);
+    printf("\n");
+
+    printf("5 key osd cable button press right:\n");
+    runcamDeviceSimulate5KeyOSDCableButtonPress(&device, RCDEVICE_PROTOCOL_5KEY_SIMULATION_RIGHT);
+    printf("\n");
+
+    printf("5 key osd cable button press up:\n");
+    runcamDeviceSimulate5KeyOSDCableButtonPress(&device, RCDEVICE_PROTOCOL_5KEY_SIMULATION_UP);
+    printf("\n");
+
+    printf("5 key osd cable button press down:\n");
+    runcamDeviceSimulate5KeyOSDCableButtonPress(&device, RCDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN);
+    printf("\n");
+
+    printf("5 key osd cable button press:\n");
+    runcamDeviceSimulate5KeyOSDCableButtonRelease(&device);
     printf("\n");
 }
 

@@ -85,7 +85,7 @@ static bool runcamDeviceReceiveDeviceInfo(runcamDevice_t *device)
     uint8_t data[expectedDataLen];
     uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
     printf("crc:%02x ", RCDEVICE_PROTOCOL_HEADER);
-    while (serialRxBytesWaiting(device->serialPort) && dataPos < expectedDataLen) {
+    while ((serialRxBytesWaiting(device->serialPort) > 0) && dataPos < expectedDataLen) {
         uint8_t c = serialRead(device->serialPort);
         printf("%02x ", c);
         crc = crc8_dvb_s2(crc, c);
@@ -114,7 +114,7 @@ static bool runcamDeviceReceiveDeviceInfo(runcamDevice_t *device)
 static bool runcamDeviceReceiveEmptyResponse(runcamDevice_t *device)
 {
     uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
-    if (serialRxBytesWaiting(device->serialPort)) {
+    if (serialRxBytesWaiting(device->serialPort) > 0) {
         uint8_t c = serialRead(device->serialPort);
         crc = crc8_dvb_s2(crc, c);
     }
@@ -131,7 +131,7 @@ static bool runcamDeviceReceiveConnectionEventResponse(runcamDevice_t *device, u
     uint8_t dataPos = 0;
     uint8_t data[expectedDataLen];
     uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
-    while (serialRxBytesWaiting(device->serialPort) && dataPos < expectedDataLen) {
+    while ((serialRxBytesWaiting(device->serialPort) > 0) && dataPos < expectedDataLen) {
         uint8_t c = serialRead(device->serialPort);
         crc = crc8_dvb_s2(crc, c);
         data[dataPos++] = c;
@@ -161,7 +161,7 @@ static bool runcamDeviceReceiveSettings(runcamDevice_t *device, uint8_t *outputB
     uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
     uint8_t settingDataLength = 0xFF;
 
-    if (serialRxBytesWaiting(device->serialPort)) {
+    if (serialRxBytesWaiting(device->serialPort) > 0) {
         // skip the remaining chunk count to get the setting data length
         uint8_t c = serialRead(device->serialPort);
         crc = crc8_dvb_s2(crc, c);
@@ -175,7 +175,7 @@ static bool runcamDeviceReceiveSettings(runcamDevice_t *device, uint8_t *outputB
     if (settingDataLength > 60)
         return false;
 
-    while (serialRxBytesWaiting(device->serialPort) && dataPos < (settingDataLength + 3)) {
+    while ((serialRxBytesWaiting(device->serialPort) > 0) && dataPos < (settingDataLength + 3)) {
         uint8_t c = serialRead(device->serialPort);
         crc = crc8_dvb_s2(crc, c);
         data[dataPos++] = c;
@@ -192,12 +192,90 @@ static bool runcamDeviceReceiveSettings(runcamDevice_t *device, uint8_t *outputB
     return true;
 }
 
+// decode the device setting response
+static bool runcamDeviceReceiveSettingDetail(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t *outputBufferLen)
+{
+    const uint8_t maxDataLen = 63;
+    uint8_t dataPos = 0;
+    uint8_t data[maxDataLen];
+    uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
+    uint8_t settingType = RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN;
+
+    printf("starting to receive setting detail: %02x ", RCDEVICE_PROTOCOL_HEADER);
+    if (serialRxBytesWaiting(device->serialPort) > 0) {
+        // skip the remaining chunk count to get the setting data length
+        uint8_t c = serialRead(device->serialPort);
+        crc = crc8_dvb_s2(crc, c);
+        data[dataPos++] = c;
+        printf("%02x ", c);
+
+        settingType = serialRead(device->serialPort);
+        crc = crc8_dvb_s2(crc, settingType);
+        data[dataPos++] = settingType;
+        printf("%02x ", settingType);
+    }
+
+    if (settingType >= RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN) {
+        printf("settingType incorrect\n");
+        return false;
+    }
+
+    while (serialRxBytesWaiting(device->serialPort) > 0) {
+        uint8_t c = serialRead(device->serialPort);
+        printf("%02x ", c);
+        crc = crc8_dvb_s2(crc, c);
+        data[dataPos++] = c;
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8             = 0,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_INT8              = 1,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16            = 2,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_INT16             = 3,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT             = 4,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION    = 5,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_STRING            = 6,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER            = 7,
+        // RCDEVICE_PROTOCOL_SETTINGTYPE_INFO              = 8,
+        bool packetReceiveDone = false;
+        switch (settingType) {
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8:
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_INT8:
+            if (dataPos == 6) packetReceiveDone = true;
+            break;
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16:
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_INT16:
+            if (dataPos == 9) packetReceiveDone = true;
+            break;
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT:
+            break;
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION:
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_STRING:
+            break;
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER:
+            break;
+        case RCDEVICE_PROTOCOL_SETTINGTYPE_INFO:
+            break;
+        }
+    }
+    printf("\n");
+
+    if (crc != 0) { 
+        printf("crc incorrect\n");
+        return false;
+    }
+
+    if (outputBufferLen && (*outputBufferLen >= (dataPos - 1)) && outputBuffer) {
+        memcpy(outputBuffer, data, dataPos - 1); // return the data expect the crc field
+        *outputBufferLen = dataPos - 1;
+    }
+
+    return true;
+}
+
 // every time send packet to device, and want to get something from device, 
 // it'd better call the method to clear the rx buffer before the packet send, 
 // else may be the useless data in rx buffer will cause the response decoding failed.
 static void runcamDeviceFlushRxBuffer(runcamDevice_t *device)
 {
-    while (serialRxBytesWaiting(device->serialPort)) serialRead(device->serialPort);
+    while (serialRxBytesWaiting(device->serialPort) > 0) serialRead(device->serialPort);
 }
 
 // a common way to send packet to device
@@ -247,8 +325,6 @@ static bool runcamDeviceSerialReceive(runcamDevice_t *device, uint8_t command, u
     timeMs_t timeout = millis() + 100;
     while (millis() < timeout) {
         if (serialRxBytesWaiting(device->serialPort) > 0) {
-            
-            
             if (!headerReceived) {
                 uint8_t c = serialRead(device->serialPort);
                 if (c == RCDEVICE_PROTOCOL_HEADER) {
@@ -272,6 +348,9 @@ static bool runcamDeviceSerialReceive(runcamDevice_t *device, uint8_t command, u
                     break;
                 case RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS:
                     decodeResult = runcamDeviceReceiveSettings(device, outputBuffer, outputBufferLen);
+                    break;
+                case RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL:
+                    decodeResult = runcamDeviceReceiveSettingDetail(device, outputBuffer, outputBufferLen);
                     break;
                 }
 
@@ -323,7 +402,7 @@ static bool runcamDeviceVerify(runcamDevice_t *device)
     rcsplitSendCtrlCommand(device, RCSPLIT_CTRL_ARGU_WHO_ARE_YOU);
     uint8_t data[5];
     uint8_t dataPos = 0;
-    while (serialRxBytesWaiting(device->serialPort) && dataPos < 5) {
+    while ((serialRxBytesWaiting(device->serialPort) > 0) && dataPos < 5) {
         uint8_t c = serialRead(device->serialPort);
         data[dataPos++] = c;
     }
@@ -350,7 +429,7 @@ static bool runcamDeviceSend5KeyOSDCableConnectionEvent(runcamDevice_t *device, 
 {
     uint8_t result = 0;
     uint8_t outputDataLen = 1;
-    if (!runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, &operation, sizeof(uint8_t), &result, &outputDataLen))
+    if (!runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION, &operation, sizeof(uint8_t), &result, &outputDataLen))
         return false;
 
     // the high 4 bits is the operationID that we sent
@@ -725,6 +804,8 @@ static bool runcamDeviceDecodeSettingDetail(sbuf_t *buf, runcamDeviceSettingDeta
     case RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER:
     case RCDEVICE_PROTOCOL_SETTINGTYPE_INFO:
         break;
+    case RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN:
+        break;
     }
 
     return true;
@@ -752,9 +833,12 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
         outputBuf,
         &outputBufLen);
 
-    if (!result) 
+    if (!result) {
+        printf("recv data error\n");
         return false;
+    }
 
+    printf("going to parse\n");
     // save setting data to sbuf_t object
     uint8_t remainingChunk = outputBuf[0];
     uint8_t maxDataLen = remainingChunk + 1 * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
@@ -789,10 +873,12 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
     // parse the settings data and convert them into a runcamDeviceSetting_t list
     sbufSwitchToReader(&dataBuf, data);
     if (!runcamDeviceDecodeSettingDetail(&dataBuf, outSettingDetail)) {
+        printf("decode failed\n");
         SAFE_FREE(data);
         return false;
     }
 
+    printf("get detail done\n");
     SAFE_FREE(data);
 
     return true;

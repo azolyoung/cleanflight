@@ -112,6 +112,7 @@ typedef enum {
     RCDEVICE_PROTOCOL_SETTINGTYPE_STRING            = 6,
     RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER            = 7,
     RCDEVICE_PROTOCOL_SETTINGTYPE_INFO              = 8,
+    RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN
 } rcdeviceSettingType_e;
 
 typedef struct {
