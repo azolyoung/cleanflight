@@ -124,13 +124,15 @@ TEST(RCSplitTest, TestRCDeviceProtocolGeneration)
 
     printf("prepare get setting charset detail:\n");
     runcamDeviceSettingDetail_t *settingDetail = NULL;
-    uint8_t data3[] = { 0xcc, 0x00, 0x01, 0x00, 0xF2, 0x02, 0x73 };
+    // uint8_t data3[] = { 0xcc, 0x00, 0x01, 0x00, 0xF2, 0x02, 0x73 };
+    uint8_t data3[] = { 0xcc, 0x00, 0x04, 0x11, 0x57,  0x0A, 0x00, 0x02, 0xba };
     testData.responesBuf = (uint8_t*)malloc(sizeof(data3));
     testData.responseDataLen = sizeof(data3);
     testData.maxTimesOfRespDataAvailable = testData.responseDataLen;
     memcpy(testData.responesBuf, data3, sizeof(data3));
     runcamDeviceGetSettingDetail(&device, 0, &settingDetail);
-    printf("setting type:%02x, min value:%02x, max value:%02x, step size:%02x\n", settingDetail->type, *(settingDetail->minValue), *(settingDetail->maxValue), *(settingDetail->stepSize));
+    // printf("setting type:%02x, min value:%02x, max value:%02x, step size:%02x\n", settingDetail->type, *(settingDetail->minValue), *(settingDetail->maxValue), *(settingDetail->stepSize));
+    printf("setting type:%02x, min value:%02x, max value:%02x, step size:%02x， decimal point:%04x\n", settingDetail->type, *(settingDetail->minValue), *(settingDetail->maxValue), *(settingDetail->stepSize), settingDetail->decimalPoint);
     runcamDeviceReleaseSettingDetail(settingDetail);
     printf("\n");
 

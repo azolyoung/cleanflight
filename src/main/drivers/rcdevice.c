@@ -225,35 +225,34 @@ static bool runcamDeviceReceiveSettingDetail(runcamDevice_t *device, uint8_t *ou
         printf("%02x ", c);
         crc = crc8_dvb_s2(crc, c);
         data[dataPos++] = c;
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8             = 0,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_INT8              = 1,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16            = 2,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_INT16             = 3,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT             = 4,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION    = 5,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_STRING            = 6,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER            = 7,
-        // RCDEVICE_PROTOCOL_SETTINGTYPE_INFO              = 8,
+
         bool packetReceiveDone = false;
         switch (settingType) {
         case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8:
         case RCDEVICE_PROTOCOL_SETTINGTYPE_INT8:
-            if (dataPos == 6) packetReceiveDone = true;
+            packetReceiveDone = dataPos >= 6;
             break;
         case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16:
         case RCDEVICE_PROTOCOL_SETTINGTYPE_INT16:
-            if (dataPos == 9) packetReceiveDone = true;
+            packetReceiveDone = dataPos >= 9;
             break;
         case RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT:
+            packetReceiveDone = dataPos >= 8;
             break;
         case RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION:
         case RCDEVICE_PROTOCOL_SETTINGTYPE_STRING:
+            packetReceiveDone = (c == 0) || dataPos >= 63;
             break;
         case RCDEVICE_PROTOCOL_SETTINGTYPE_FOLDER:
+            packetReceiveDone = dataPos >= 3;
             break;
         case RCDEVICE_PROTOCOL_SETTINGTYPE_INFO:
+            packetReceiveDone = dataPos >= 3;
             break;
         }
+
+        if (packetReceiveDone)
+            break;
     }
     printf("\n");
 
@@ -716,7 +715,7 @@ static bool runcamDeviceDecodeSettingDetail(sbuf_t *buf, runcamDeviceSettingDeta
         return false;
 
     runcamDeviceSettingDetail_t *settingDetail = (runcamDeviceSettingDetail_t*)malloc(sizeof(runcamDeviceSettingDetail_t));
-
+    memset(settingDetail, 0, sizeof(runcamDeviceSettingDetail_t));
     rcdeviceSettingType_e settingType = sbufReadU8(buf);
     settingDetail->type = settingType;
 
@@ -758,10 +757,10 @@ static bool runcamDeviceDecodeSettingDetail(sbuf_t *buf, runcamDeviceSettingDeta
     case RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT:
     {
         uint8_t size = sizeof(float);
-        float minValue = sbufReadU32(buf);
-        float maxValue = sbufReadU32(buf);
-        uint8_t decimalPoint = sbufReadU8(buf);
-        uint32_t stepSize = sbufReadU32(buf);
+        float minValue = sbufReadU8(buf);
+        float maxValue = sbufReadU8(buf);
+        uint16_t decimalPoint = sbufReadU16(buf);
+        uint32_t stepSize = sbufReadU8(buf);
 
         settingDetail->minValue = (uint8_t*)malloc(size);
         settingDetail->maxValue = (uint8_t*)malloc(size);
@@ -808,6 +807,8 @@ static bool runcamDeviceDecodeSettingDetail(sbuf_t *buf, runcamDeviceSettingDeta
         break;
     }
 
+    *outSettingDetail = settingDetail;
+
     return true;
 }
 
@@ -834,11 +835,9 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
         &outputBufLen);
 
     if (!result) {
-        printf("recv data error\n");
         return false;
     }
 
-    printf("going to parse\n");
     // save setting data to sbuf_t object
     uint8_t remainingChunk = outputBuf[0];
     uint8_t maxDataLen = remainingChunk + 1 * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
@@ -846,7 +845,7 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
     sbuf_t dataBuf;
     dataBuf.ptr = data;
     dataBuf.end = data + maxDataLen;
-    sbufWriteData(&dataBuf, outputBuf, outputBufLen);
+    sbufWriteData(&dataBuf, outputBuf + 1, outputBufLen - 1);
 
     // get the remaining chunks
     while (remainingChunk > 0) {
@@ -865,7 +864,7 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
         }
 
         // append the trailing chunk to the sbuf_t object
-        sbufWriteData(&dataBuf, outputBuf, outputBufLen);
+        sbufWriteData(&dataBuf, outputBuf + 1, outputBufLen - 1);
 
         remainingChunk--;
     }
@@ -873,12 +872,10 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
     // parse the settings data and convert them into a runcamDeviceSetting_t list
     sbufSwitchToReader(&dataBuf, data);
     if (!runcamDeviceDecodeSettingDetail(&dataBuf, outSettingDetail)) {
-        printf("decode failed\n");
         SAFE_FREE(data);
         return false;
     }
 
-    printf("get detail done\n");
     SAFE_FREE(data);
 
     return true;
@@ -901,6 +898,7 @@ void runcamDeviceReleaseSettingDetail(runcamDeviceSettingDetail_t *settingDetail
         SAFE_FREE(textSels);
         textSels = next;
     }
+
     settingDetail->textSelections = NULL;
 }
 

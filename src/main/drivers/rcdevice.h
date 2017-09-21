@@ -137,7 +137,7 @@ typedef struct {
     uint8_t type;
     uint8_t *minValue;
     uint8_t *maxValue;
-    uint8_t decimalPoint;
+    uint16_t decimalPoint;
     uint8_t *stepSize;
     uint8_t maxStringSize;
     runcamDeviceSettingTextSelection_t *textSelections;
