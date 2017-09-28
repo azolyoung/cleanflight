@@ -412,6 +412,7 @@ serialPort_t *openSerialPort(
     }
 
     serialPort->identifier = identifier;
+    serialPort->locked = false;
 
     serialPortUsage->function = function;
     serialPortUsage->serialPort = serialPort;

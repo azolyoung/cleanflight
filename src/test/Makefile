@@ -263,15 +263,6 @@ type_conversion_unittest_SRC := \
 ws2811_unittest_SRC := \
 		$(USER_DIR)/drivers/light_ws2811strip.c
 
-rcsplit_unittest_SRC := \
-		$(USER_DIR)/common/bitarray.c \
-		$(USER_DIR)/fc/rc_modes.c \
-		$(USER_DIR)/io/rcsplit.c
-
-rcsplit_unitest_DEFINES := \
-		USE_UART3 \
-		USE_RCSPLIT \
-
 huffman_unittest_SRC := \
 		$(USER_DIR)/common/huffman.c \
 		$(USER_DIR)/common/huffman_table.c

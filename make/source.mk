@@ -58,7 +58,7 @@ COMMON_SRC = \
             io/serial.c \
             io/statusindicator.c \
             io/transponder_ir.c \
-            io/rcsplit.c \
+            io/rcdevice_cam.c \
             msp/msp_serial.c \
             scheduler/scheduler.c \
             sensors/battery.c \
@@ -141,11 +141,14 @@ FC_SRC = \
             drivers/serial_escserial.c \
             drivers/sonar_hcsr04.c \
             drivers/vtx_common.c \
+            drivers/rcdevice.c \
+            drivers/rcdevice_osd.c \
             flight/navigation.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
+            io/displayport_rcdevice.c \
             io/gps.c \
             io/ledstrip.c \
             io/osd.c \

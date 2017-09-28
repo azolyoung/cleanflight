@@ -85,7 +85,7 @@
 #include "telemetry/telemetry.h"
 
 #include "io/osd_slave.h"
-#include "io/rcsplit.h"
+#include "io/rcdevice_cam.h"
 
 #ifdef USE_BST
 void taskBstMasterProcess(timeUs_t currentTimeUs);
@@ -368,6 +368,9 @@ void fcTasksInit(void)
 #ifdef USE_CAMERA_CONTROL
     setTaskEnabled(TASK_CAMCTRL, true);
 #endif
+#ifdef USE_RCDEVICE
+    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsCameraControlEnabled());
+#endif
 }
 #endif
 
@@ -611,10 +614,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_RCSPLIT
-    [TASK_RCSPLIT] = {
-        .taskName = "RCSPLIT",
-        .taskFunc = rcSplitProcess,
+#ifdef USE_RCDEVICE
+    [TASK_RCDEVICE] = {
+        .taskName = "RCDEVICE",
+        .taskFunc = rcdeviceUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(10),        // 10 Hz, 100ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
@@ -624,7 +627,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_CAMCTRL] = {
         .taskName = "CAMCTRL",
         .taskFunc = taskCameraControl,
-        .desiredPeriod = TASK_PERIOD_HZ(5),
+        .desiredPeriod = TASK_PERIOD_HZ(10),       // 10 Hz, 100ms  More sensitive to let RCDEVICE can process the five key signal simulation
         .staticPriority = TASK_PRIORITY_IDLE
     },
 #endif
