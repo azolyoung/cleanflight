@@ -34,9 +34,7 @@ bool rcdeviceInMenu;
 bool rcdeviceInit(void);
 void rcdeviceUpdate(timeUs_t currentTimeUs);
 
-bool rcdeviceIsCameraControlEnabled();
-bool rcdeviceIs5KeyEnabled();
-void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs);
+bool rcdeviceIsEnabled();
 
 // used for unit test
 rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];

@@ -55,7 +55,21 @@ static bool isFeatureSupported(uint8_t feature)
     return false;
 }
 
-bool rcdeviceIsCameraControlEnabled()
+bool rcdeviceIsEnabled()
+{
+    if (camDevice->serialPort != NULL &&
+        (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON) || 
+         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON) || 
+         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE) || 
+         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_START_RECORDING) || 
+         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_STOP_RECORDING) ||
+         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)))
+        return true;
+
+    return false;
+}
+
+static bool rcdeviceIsCameraControlEnabled()
 {
     if (camDevice->serialPort != NULL &&
         (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON) || 
@@ -68,7 +82,7 @@ bool rcdeviceIsCameraControlEnabled()
     return false;
 }
 
-bool rcdeviceIs5KeyEnabled()
+static bool rcdeviceIs5KeyEnabled()
 {
     if (camDevice->serialPort != NULL &&
         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)) {
@@ -171,7 +185,7 @@ static bool rcdeviceSend5KeyOSDCableSimualtionEvent(
     return reqResult;
 }
 
-void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
+static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
 {
 
 #ifdef CMS
@@ -241,6 +255,10 @@ void rcdeviceUpdate(timeUs_t currentTimeUs)
 
     if (rcdeviceIsCameraControlEnabled()) {
         rcdeviceCameraControlProcess();
+    }
+
+    if(rcdeviceIs5KeyEnabled()){
+        rcdevice5KeySimulationProcess(currentTimeUs);
     }
 }
 

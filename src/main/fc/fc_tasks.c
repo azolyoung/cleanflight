@@ -369,7 +369,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_CAMCTRL, true);
 #endif
 #ifdef USE_RCDEVICE
-    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsCameraControlEnabled());
+    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
 }
 #endif
@@ -627,7 +627,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_CAMCTRL] = {
         .taskName = "CAMCTRL",
         .taskFunc = taskCameraControl,
-        .desiredPeriod = TASK_PERIOD_HZ(10),       // 10 Hz, 100ms  More sensitive to let RCDEVICE can process the five key signal simulation
+        .desiredPeriod = TASK_PERIOD_HZ(5),
         .staticPriority = TASK_PRIORITY_IDLE
     },
 #endif

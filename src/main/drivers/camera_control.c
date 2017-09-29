@@ -26,7 +26,6 @@
 #include "pwm_output.h"
 #include "time.h"
 #include "config/parameter_group_ids.h"
-#include "io/rcdevice_cam.h"
 
 #if defined(STM32F40_41xxx)
 #define CAMERA_CONTROL_TIMER_HZ   MHZ_TO_HZ(84)
@@ -75,7 +74,7 @@ static struct {
     uint32_t period;
 } cameraControlRuntime;
 
-static timeUs_t endTimeMillis;
+static uint32_t endTimeMillis;
 
 #ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
 void TIM6_DAC_IRQHandler(void)
@@ -147,16 +146,8 @@ void cameraControlInit(void)
     }
 }
 
-void cameraControlProcess(timeUs_t currentTimeUs)
+void cameraControlProcess(uint32_t currentTimeUs)
 {
-
-#if defined(USE_RCDEVICE)
-    if (rcdeviceIs5KeyEnabled()) {
-        rcdevice5KeySimulationProcess(currentTimeUs);
-        return;
-    }
-#endif
-
     if (endTimeMillis && currentTimeUs >= 1000 * endTimeMillis) {
         if (CAMERA_CONTROL_MODE_HARDWARE_PWM == cameraControlConfig()->mode) {
             *cameraControlRuntime.channel.ccr = cameraControlRuntime.period;
