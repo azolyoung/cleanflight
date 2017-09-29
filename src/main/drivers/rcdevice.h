@@ -26,6 +26,11 @@
 #define RCDEVICE_PROTOCOL_HEADER                                    0xCC
 
 #define RCDEVICE_PROTOCOL_MAX_DATA_SIZE                             62
+#define RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE                     32
+#define RCDEVICE_PROTOCOL_MAX_SETTING_NAME_LENGTH                   20
+#define RCDEVICE_PROTOCOL_MAX_SETTING_VALUE_LENGTH                  20
+#define RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE                    5
+#define RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS                       12
 
 // Commands
 #define RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO                   0x00
@@ -166,25 +171,23 @@ typedef struct {
 
 typedef struct _runcamDeviceSetting {
     uint8_t id;
-    char *name;
-    char *value;
-    struct _runcamDeviceSetting *next;
+    char name[RCDEVICE_PROTOCOL_MAX_SETTING_NAME_LENGTH];
+    char value[RCDEVICE_PROTOCOL_MAX_SETTING_VALUE_LENGTH];
 } runcamDeviceSetting_t;
 
 typedef struct _runcamDeviceSettingTextSelection {
-    char *text;
-    struct _runcamDeviceSettingTextSelection *next;
+    char text[RCDEVICE_PROTOCOL_MAX_SETTING_VALUE_LENGTH];
 } runcamDeviceSettingTextSelection_t;
 
 typedef struct {
     uint8_t type;
-    uint8_t *value;
-    uint8_t *minValue;
-    uint8_t *maxValue;
+    uint16_t value;
+    uint16_t minValue;
+    uint16_t maxValue;
     uint16_t decimalPoint;
-    uint8_t *stepSize;
+    uint16_t stepSize;
     uint8_t maxStringSize;
-    runcamDeviceSettingTextSelection_t *textSelections;
+    runcamDeviceSettingTextSelection_t textSelections[RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS];
 } runcamDeviceSettingDetail_t;
 
 typedef struct {
@@ -219,7 +222,7 @@ void runcamDeviceDispWriteVertString(runcamDevice_t *device, uint8_t x,uint8_t y
 void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data,uint8_t datalen);
 
 // Device Setting Access
-bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID,runcamDeviceSetting_t **outSettingList);
+bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID,runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE]);
 void runcamDeviceReleaseSetting(runcamDeviceSetting_t *settingList);
 bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID,runcamDeviceSettingDetail_t **outSettingDetail);
 void runcamDeviceReleaseSettingDetail(runcamDeviceSettingDetail_t *settingDetail);

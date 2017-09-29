@@ -710,7 +710,7 @@ void runcamDeviceDispWriteHortString(runcamDevice_t *device, uint8_t x,
         textLen = 60;
 
     uint8_t paramsBufLen = 3 + textLen;
-    uint8_t *paramsBuf = (uint8_t *)malloc(paramsBufLen);
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
 
     paramsBuf[0] = paramsBufLen - 1;
     paramsBuf[1] = x;
@@ -733,7 +733,7 @@ void runcamDeviceDispWriteVertString(runcamDevice_t *device, uint8_t x,
         textLen = 60;
 
     uint8_t paramsBufLen = 3 + textLen;
-    uint8_t *paramsBuf = (uint8_t *)malloc(paramsBufLen);
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
 
     paramsBuf[0] = paramsBufLen - 1;
     paramsBuf[1] = x;
@@ -756,7 +756,7 @@ void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data,
         adjustedDataLen = 60;
 
     uint8_t paramsBufLen = adjustedDataLen + 1;
-    uint8_t *paramsBuf = (uint8_t *)malloc(paramsBufLen);
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
 
     paramsBuf[0] = adjustedDataLen;
     memcpy(paramsBuf + 1, data, adjustedDataLen);
@@ -768,54 +768,48 @@ void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data,
     paramsBuf = NULL;
 }
 
-static bool runcamDeviceDecodeSettings(sbuf_t *buf,
-                                       runcamDeviceSetting_t **outSettingList)
+static bool runcamDeviceDecodeSettings(sbuf_t *buf, runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE])
 {
     if (outSettingList == NULL)
         return false;
 
     runcamDeviceSettingParseStep_e parseStep = RCDP_SETTING_PARSE_WAITING_ID;
-    runcamDeviceSetting_t *settingListHead =
-        (runcamDeviceSetting_t *)malloc(sizeof(runcamDeviceSetting_t));
-    runcamDeviceSetting_t *settingTailPtr = settingListHead;
+    runcamDeviceSetting_t *settingIterator = outSettingList;
+    int i = 0;
     while (sbufBytesRemaining(buf) > 0) {
+        if (i >= RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE)
+            break;
+
         switch (parseStep) {
         case RCDP_SETTING_PARSE_WAITING_ID: {
             uint8_t c = sbufReadU8(buf);
-            settingTailPtr->id = c;
+            settingIterator->id = c;
             parseStep = RCDP_SETTING_PARSE_WAITING_NAME;
         } break;
         case RCDP_SETTING_PARSE_WAITING_NAME: {
             const char *str = (const char *)sbufConstPtr(buf);
             uint8_t nameLen = strlen(str) + 1;
-            settingTailPtr->name = (char *)malloc(nameLen);
-            memset(settingTailPtr->name, 0, nameLen);
-            strcpy(settingTailPtr->name, str);
+            memset(settingIterator->name, 0, RCDEVICE_PROTOCOL_MAX_SETTING_NAME_LENGTH);
+            strcpy(settingIterator->name, str);
             sbufAdvance(buf, nameLen);
             parseStep = RCDP_SETTING_PARSE_WAITING_VALUE;
         } break;
         case RCDP_SETTING_PARSE_WAITING_VALUE: {
             const char *str = (const char *)sbufConstPtr(buf);
             uint8_t valueLen = strlen(str) + 1;
-            settingTailPtr->value = (char *)malloc(valueLen);
-            memset(settingTailPtr->value, 0, valueLen);
-            strcpy(settingTailPtr->value, str);
+            memset(settingIterator->value, 0, RCDEVICE_PROTOCOL_MAX_SETTING_VALUE_LENGTH);
+            strcpy(settingIterator->value, str);
             sbufAdvance(buf, valueLen);
             parseStep = RCDP_SETTING_PARSE_WAITING_ID;
 
-            runcamDeviceSetting_t *nextSetting =
-                (runcamDeviceSetting_t *)malloc(sizeof(runcamDeviceSetting_t));
-            memset(nextSetting, 0, sizeof(runcamDeviceSetting_t));
-            settingTailPtr->next = nextSetting;
-            settingTailPtr = nextSetting;
+            settingIterator++;
+            i++;
         } break;
         }
     }
 
     if (RCDP_SETTING_PARSE_WAITING_ID != parseStep)
         return false;
-
-    *outSettingList = settingListHead;
 
     return true;
 }
@@ -825,8 +819,7 @@ static bool runcamDeviceDecodeSettings(sbuf_t *buf,
 // argument, the memory of outSettingList is alloc by runcamDeviceGetSettings,
 // so if you don't need outSettingList, you must call runcamDeviceReleaseSetting
 // to release the memory of outSettingList
-bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID,
-                             runcamDeviceSetting_t **outSettingList)
+bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE])
 {
     uint8_t paramsBuf[2];
     uint8_t chunkIndex = 0;
@@ -847,10 +840,14 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID,
     if (!result)
         return false;
 
-    // save setting data to sbuf_t object
     uint8_t remainingChunk = outputBuf[0];
-    uint8_t maxDataLen = remainingChunk + 1 * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t *data = (uint8_t *)malloc(maxDataLen);
+    // Every response chunk count must less than or equal to RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE
+    if ((remainingChunk + 1) > RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE)
+        return false;
+
+    // save setting data to sbuf_t object
+    const uint16_t maxDataLen = (RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE - 1) * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
+    uint8_t data[RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE];
     sbuf_t dataBuf;
     dataBuf.ptr = data;
     dataBuf.end = data + maxDataLen;
@@ -864,10 +861,8 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID,
             device, RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS, paramsBuf,
             sizeof(paramsBuf), outputBuf, &outputBufLen);
 
-        if (!result) {
-            SAFE_FREE(data);
+        if (!result)
             return false;
-        }
 
         // append the trailing chunk to the sbuf_t object,
         // but only append the actually setting data
@@ -879,12 +874,8 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID,
     // parse the settings data and convert them into a runcamDeviceSetting_t
     // list
     sbufSwitchToReader(&dataBuf, data);
-    if (runcamDeviceDecodeSettings(&dataBuf, outSettingList)) {
-        SAFE_FREE(data);
+    if (runcamDeviceDecodeSettings(&dataBuf, outSettingList))
         return false;
-    }
-
-    SAFE_FREE(data);
 
     return true;
 }
@@ -909,90 +900,57 @@ void runcamDeviceReleaseSetting(runcamDeviceSetting_t *settingList)
 
 static bool
 runcamDeviceDecodeSettingDetail(sbuf_t *buf,
-                                runcamDeviceSettingDetail_t **outSettingDetail)
+                                runcamDeviceSettingDetail_t *outSettingDetail)
 {
     if (outSettingDetail == NULL || sbufBytesRemaining(buf) == 0)
         return false;
 
-    runcamDeviceSettingDetail_t *settingDetail =
-        (runcamDeviceSettingDetail_t *)malloc(
-            sizeof(runcamDeviceSettingDetail_t));
-    memset(settingDetail, 0, sizeof(runcamDeviceSettingDetail_t));
+    memset(outSettingDetail, 0, sizeof(runcamDeviceSettingDetail_t));
     rcdeviceSettingType_e settingType = sbufReadU8(buf);
-    settingDetail->type = settingType;
+    outSettingDetail->type = settingType;
 
     switch (settingType) {
     case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8:
     case RCDEVICE_PROTOCOL_SETTINGTYPE_INT8: {
-        uint8_t size = sizeof(uint8_t);
         uint8_t value = sbufReadU8(buf);
         uint8_t minValue = sbufReadU8(buf);
         uint8_t maxValue = sbufReadU8(buf);
         uint8_t stepSize = sbufReadU8(buf);
 
-        settingDetail->value = (uint8_t *)malloc(size);
-        settingDetail->minValue = (uint8_t *)malloc(size);
-        settingDetail->maxValue = (uint8_t *)malloc(size);
-        settingDetail->stepSize = (uint8_t *)malloc(size);
-
-        *settingDetail->value = value;
-        *settingDetail->minValue = minValue;
-        *settingDetail->maxValue = maxValue;
-        *settingDetail->stepSize = stepSize;
+        *outSettingDetail->value = value;
+        *outSettingDetail->minValue = minValue;
+        *outSettingDetail->maxValue = maxValue;
+        *outSettingDetail->stepSize = stepSize;
     } break;
     case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16:
     case RCDEVICE_PROTOCOL_SETTINGTYPE_INT16: {
-        uint8_t size = sizeof(uint16_t);
-        uint16_t value = sbufReadU8(buf);
-        uint16_t minValue = sbufReadU16(buf);
-        uint16_t maxValue = sbufReadU16(buf);
-        uint16_t stepSize = sbufReadU16(buf);
-
-        settingDetail->value = (uint8_t *)malloc(size);
-        settingDetail->minValue = (uint8_t *)malloc(size);
-        settingDetail->maxValue = (uint8_t *)malloc(size);
-        settingDetail->stepSize = (uint8_t *)malloc(size);
-
-        *settingDetail->value = value;
-        *settingDetail->minValue = minValue;
-        *settingDetail->maxValue = maxValue;
-        *settingDetail->stepSize = stepSize;
+        *outSettingDetail->value = sbufReadU16(buf);
+        *outSettingDetail->minValue = sbufReadU16(buf);
+        *outSettingDetail->maxValue = sbufReadU16(buf);
+        *outSettingDetail->stepSize = sbufReadU8(buf);
     } break;
     case RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT: {
-        float minValue = sbufReadU8(buf);
-        float maxValue = sbufReadU8(buf);
-        uint16_t decimalPoint = sbufReadU16(buf);
-        uint8_t stepSize = sbufReadU8(buf);
-
-        settingDetail->minValue = (uint8_t *)malloc(sizeof(uint8_t));
-        settingDetail->maxValue = (uint8_t *)malloc(sizeof(uint8_t));
-        settingDetail->stepSize = (uint8_t *)malloc(sizeof(uint8_t));
-
-        memcpy(settingDetail->minValue, &minValue, sizeof(uint8_t));
-        memcpy(settingDetail->maxValue, &maxValue, sizeof(uint8_t));
-        memcpy(settingDetail->stepSize, &stepSize, sizeof(uint8_t));
-        settingDetail->decimalPoint = decimalPoint;
+        outSettingDetail->minValue = sbufReadU8(buf);
+        outSettingDetail->maxValue = sbufReadU8(buf);
+        outSettingDetail->decimalPoint = sbufReadU16;
+        outSettingDetail->stepSize = sbufReadU8(buf);
     } break;
     case RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION: {
         const char *tmp = (const char *)sbufConstPtr(buf);
-        char *textSels = malloc(strlen(tmp) + 1);
+        char textSels[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+        memset(textSels, 0, sizeof(RCDEVICE_PROTOCOL_MAX_DATA_SIZE));
         strcpy(textSels, tmp);
         char delims[] = ";";
         char *result = strtok(textSels, delims);
-        runcamDeviceSettingTextSelection_t *head =
-            settingDetail->textSelections;
-        runcamDeviceSettingTextSelection_t *iterator = head;
+        int i = 0;
+        runcamDeviceSettingTextSelection_t *iterator = outSettingDetail->textSelections;
         while (result != NULL) {
-            uint8_t textLen = strlen(result);
-            iterator->text = (char *)malloc(textLen);
+            if (i >= RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS)
+                break;
 
-            runcamDeviceSettingTextSelection_t *next =
-                (runcamDeviceSettingTextSelection_t *)malloc(
-                    sizeof(runcamDeviceSettingTextSelection_t));
-            memset(next, 0, sizeof(runcamDeviceSettingTextSelection_t));
-            iterator->next = next;
-            iterator = next;
-
+            memset(iterator->text, 0, RCDEVICE_PROTOCOL_MAX_SETTING_VALUE_LENGTH);
+            strcpy(iterator->text, result);        
+            iterator++;
             result = strtok(NULL, delims);
         }
     } break;
@@ -1006,8 +964,6 @@ runcamDeviceDecodeSettingDetail(sbuf_t *buf,
     case RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN:
         break;
     }
-
-    *outSettingDetail = settingDetail;
 
     return true;
 }
@@ -1040,8 +996,11 @@ bool runcamDeviceGetSettingDetail(
 
     // save setting data to sbuf_t object
     uint8_t remainingChunk = outputBuf[0];
-    uint8_t maxDataLen = remainingChunk + 1 * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t *data = (uint8_t *)malloc(maxDataLen);
+    if ((remainingChunk + 1) > RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE)
+        return false;
+
+    const uint16_t maxDataLen = RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
+    uint8_t *data[maxDataLen];
     sbuf_t dataBuf;
     dataBuf.ptr = data;
     dataBuf.end = data + maxDataLen;
@@ -1104,13 +1063,13 @@ void runcamDeviceReleaseSettingDetail(
 // write new value with to the setting
 bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID,
                               uint8_t *paramData, uint8_t paramDataLen,
-                              runcamDeviceWriteSettingResponse_t **response)
+                              runcamDeviceWriteSettingResponse_t *response)
 {
     if (response == NULL)
         return false;
 
     uint8_t paramsBufLen = sizeof(uint8_t) + paramDataLen;
-    uint8_t *paramsBuf = (uint8_t *)malloc(paramsBufLen);
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
     paramsBuf[0] = settingID;
     memcpy(paramsBuf + 1, paramData, paramDataLen);
 
@@ -1125,8 +1084,11 @@ bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID,
 
     // save setting data to sbuf_t object
     uint8_t remainingChunk = outputBuf[0];
-    uint8_t maxDataLen = remainingChunk + 1 * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t *data = (uint8_t *)malloc(maxDataLen);
+    if ((remainingChunk + 1) > RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE)
+        return false;
+
+    const uint16_t maxDataLen = RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
+    uint8_t data[maxDataLen];
     sbuf_t dataBuf;
     dataBuf.ptr = data;
     dataBuf.end = data + maxDataLen;
