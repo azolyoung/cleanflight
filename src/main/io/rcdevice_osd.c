@@ -74,14 +74,18 @@ bool rcdeviceOSDInit(const vcdProfile_t *vcdProfile)
     }
 
     columnCount = settingDetail.value;
+    printf("get columns success:%d\n", columnCount);
 
     video_system = vcdProfile->video_system;
+    printf("vid sys:%d\n", video_system);
     if (video_system == VIDEO_SYSTEM_AUTO) {
         // fetch current video mode from device
         runcamDeviceSettingDetail_t settingDetail;
         if (!runcamDeviceGetSettingDetail(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_TV_MODE, &settingDetail)) {
+            printf("get tv mode failed\n");
             return false;
         }
+        printf("get tv mode success:%d\n", settingDetail.value);
         video_system = settingDetail.value;
     } else {
         // set video system

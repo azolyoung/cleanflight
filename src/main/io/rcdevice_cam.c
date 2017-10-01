@@ -17,7 +17,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,8 +25,8 @@
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
-#include "io/rcdevice_cam.h"
 #include "io/beeper.h"
+#include "io/rcdevice_cam.h"
 
 #include "config/feature.h"
 #include "fc/config.h"
@@ -41,53 +40,51 @@
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
 static runcamDevice_t runcamDevice;
 runcamDevice_t *camDevice = &runcamDevice;
-
 rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
-
-static bool needRelease = false;
-
+bool rcdeviceInMenu;
+bool needRelease = false;
 
 static bool isFeatureSupported(uint8_t feature)
 {
-    if (camDevice->info.features & feature)
+    if (camDevice->info.features & feature) {
         return true;
-
-    return false;
-}
-
-bool rcdeviceIsEnabled()
-{
-    if (camDevice->serialPort != NULL &&
-        (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_START_RECORDING) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_STOP_RECORDING) ||
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)))
-        return true;
+    }
 
     return false;
 }
 
 static bool rcdeviceIsCameraControlEnabled()
 {
-    if (camDevice->serialPort != NULL &&
-        (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_START_RECORDING) || 
-         isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_STOP_RECORDING)))
+    bool isPowerSimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON);
+    bool isWiFiSimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON);
+    bool isChangeModeSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE);
+    bool isStartRecordingSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_START_RECORDING);
+    bool isStopRecordingSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_STOP_RECORDING);
+
+    if (camDevice->serialPort != NULL && (isPowerSimulationSupported || isWiFiSimulationSupported || isChangeModeSupported || isStartRecordingSupported || isStopRecordingSupported)) {
         return true;
+    }
+
+    return false;
+}
+
+bool rcdeviceIsEnabled()
+{
+    bool is5KeySimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE);
+
+    if (camDevice->serialPort != NULL && (rcdeviceIsCameraControlEnabled() || is5KeySimulationSupported)) {
+        return true;
+    }
 
     return false;
 }
 
 static bool rcdeviceIs5KeyEnabled()
 {
-    if (camDevice->serialPort != NULL &&
-        isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)) {
+    if (camDevice->serialPort != NULL && isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)) {
         return true;
     }
+
     return false;
 }
 
@@ -103,28 +100,27 @@ static void rcdeviceCameraControlProcess()
                 continue;
             }
 
-            uint8_t behavior =
-                RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION;
+            uint8_t behavior = RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION;
             switch (i) {
             case BOXCAMERA1:
-                if (isFeatureSupported(
-                        RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON))
+                if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON)) {
                     behavior = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN;
+                }
                 break;
             case BOXCAMERA2:
-                if (isFeatureSupported(
-                        RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON))
+                if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON)) {
                     behavior = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_POWER_BTN;
+                }
                 break;
             case BOXCAMERA3:
-                if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE))
+                if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE)) {
                     behavior = RCDEVICE_PROTOCOL_CAM_CTRL_CHANGE_MODE;
+                }
                 break;
             default:
                 break;
             }
-            if (behavior !=
-                RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) {
+            if (behavior != RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) {
                 runcamDeviceSimulateCameraButton(camDevice, behavior);
                 switchStates[switchIndex].isActivated = true;
             }
@@ -138,7 +134,7 @@ static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e ke
 {
     UNUSED(key);
 
-    uint8_t operation;
+    uint8_t operation = RCDEVICE_PROTOCOL_5KEY_SIMULATION_NONE;
     if (key == RCDEVICE_CAM_KEY_LEFT) {
         operation = RCDEVICE_PROTOCOL_5KEY_SIMULATION_LEFT;
     } else if (key == RCDEVICE_CAM_KEY_UP) {
@@ -154,21 +150,23 @@ static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e ke
     return runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, operation);
 }
 
-static bool rcdeviceSend5KeyOSDCableSimualtionEvent(
-    rcdeviceCamSimulationKeyEvent_e key)
+static bool rcdeviceSend5KeyOSDCableSimualtionEvent(rcdeviceCamSimulationKeyEvent_e key)
 {
-
     bool reqResult = false;
     switch (key) {
     case RCDEVICE_CAM_KEY_CONNECTION_OPEN:
         reqResult = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
-        if(reqResult) 
+        if (reqResult) {
+            rcdeviceInMenu = true;
             beeper(BEEPER_CAM_CONNECTION_OPEN);
+        }
         break;
     case RCDEVICE_CAM_KEY_CONNECTION_CLOSE:
         reqResult = runcamDeviceClose5KeyOSDCableConnection(camDevice);
-        if(reqResult) 
+        if (reqResult) {
+            rcdeviceInMenu = false;
             beeper(BEEPER_CAM_CONNECTION_CLOSE);
+        }
         break;
     case RCDEVICE_CAM_KEY_ENTER:
     case RCDEVICE_CAM_KEY_LEFT:
@@ -180,6 +178,9 @@ static bool rcdeviceSend5KeyOSDCableSimualtionEvent(
     case RCDEVICE_CAM_KEY_RELEASE:
         reqResult = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
         break;
+    default:
+        reqResult = false;
+        break;
     }
 
     return reqResult;
@@ -187,6 +188,7 @@ static bool rcdeviceSend5KeyOSDCableSimualtionEvent(
 
 static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
 {
+    UNUSED(currentTimeUs);
 
 #ifdef CMS
     if (cmsInMenu) {
@@ -227,13 +229,11 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                     key = RCDEVICE_CAM_KEY_RIGHT;
                 } else if (IS_LO(PITCH)) { // Down LO PITCH
                     key = RCDEVICE_CAM_KEY_DOWN;
-                } else if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) &&
-                           IS_HI(YAW)) { // Enter HI YAW
+                } else if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_HI(YAW)) { // Enter HI YAW
                     key = RCDEVICE_CAM_KEY_ENTER;
                 }
             } else {
-                if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) &&
-                    IS_HI(YAW) && !ARMING_FLAG(ARMED)) { // Enter HI YAW
+                if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_HI(YAW) && !ARMING_FLAG(ARMED)) { // Enter HI YAW
                     key = RCDEVICE_CAM_KEY_CONNECTION_OPEN;
                 }
             }
@@ -257,7 +257,7 @@ void rcdeviceUpdate(timeUs_t currentTimeUs)
         rcdeviceCameraControlProcess();
     }
 
-    if(rcdeviceIs5KeyEnabled()){
+    if (rcdeviceIs5KeyEnabled()) {
         rcdevice5KeySimulationProcess(currentTimeUs);
     }
 }

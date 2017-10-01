@@ -74,7 +74,7 @@ static struct {
     uint32_t period;
 } cameraControlRuntime;
 
-static uint32_t endTimeMillis;
+static timeUs_t endTimeMillis;
 
 #ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
 void TIM6_DAC_IRQHandler(void)

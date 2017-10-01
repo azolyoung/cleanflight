@@ -889,7 +889,7 @@ uint16_t cmsHandleKeyWithRepeat(displayPort_t *pDisplay, uint8_t key, int repeat
 void cmsUpdate(uint32_t currentTimeUs)
 {
 #ifdef USE_RCDEVICE
-    if(rcdeviceInMenu){
+    if(rcdeviceInMenu) {
         return ;
     }
 #endif

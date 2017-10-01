@@ -24,12 +24,12 @@
 #include "drivers/rcdevice.h"
 #include "fc/rc_modes.h"
 
-typedef struct rcdeviceSwitchState_s{
+typedef struct rcdeviceSwitchState_s {
     bool isActivated;
 } rcdeviceSwitchState_t;
 
 extern runcamDevice_t *camDevice;
-bool rcdeviceInMenu;
+extern bool rcdeviceInMenu;
 
 bool rcdeviceInit(void);
 void rcdeviceUpdate(timeUs_t currentTimeUs);
