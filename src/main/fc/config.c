@@ -159,7 +159,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
 #ifdef BEEPER
 PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
 PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
-    .dshotForward = true
+    // .dshotForward = true
 );
 #endif
 #ifdef USE_ADC

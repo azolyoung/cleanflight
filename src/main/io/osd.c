@@ -1330,6 +1330,7 @@ void osdUpdate(timeUs_t currentTimeUs)
 
     // fill screen element by element (one each call)
     osdRefresh(currentTimeUs);
+    // displayDrawScreen(osdDisplayPort);
 
 #ifdef CMS
     // do not allow ARM if we are in menu

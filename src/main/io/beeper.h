@@ -43,15 +43,17 @@ typedef enum {
     BEEPER_SYSTEM_INIT,             // Initialisation beeps when board is powered on
     BEEPER_USB,                     // Some boards have beeper powered USB connected
     BEEPER_BLACKBOX_ERASE,          // Beep when blackbox erase completes
+    BEEPER_CAM_CONNECTION_OPEN,     // When the 5 key simulation stated
+    BEEPER_CAM_CONNECTION_CLOSE,    // When the 5 key simulation stop
     BEEPER_ALL,                     // Turn ON or OFF all beeper conditions
-    BEEPER_PREFERENCE               // Save preferred beeper configuration
+    BEEPER_PREFERENCE,               // Save preferred beeper configuration
     // BEEPER_ALL and BEEPER_PREFERENCE must remain at the bottom of this enum
 } beeperMode_e;
 
 typedef struct beeperConfig_s {
     uint32_t beeper_off_flags;
     uint32_t preferred_beeper_off_flags;
-    bool dshotForward;
+    uint8_t dshotBeaconTone;
 } beeperConfig_t;
 
 #ifdef BEEPER

@@ -58,7 +58,10 @@ COMMON_SRC = \
             io/serial.c \
             io/statusindicator.c \
             io/transponder_ir.c \
-            io/rcsplit.c \
+            io/rcdevice.c \
+            io/displayport_rcdevice.c \
+            io/rcdevice_cam.c \
+            io/rcdevice_osd.c \
             msp/msp_serial.c \
             scheduler/scheduler.c \
             sensors/battery.c \

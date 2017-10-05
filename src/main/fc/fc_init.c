@@ -88,6 +88,7 @@
 #include "io/beeper.h"
 #include "io/displayport_max7456.h"
 #include "io/displayport_opentco.h"
+#include "io/displayport_rcdevice.h"
 #include "io/serial.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -129,7 +130,7 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
-#include "io/rcsplit.h"
+#include "io/rcdevice_cam.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -566,25 +567,29 @@ void init(void)
         switch (osdConfig()->device)
         {
         default:
-        case OSD_DEVICE_NONE:
-            // no device is used
-            osdDisplayPort = NULL;
-            break;
+//         case OSD_DEVICE_NONE:
+//             // no device is used
+//             osdDisplayPort = NULL;
+//             break;
 
-#if defined(USE_MAX7456)
-        case OSD_DEVICE_MAX7456:
-            osdDisplayPort = max7456DisplayPortInit(vcdProfile());
-            break;
-#endif
-#if defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        case OSD_DEVICE_MSP:
-            osdDisplayPort = displayPortMspInit();
-            break;
-#endif
-#if defined(USE_OPENTCO)
-        case OSD_DEVICE_OPENTCO:
-            osdDisplayPort = opentcoDisplayPortInit(vcdProfile());
-            break;
+// #if defined(USE_MAX7456)
+//         case OSD_DEVICE_MAX7456:
+//             osdDisplayPort = max7456DisplayPortInit(vcdProfile());
+//             break;
+// #endif
+// #if defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
+//         case OSD_DEVICE_MSP:
+//             osdDisplayPort = displayPortMspInit();
+//             break;
+// #endif
+// #if defined(USE_OPENTCO)
+//         case OSD_DEVICE_OPENTCO:
+//             osdDisplayPort = opentcoDisplayPortInit(vcdProfile());
+//             break;
+// #endif
+#if defined(USE_RCDEVICE)
+        case OSD_DEVICE_RCDEVICE:
+        osdDisplayPort = rcdeviceDisplayPortInit(vcdProfile());
 #endif
         }
 
@@ -765,6 +770,10 @@ void init(void)
     LED2_ON;
 #endif
 
+#ifdef USE_RCDEVICE
+    rcdeviceInit();
+#endif // USE_RCDEVICE
+
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     pwmEnableMotors();
@@ -776,10 +785,6 @@ void init(void)
 #else
     fcTasksInit();
 #endif
-
-#ifdef USE_RCSPLIT
-    rcSplitInit();
-#endif // USE_RCSPLIT
 
     systemState |= SYSTEM_STATE_READY;
 }

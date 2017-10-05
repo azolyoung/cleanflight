@@ -144,7 +144,8 @@ typedef enum {
     OSD_DEVICE_NONE    = 0,
     OSD_DEVICE_MAX7456,
     OSD_DEVICE_MSP,
-    OSD_DEVICE_OPENTCO
+    OSD_DEVICE_OPENTCO,
+    OSD_DEVICE_RCDEVICE,
 } osd_device_e;
 
 typedef enum {

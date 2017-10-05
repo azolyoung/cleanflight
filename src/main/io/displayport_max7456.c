@@ -42,7 +42,7 @@ static int grab(displayPort_t *displayPort)
 {
     // FIXME this should probably not have a dependency on the OSD or OSD slave code
     UNUSED(displayPort);
-#if (defined(USE_OPENTCO) || defined(USE_MAX7456)) && !defined(USE_OSD_SLAVE)
+#if (defined(USE_OPENTCO) || defined(USE_MAX7456) || defined(USE_RCDEVICE)) && !defined(USE_OSD_SLAVE)
     osdResetAlarms();
     resumeRefreshAt = 0;
 #endif
