@@ -17,23 +17,18 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "cms/cms.h"
-#include "common/crc.h"
 
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
-#include "io/beeper.h"
-#include "io/rcdevice_cam.h"
-
-#include "config/feature.h"
-#include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
+#include "io/beeper.h"
+#include "io/rcdevice_cam.h"
+
 #include "rx/rx.h"
+
+#ifdef USE_RCDEVICE
 
 #define IS_HI(X) (rcData[X] > 1750)
 #define IS_LO(X) (rcData[X] < 1250)
@@ -281,3 +276,5 @@ bool rcdeviceInit(void)
 
     return true;
 }
+
+#endif

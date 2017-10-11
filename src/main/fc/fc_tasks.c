@@ -528,7 +528,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
-#if defined(USE_OPENTCO) || defined(USE_MAX7456)
+#if defined(USE_OPENTCO) || defined(USE_MAX7456) || defined(USE_RCDEVICE)
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = osdUpdate,

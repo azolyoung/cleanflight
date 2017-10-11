@@ -1253,7 +1253,7 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             escData = getEscSensorData(ESC_SENSOR_COMBINED);
         }
 #endif
-
+    
 #ifdef CMS
         if (!displayIsGrabbed(osdDisplayPort)) {
             osdUpdateAlarms();
@@ -1261,6 +1261,7 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             if (! IS_RC_MODE_ACTIVE(BOXOSD)) {
                 // draw single element
                 osdDrawSingleElement(osdCurrentElementIndex);
+                
                 osdCurrentElementIndex = osdIncElementIndex(osdCurrentElementIndex);
             }
 
@@ -1302,11 +1303,11 @@ int osdColCount()
 void osdUpdate(timeUs_t currentTimeUs)
 {
     //static uint32_t counter = 0;
-
-    if (osdConfig()->device == OSD_DEVICE_NONE) {
-        // osd not active -> return
-        return;
-    }
+    
+    // if (osdConfig()->device == OSD_DEVICE_NONE) {
+    //     // osd not active -> return
+    //     return;
+    // }
 
     if (isBeeperOn()) {
         showVisualBeeper = true;

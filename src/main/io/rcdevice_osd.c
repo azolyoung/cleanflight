@@ -17,24 +17,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
+#include "drivers/vcd.h"
+#include "io/osd.h"
 
 #include "rcdevice.h"
 #include "rcdevice_osd.h"
 
-#include "common/maths.h"
-#include "common/time.h"
-#include "config/feature.h"
-#include "drivers/time.h"
-#include "drivers/vcd.h"
-#include "fc/config.h"
-#include "fc/rc_controls.h"
-#include "fc/runtime_config.h"
-#include "io/beeper.h"
-#include "io/osd.h"
-#include "sensors/gyroanalyse.h"
+#ifdef USE_RCDEVICE
 
 #define VIDEO_BUFFER_CHARS_PAL 480
 
@@ -45,8 +35,6 @@ runcamDevice_t *osdDevice = &runcamOSDDevice;
 
 static uint8_t video_system;
 static uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
-
-// #define USE_PARTICLE_DRAW
 
 #ifdef USE_PARTICLE_DRAW
 #define MAX_CHARS2UPDATE 20
@@ -62,59 +50,54 @@ static bool rcdeviceOSDLock = false;
 bool rcdeviceOSDInit(const vcdProfile_t *vcdProfile)
 {
     if (!runcamDeviceInit(osdDevice)) {
-        featureClear(FEATURE_TELEMETRY);
         return false;
     }
 
     if ((osdDevice->info.features & RCDEVICE_PROTOCOL_FEATURE_DISPLAYP_PORT) == 0) {
-        featureClear(FEATURE_TRANSPONDER);
         return false;
     }
 
     // get screen column count
-    // runcamDeviceSettingDetail_t settingDetail;
-    // if (!runcamDeviceGetSettingDetail(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &settingDetail)) {
-    //     return false;
-    // }
+    runcamDeviceSettingDetail_t settingDetail;
+    if (!runcamDeviceGetSettingDetail(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &settingDetail)) {
+        return false;
+    }
 
-    // columnCount = settingDetail.value;
-    columnCount = 30;
+    columnCount = settingDetail.value;
 
     video_system = vcdProfile->video_system;
     if (video_system == VIDEO_SYSTEM_AUTO) {
         // fetch current video mode from device
-        // runcamDeviceSettingDetail_t settingDetail;
-        // if (!runcamDeviceGetSettingDetail(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_TV_MODE, &settingDetail)) {
-        //     return false;
-        // }
-        // video_system = settingDetail.value;
-        video_system = VIDEO_SYSTEM_NTSC;
+        runcamDeviceSettingDetail_t settingDetail;
+        if (!runcamDeviceGetSettingDetail(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_TV_MODE, &settingDetail)) {
+            return false;
+        }
+        video_system = settingDetail.value;
     } else {
         // set video system
-        // runcamDeviceWriteSettingResponse_t response;
-        // uint8_t tvMode = 0;
-        // if (video_system == VIDEO_SYSTEM_NTSC) {
-        //     tvMode = 0;
-        // } else if (video_system == VIDEO_SYSTEM_PAL) {
-        //     tvMode = 1;
-        // }
+        runcamDeviceWriteSettingResponse_t response;
+        uint8_t tvMode = 0;
+        if (video_system == VIDEO_SYSTEM_NTSC) {
+            tvMode = 0;
+        } else if (video_system == VIDEO_SYSTEM_PAL) {
+            tvMode = 1;
+        }
 
-        // if (!runcamDeviceWriteSetting(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_TV_MODE, &tvMode, sizeof(uint8_t), &response)) {
-        //     return false;
-        // }
+        if (!runcamDeviceWriteSetting(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_TV_MODE, &tvMode, sizeof(uint8_t), &response)) {
+            return false;
+        }
 
-        // if (response.resultCode) {
-        //     return false;
-        // }
+        if (response.resultCode) {
+            return false;
+        }
     }
 
     // user bf charset
-    // uint8_t charsetID = 0;
-    // runcamDeviceWriteSettingResponse_t updateCharsetResp;
-    // runcamDeviceWriteSetting(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetID, sizeof(uint8_t), &updateCharsetResp);
-    // if (updateCharsetResp.resultCode != 0) {
-    //     return false;
-    // }
+    uint8_t charsetID = 0;
+    runcamDeviceWriteSettingResponse_t updateCharsetResp;
+    if (!runcamDeviceWriteSetting(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetID, sizeof(uint8_t), &updateCharsetResp) || updateCharsetResp.resultCode != 0) {
+        return false;
+    }
 
 #ifdef USE_PARTICLE_DRAW
     memset(shadowBuffer, 2, VIDEO_BUFFER_CHARS_PAL);
@@ -128,8 +111,8 @@ bool rcdeviceOSDInit(const vcdProfile_t *vcdProfile)
 int rcdeviceOSDGrab(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    // osdResetAlarms();
-    // resumeRefreshAt = 0;
+    osdResetAlarms();
+    resumeRefreshAt = 0;
     return 0;
 }
 
@@ -241,7 +224,7 @@ void rcdeviceOSDResync(displayPort_t *displayPort)
         displayPort->rowCount = RCDEVICE_PROTOCOL_OSD_VIDEO_LINES_NTSC;
     }
 
-    displayPort->colCount = columnCount;
+    displayPort->colCount = 30;
     maxScreenSize = displayPort->rowCount * displayPort->colCount;
 }
 
@@ -268,3 +251,5 @@ int rcdeviceReloadProfile(displayPort_t *displayPort)
     UNUSED(displayPort);
     return 0;
 }
+
+#endif

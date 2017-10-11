@@ -25,9 +25,10 @@ extern "C" {
 
     #include "platform.h"
 
-    #include "common/utils.h"
-    #include "common/maths.h"
     #include "common/bitarray.h"
+    #include "common/maths.h"
+    #include "common/utils.h"
+    #include "common/streambuf.h"
 
     #include "config/parameter_group.h"
     #include "config/parameter_group_ids.h"
@@ -63,6 +64,7 @@ extern "C" {
 }
 
 #define MAX_RESPONSES_COUNT 10
+
 typedef struct testData_s {
     bool isRunCamSplitPortConfigurated;
     bool isRunCamSplitOpenPortSupported;
@@ -70,7 +72,7 @@ typedef struct testData_s {
     bool isAllowBufferReadWrite;
     uint8_t indexOfCurrentRespBuf;
     uint8_t responseBufCount;
-    uint8_t responesBufs[MAX_RESPONSES_COUNT][60];
+    uint8_t responesBufs[MAX_RESPONSES_COUNT][RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
     uint8_t responseBufsLen[MAX_RESPONSES_COUNT];
     uint8_t responseDataReadPos;
     uint32_t millis;
@@ -109,7 +111,7 @@ TEST(RCDeviceTest, TestRCSplitInitWithoutPortConfigurated)
     EXPECT_EQ(false, result);
 }
 
-TEST(RCSplitTest, TestRCSplitInitWithoutOpenPortConfigurated)
+TEST(RCDeviceTest, TestRCSplitInitWithoutOpenPortConfigurated)
 {
     runcamDevice_t device;
 
@@ -177,7 +179,7 @@ TEST(RCDeviceTest, TestInitDeviceWithInvalidResponse)
     clearResponseBuff();
 }
 
-TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
+TEST(RCDeviceTest, TestWifiModeChangeWithDeviceUnready)
 {
     // test correct response
     memset(&testData, 0, sizeof(testData));
@@ -228,7 +230,7 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceUnready)
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
-TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
+TEST(RCDeviceTest, TestWifiModeChangeWithDeviceReady)
 {
     // test correct response
     memset(&testData, 0, sizeof(testData));
@@ -281,7 +283,7 @@ TEST(RCSplitTest, TestWifiModeChangeWithDeviceReady)
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
-TEST(RCSplitTest, TestWifiModeChangeCombine)
+TEST(RCDeviceTest, TestWifiModeChangeCombine)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -357,7 +359,7 @@ TEST(RCSplitTest, TestWifiModeChangeCombine)
     EXPECT_EQ(false, unitTestIsSwitchActivited(BOXCAMERA3));
 }
 
-TEST(RCSplitTest, Test5KeyOSDCableSimulationProtocol)
+TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -474,7 +476,7 @@ TEST(RCSplitTest, Test5KeyOSDCableSimulationProtocol)
     clearResponseBuff();
 }
 
-TEST(RCSplitTest, Test5KeyOSDCableSimulationWithout5KeyFeatureSupport)
+TEST(RCDeviceTest, Test5KeyOSDCableSimulationWithout5KeyFeatureSupport)
 {
     // test simulation without device init
     rcData[THROTTLE] = 1500; // THROTTLE Mid
@@ -504,7 +506,7 @@ TEST(RCSplitTest, Test5KeyOSDCableSimulationWithout5KeyFeatureSupport)
     clearResponseBuff();
 }
 
-TEST(RCSplitTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
+TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
 {
     // test simulation without device init
     rcData[THROTTLE] = 1500; // THROTTLE Mid
@@ -701,7 +703,7 @@ TEST(RCSplitTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     clearResponseBuff();
 }
 
-TEST(RCSplitTest, TestOSDDeviceSupportWithAutoDetectVideoSystem)
+TEST(RCDeviceTest, TestOSDDeviceSupportWithAutoDetectVideoSystem)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -723,7 +725,7 @@ TEST(RCSplitTest, TestOSDDeviceSupportWithAutoDetectVideoSystem)
     EXPECT_EQ(true, r);
 }
 
-TEST(RCSplitTest, TestOSDDeviceSupportWithGetColumnsFailed)
+TEST(RCDeviceTest, TestOSDDeviceSupportWithGetColumnsFailed)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -745,7 +747,7 @@ TEST(RCSplitTest, TestOSDDeviceSupportWithGetColumnsFailed)
     EXPECT_EQ(false, r);
 }
 
-TEST(RCSplitTest, TestOSDDeviceSupportWithPal)
+TEST(RCDeviceTest, TestOSDDeviceSupportWithPal)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -766,7 +768,7 @@ TEST(RCSplitTest, TestOSDDeviceSupportWithPal)
     EXPECT_EQ(true, r);
 }
 
-TEST(RCSplitTest, TestOSDDeviceSupportWithWriteTVModeFailed)
+TEST(RCDeviceTest, TestOSDDeviceSupportWithWriteTVModeFailed)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -788,7 +790,7 @@ TEST(RCSplitTest, TestOSDDeviceSupportWithWriteTVModeFailed)
     EXPECT_EQ(false, r);
 }
 
-TEST(RCSplitTest, TestOSDDeviceSupportWithWriteCharsetFailed)
+TEST(RCDeviceTest, TestOSDDeviceSupportWithWriteCharsetFailed)
 {
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -810,9 +812,555 @@ TEST(RCSplitTest, TestOSDDeviceSupportWithWriteCharsetFailed)
     EXPECT_EQ(false, r);
 }
 
-TEST(RCSplitTest, TestDeviceSettingAccessProtocol)
-{
 
+TEST(RCDeviceTest, TestDSAGetSettings)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // test getSettings with correct responses
+    runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE];
+    uint8_t responseDataForGetSettings1[] = { 0xCC, 0x03, 0x18, 0x00, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x00, 0x42, 0x46, 0x00, 0x01, 0x43, 0x4F, 0x4C, 0x55, 0x4D, 0x4E, 0x53, 0x00, 0x33, 0x30, 0x00, 0x22 };
+    uint8_t responseDataForGetSettings2[] = { 0xCC, 0x02, 0x23, 0x02, 0x54, 0x56, 0x5F, 0x4D, 0x4F, 0x44, 0x45, 0x00, 0x4E, 0x54, 0x53, 0x43, 0x00, 0x03, 0x53, 0x44, 0x43, 0x41, 0x52, 0x44, 0x5F, 0x43, 0x41, 0x50, 0x41, 0x43, 0x49, 0x54, 0x59, 0x00, 0x30, 0x2F, 0x30, 0x00, 0x9B };
+    uint8_t responseDataForGetSettings3[] = { 0xCC, 0x01, 0x33, 0x04, 0x52, 0x45, 0x4D, 0x41, 0x49, 0x4E, 0x49, 0x4E, 0x47, 0x5F, 0x52, 0x45, 0x43, 0x4F, 0x52, 0x44, 0x49, 0x4E, 0x47, 0x5F, 0x54, 0x49, 0x4D, 0x45, 0x00, 0x31, 0x00, 0x05, 0x52, 0x45, 0x53, 0x4F, 0x4C, 0x55, 0x54, 0x49, 0x4F, 0x4E, 0x00, 0x31, 0x30, 0x38, 0x30, 0x70, 0x36, 0x30, 0x66, 0x70, 0x73, 0x00, 0x95 };
+    uint8_t responseDataForGetSettings4[] = { 0xCC, 0x00, 0x1F, 0x06, 0x43, 0x41, 0x4D, 0x45, 0x52, 0x41, 0x5F, 0x54, 0x49, 0x4D, 0x45, 0x00, 0x32, 0x30, 0x31, 0x37, 0x31, 0x30, 0x31, 0x30, 0x54, 0x31, 0x37, 0x30, 0x35, 0x31, 0x34, 0x2E, 0x30, 0x00, 0x7C };
+    addResponseData(responseDataForGetSettings1, sizeof(responseDataForGetSettings1), true);
+    addResponseData(responseDataForGetSettings2, sizeof(responseDataForGetSettings2), true);
+    addResponseData(responseDataForGetSettings3, sizeof(responseDataForGetSettings3), true);
+    addResponseData(responseDataForGetSettings4, sizeof(responseDataForGetSettings4), true);
+    result = runcamDeviceGetSettings(camDevice, 0, (runcamDeviceSetting_t*)outSettingList);
+    uint8_t i = 0;
+    printf("get settings:\n");
+    while (i < RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE && outSettingList[i].name[0] != 0) {
+        printf("%d\t%-20s\t%-20s\n", outSettingList[i].id, outSettingList[i].name, outSettingList[i].value);
+        i++;
+    }
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // test get settings with incorrect response 
+    uint8_t responseDataForGetSettings1WithIncorrectCRC[] = { 0xCC, 0x03, 0x18, 0x00, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x00, 0x42, 0x46, 0x00, 0x01, 0x43, 0x4F, 0x4C, 0x55, 0x4D, 0x4E, 0x53, 0x00, 0x33, 0x30, 0x00, 0xA2 };
+    addResponseData(responseDataForGetSettings1WithIncorrectCRC, sizeof(responseDataForGetSettings1WithIncorrectCRC), true);
+    result = runcamDeviceGetSettings(camDevice, 0, (runcamDeviceSetting_t*)outSettingList);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // test get settings with incomplete response again
+    uint8_t responseDataForGetSettings1WithIncorrectLength[] = { 0xCC, 0x03, 0x18, 0x00, 0x63, 0x68, 0x61, 0x72, 0x73, 0x01, 0x43, 0x4F, 0x4C, 0x55, 0x4D, 0x4E, 0x53, 0x00, 0x33, 0x30, 0x00, 0xA2 };
+    addResponseData(responseDataForGetSettings1, sizeof(responseDataForGetSettings1), true);
+    addResponseData(responseDataForGetSettings1WithIncorrectLength, sizeof(responseDataForGetSettings1WithIncorrectLength), true);
+    result = runcamDeviceGetSettings(camDevice, 0, (runcamDeviceSetting_t*)outSettingList);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // test get settings with incorrect length response again
+    uint8_t responseDataForGetSettings1WithIncorrectLength2[] = { 0xCC, 0x03, 0x3D, 0x00, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x00, 0x42, 0x46, 0x00, 0x01, 0x43, 0x4F, 0x4C, 0x55, 0x4D, 0x4E, 0x53, 0x00, 0x33, 0x30, 0x00, 0xA2 };
+    addResponseData(responseDataForGetSettings1, sizeof(responseDataForGetSettings1), true);
+    addResponseData(responseDataForGetSettings1WithIncorrectLength2, sizeof(responseDataForGetSettings1WithIncorrectLength2), true);
+    result = runcamDeviceGetSettings(camDevice, 0, (runcamDeviceSetting_t*)outSettingList);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+}
+
+TEST(RCDeviceTest, TestDSATextSelectionAccess)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // get setting detail that type is text selection
+    runcamDeviceSettingDetail_t charsetDetail;
+    uint8_t responseDataForCharSetDetail1[] = { 0xCC, 0x00, 0x08, 0x09, 0x00, 0x42, 0x46, 0x3B, 0x43, 0x46, 0x00, 0x1C };
+    addResponseData(responseDataForCharSetDetail1, sizeof(responseDataForCharSetDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, charsetDetail.value);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION, charsetDetail.type);
+    if (result) {
+        printf("setting detail:\n");
+        printf("\tcurrentValue = %d\n", charsetDetail.value);
+        printf("\tavailable selections = ");
+        bool foundCurValue = false;
+        for (uint32_t i = 0; i < RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS; i++) {
+            if (charsetDetail.textSelections[i].text[0] == 0) {
+                break;
+            }
+
+            if (i == charsetDetail.value) {
+                printf("%s[*], ", charsetDetail.textSelections[i].text);
+                foundCurValue = true;
+            } else {
+                printf("%s, ", charsetDetail.textSelections[i].text);
+            }
+        }
+        printf("\n");
+        EXPECT_EQ(foundCurValue, true);
+    }
+    clearResponseBuff();
+
+    // get setting detail that type is text selection with multiple chunk
+    uint8_t responseDataForCharSetDetailChunk1[] = { 0xcc, 0x02, 0x3a, 0x09, 0x02, 0x4f, 0x4e, 0x45, 0x3b, 0x54, 0x57, 0x4f, 0x3b, 0x54, 0x48, 0x52, 0x45, 0x45, 0x3b, 0x46, 0x4f, 0x55, 0x52, 0x3b, 0x46, 0x49, 0x56, 0x45, 0x3b, 0x53, 0x49, 0x58, 0x3b, 0x53, 0x45, 0x56, 0x45, 0x4e, 0x3b, 0x45, 0x49, 0x47, 0x48, 0x54, 0x3b, 0x4e, 0x49, 0x4e, 0x45, 0x3b, 0x54, 0x45, 0x4e, 0x3b, 0x45, 0x6c, 0x65, 0x76, 0x65, 0x6e, 0x3b, 0x8e };
+    uint8_t responseDataForCharSetDetailChunk2[] = { 0xcc, 0x01, 0x38, 0x54, 0x77, 0x65, 0x6c, 0x76, 0x65, 0x3b, 0x20, 0x74, 0x68, 0x69, 0x72, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x66, 0x6f, 0x75, 0x72, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x66, 0x69, 0x66, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x73, 0x69, 0x78, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x73, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x96 };
+    uint8_t responseDataForCharSetDetailChunk3[] = { 0xcc, 0x00, 0x34, 0x45, 0x69, 0x67, 0x68, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x4e, 0x69, 0x6e, 0x65, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x74, 0x77, 0x65, 0x6e, 0x74, 0x79, 0x3b, 0x20, 0x74, 0x77, 0x65, 0x6e, 0x74, 0x79, 0x20, 0x6f, 0x6e, 0x65, 0x3b, 0x20, 0x74, 0x77, 0x65, 0x6e, 0x74, 0x79, 0x20, 0x74, 0x77, 0x6f, 0x3b, 0x00, 0x31 };
+    addResponseData(responseDataForCharSetDetailChunk1, sizeof(responseDataForCharSetDetailChunk1), true);
+    addResponseData(responseDataForCharSetDetailChunk2, sizeof(responseDataForCharSetDetailChunk2), true);
+    addResponseData(responseDataForCharSetDetailChunk3, sizeof(responseDataForCharSetDetailChunk3), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(2, charsetDetail.value);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_TEXT_SELECTION, charsetDetail.type);
+    if (result) {
+        printf("setting detail:\n");
+        printf("\tcurrentValue = %d\n", charsetDetail.value);
+        printf("\tavailable selections = ");
+        bool foundCurValue = false;
+        for (uint32_t i = 0; i < RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS; i++) {
+            if (charsetDetail.textSelections[i].text[0] == 0) {
+                break;
+            }
+
+            if (i == charsetDetail.value) {
+                printf("%s[*], ", charsetDetail.textSelections[i].text);
+                foundCurValue = true;
+            } else {
+                printf("%s, ", charsetDetail.textSelections[i].text);
+            }
+        }
+        printf("\n");
+        EXPECT_EQ(foundCurValue, true);
+    }
+    clearResponseBuff();
+
+    // test get setting detail that type is textselection, but the response is incorrect
+    uint8_t incorrectResponseDataForCharSetDetail1[] = { 0xCC, 0x00, 0x08, 0x09, 0x00, 0x42, 0x46, 0x3B, 0x43, 0x46, 0x00, 0x1A };
+    addResponseData(incorrectResponseDataForCharSetDetail1, sizeof(incorrectResponseDataForCharSetDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // test get setting detail that type is textselection, but the response length is incorrect
+    uint8_t incorrectResponseDataForCharSetDetail2[] = { 0xCC, 0x00, 0x08, 0x09, 0x00, 0x42 };
+    addResponseData(incorrectResponseDataForCharSetDetail2, sizeof(incorrectResponseDataForCharSetDetail2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // test get setting detail that type is textselection multiple chunk, but the response length is incorrect
+    uint8_t incorrectResponseDataForCharSetDetailChunk2[] = { 0xcc, 0x01, 0x38, 0x54, 0x77, 0x65, 0x6c, 0x76, 0x65, 0x3b, 0x20, 0x74, 0x68, 0x69, 0x72, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x66, 0x6f, 0x75, 0x72, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x66, 0x69, 0x66, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x73, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x20, 0x73, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x65, 0x65, 0x6e, 0x3b, 0x96 };
+    addResponseData(responseDataForCharSetDetailChunk1, sizeof(responseDataForCharSetDetailChunk1), true);
+    addResponseData(incorrectResponseDataForCharSetDetailChunk2, sizeof(incorrectResponseDataForCharSetDetailChunk2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // test update setting
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    uint8_t responweDataForUpdateCharSet1[] = { 0xCC, 0x00, 0x00, 0x39 };
+    addResponseData(responweDataForUpdateCharSet1, sizeof(responweDataForUpdateCharSet1), true);
+    uint8_t newValue = 1;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &newValue, sizeof(uint8_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that needUpdatemenuItems's value is 1
+    uint8_t responweDataForUpdateCharSet2[] = { 0xCC, 0x00, 0x01, 0xec };
+    addResponseData(responweDataForUpdateCharSet2, sizeof(responweDataForUpdateCharSet2), true);
+    newValue = 1;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &newValue, sizeof(uint8_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(1, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that resultCode's value is 1
+    uint8_t responweDataForUpdateCharSet3[] = { 0xCC, 0x01, 0x00, 0x32 };
+    addResponseData(responweDataForUpdateCharSet3, sizeof(responweDataForUpdateCharSet3), true);
+    newValue = 1;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_CHARSET, &newValue, sizeof(uint8_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(1, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+}
+
+TEST(RCDeviceTest, TestDSAUint8AccessProtocol)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // get setting detail that type is uint8
+    runcamDeviceSettingDetail_t charsetDetail;
+    uint8_t responseDataForColumnsDetail1[] = { 0xCC, 0x00, 0x05, 0x00, 0x1E, 0x1E, 0x1E, 0x01, 0xB0 };
+    addResponseData(responseDataForColumnsDetail1, sizeof(responseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8, charsetDetail.type);
+    EXPECT_EQ(30, charsetDetail.value);
+    EXPECT_EQ(30, charsetDetail.minValue);
+    EXPECT_EQ(30, charsetDetail.maxValue);
+    EXPECT_EQ(1, charsetDetail.stepSize);
+    clearResponseBuff();
+
+    // get setting detail that type is uint8, but the response length is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail1[] = { 0xCC, 0x00, 0x05, 0x00, 0x1E, 0x1E };
+    addResponseData(incorrectResponseDataForColumnsDetail1, sizeof(incorrectResponseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is uint8, but the response crc is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail2[] = { 0xCC, 0x00, 0x05, 0x00, 0x1E, 0x1E, 0x1E, 0x01, 0xC2 };
+    addResponseData(incorrectResponseDataForColumnsDetail2, sizeof(incorrectResponseDataForColumnsDetail2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is uint8, but the response crc is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail3[] = { 0xCC, 0x00, 0x05, 0x00, 0x1E, 0x1E, 0x1E, 0x01, 0xB0, 0xAA, 0xBB, 0xCC };
+    addResponseData(incorrectResponseDataForColumnsDetail3, sizeof(incorrectResponseDataForColumnsDetail3), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // test update setting
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    uint8_t responweDataForUpdateCharSet1[] = { 0xCC, 0x00, 0x00, 0x39 };
+    addResponseData(responweDataForUpdateCharSet1, sizeof(responweDataForUpdateCharSet1), true);
+    uint8_t newValue = 1;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &newValue, sizeof(uint8_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that needUpdatemenuItems's value is 1
+    uint8_t responweDataForUpdateCharSet2[] = { 0xCC, 0x00, 0x01, 0xec };
+    addResponseData(responweDataForUpdateCharSet2, sizeof(responweDataForUpdateCharSet2), true);
+    newValue = 1;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &newValue, sizeof(uint8_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(1, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that resultCode's value is 1
+    uint8_t responweDataForUpdateCharSet3[] = { 0xCC, 0x01, 0x00, 0x32 };
+    addResponseData(responweDataForUpdateCharSet3, sizeof(responweDataForUpdateCharSet3), true);
+    newValue = 1;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &newValue, sizeof(uint8_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(1, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+}
+
+TEST(RCDeviceTest, TestDSAUint16AccessProtocol)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // get setting detail that type is uint16
+    runcamDeviceSettingDetail_t charsetDetail;
+    uint8_t responseDataForColumnsDetail1[] = { 0xcc, 0x00, 0x09, 0x02, 0x1e, 0x3a, 0x1e, 0x00, 0xff, 0xff, 0x64, 0x00, 0x6c };
+    addResponseData(responseDataForColumnsDetail1, sizeof(responseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_UINT16, charsetDetail.type);
+    EXPECT_EQ(14878, charsetDetail.value);
+    EXPECT_EQ(30, charsetDetail.minValue);
+    EXPECT_EQ(65535, charsetDetail.maxValue);
+    EXPECT_EQ(100, charsetDetail.stepSize);
+    clearResponseBuff();
+
+    // get setting detail that type is uint16, but the response length is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail1[] = { 0xcc, 0x00, 0x09, 0x02, 0x1e, 0x3a, 0x1e, 0x00, 0xff, 0xff };
+    addResponseData(incorrectResponseDataForColumnsDetail1, sizeof(incorrectResponseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is uint16, but the response crc is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail2[] = { 0xcc, 0x00, 0x09, 0x02, 0x1e, 0x3a, 0x1e, 0x00, 0xff, 0xff, 0x64, 0x00, 0x7c };
+    addResponseData(incorrectResponseDataForColumnsDetail2, sizeof(incorrectResponseDataForColumnsDetail2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is uint16, but the response has some randome data at trailing
+    uint8_t incorrectResponseDataForColumnsDetail3[] = { 0xcc, 0x00, 0x09, 0x02, 0x1e, 0x3a, 0x1e, 0x00, 0xff, 0xff, 0x64, 0x00, 0x6c, 0xAA, 0xBB, 0xCC };
+    addResponseData(incorrectResponseDataForColumnsDetail3, sizeof(incorrectResponseDataForColumnsDetail3), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // test update setting
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    uint8_t responweDataForUpdateCharSet1[] = { 0xCC, 0x00, 0x00, 0x39 };
+    addResponseData(responweDataForUpdateCharSet1, sizeof(responweDataForUpdateCharSet1), true);
+    uint16_t newValue = 55;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)&newValue, sizeof(uint16_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that needUpdatemenuItems's value is 1
+    uint8_t responweDataForUpdateCharSet2[] = { 0xCC, 0x00, 0x01, 0xec };
+    addResponseData(responweDataForUpdateCharSet2, sizeof(responweDataForUpdateCharSet2), true);
+    newValue = 190;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)&newValue, sizeof(uint16_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(1, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that resultCode's value is 1
+    uint8_t responweDataForUpdateCharSet3[] = { 0xCC, 0x01, 0x00, 0x32 };
+    addResponseData(responweDataForUpdateCharSet3, sizeof(responweDataForUpdateCharSet3), true);
+    newValue = 10241;
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)&newValue, sizeof(uint16_t), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(1, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+}
+
+TEST(RCDeviceTest, TestDSAFloatAccessProtocol)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // get setting detail that type is float
+    runcamDeviceSettingDetail_t charsetDetail;
+    uint8_t responseDataForColumnsDetail1[] = { 0xcc, 0x00, 0x12, 0x08, 0x1e, 0x33, 0x00, 0x00, 0x3a, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x04, 0xf4, 0x01, 0x00, 0x00, 0xc9 };
+    addResponseData(responseDataForColumnsDetail1, sizeof(responseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_FLOAT, charsetDetail.type);
+    EXPECT_EQ(13086, charsetDetail.value);
+    EXPECT_EQ(58, charsetDetail.minValue);
+    EXPECT_EQ(4294967295, charsetDetail.maxValue);
+    EXPECT_EQ(4, charsetDetail.decimalPoint);
+    EXPECT_EQ(500, charsetDetail.stepSize);
+    clearResponseBuff();
+
+    // get setting detail that type is float, but the response length is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail1[] = { 0xcc, 0x00, 0x07, 0x08, 0x1e, 0x3a, 0xff, 0x0a };
+    addResponseData(incorrectResponseDataForColumnsDetail1, sizeof(incorrectResponseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is float, but the response crc is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail2[] = { 0xcc, 0x00, 0x07, 0x08, 0x1e, 0x3a, 0xff, 0x0a, 0x00, 0x01, 0xf2 };
+    addResponseData(incorrectResponseDataForColumnsDetail2, sizeof(incorrectResponseDataForColumnsDetail2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is float, but the response has some randome data at trailing
+    uint8_t incorrectResponseDataForColumnsDetail3[] = { 0xcc, 0x00, 0x12, 0x08, 0x1e, 0x33, 0x00, 0x00, 0x3a, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x04, 0xf4, 0x01, 0x00, 0x00, 0xc9, 0xAA, 0xBB, 0xCC };
+    addResponseData(incorrectResponseDataForColumnsDetail3, sizeof(incorrectResponseDataForColumnsDetail3), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // test update setting
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    uint8_t responweDataForUpdateCharSet1[] = { 0xCC, 0x00, 0x00, 0x39 };
+    addResponseData(responweDataForUpdateCharSet1, sizeof(responweDataForUpdateCharSet1), true);
+    uint16_t newValue[5] = { 0x1E, 0x1E, 0x00, 0x00, 0x2 }; // the data struct is UINT32_T + UINT8(Decimal Point)
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)newValue, sizeof(newValue), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that needUpdatemenuItems's value is 1
+    uint8_t responweDataForUpdateCharSet2[] = { 0xCC, 0x00, 0x01, 0xec };
+    addResponseData(responweDataForUpdateCharSet2, sizeof(responweDataForUpdateCharSet2), true);
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)newValue, sizeof(newValue), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(1, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that resultCode's value is 1
+    uint8_t responweDataForUpdateCharSet3[] = { 0xCC, 0x01, 0x00, 0x32 };
+    addResponseData(responweDataForUpdateCharSet3, sizeof(responweDataForUpdateCharSet3), true);
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)newValue, sizeof(newValue), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(1, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+}
+
+TEST(RCDeviceTest, TestDSAStringAccessProtocol)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // get setting detail that type is string
+    runcamDeviceSettingDetail_t charsetDetail;
+    uint8_t responseDataForColumnsDetail1[] = { 0xCC, 0x00, 0x14, 0x0A, 0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30, 0x00, 0x14, 0x20 };
+    addResponseData(responseDataForColumnsDetail1, sizeof(responseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_STRING, charsetDetail.type);
+    EXPECT_STREQ("19720216T191532.0", charsetDetail.stringValue);
+    EXPECT_EQ(20, charsetDetail.maxStringSize);
+    clearResponseBuff();
+
+    // get setting detail that type is string, but the response length is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail1[] = { 0xCC, 0x00, 0x14, 0x0A, 0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30 };
+    addResponseData(incorrectResponseDataForColumnsDetail1, sizeof(incorrectResponseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is string, but the response crc is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail2[] = { 0xCC, 0x00, 0x14, 0x0A, 0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30, 0x00, 0x14, 0x21 };
+    addResponseData(incorrectResponseDataForColumnsDetail2, sizeof(incorrectResponseDataForColumnsDetail2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is string, but the response has some randome data at trailing
+    uint8_t incorrectResponseDataForColumnsDetail3[] = { 0xCC, 0x00, 0x14, 0x0A, 0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30, 0x00, 0x14, 0x20, 0xAA, 0xBB, 0xCC };
+    addResponseData(incorrectResponseDataForColumnsDetail3, sizeof(incorrectResponseDataForColumnsDetail3), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // test update setting
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    uint8_t responweDataForUpdateCharSet1[] = { 0xCC, 0x00, 0x00, 0x39 };
+    addResponseData(responweDataForUpdateCharSet1, sizeof(responweDataForUpdateCharSet1), true);
+    uint16_t newValue[] = { 0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30, 0x00 }; // the data struct is UINT32_T + UINT8(Decimal Point)
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)newValue, sizeof(newValue), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that needUpdatemenuItems's value is 1
+    uint8_t responweDataForUpdateCharSet2[] = { 0xCC, 0x00, 0x01, 0xec };
+    addResponseData(responweDataForUpdateCharSet2, sizeof(responweDataForUpdateCharSet2), true);
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)newValue, sizeof(newValue), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(0, updateSettingResponse.resultCode);
+    EXPECT_EQ(1, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+
+    // test update setting with response that resultCode's value is 1
+    uint8_t responweDataForUpdateCharSet3[] = { 0xCC, 0x01, 0x00, 0x32 };
+    addResponseData(responweDataForUpdateCharSet3, sizeof(responweDataForUpdateCharSet3), true);
+    result = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, (uint8_t*)newValue, sizeof(newValue), &updateSettingResponse);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(1, updateSettingResponse.resultCode);
+    EXPECT_EQ(0, updateSettingResponse.needUpdateMenuItems);
+    clearResponseBuff();
+}
+
+TEST(RCDeviceTest, TestDSAInfoAccessProtocol)
+{
+    // init device that have not 5 key OSD cable simulation feature
+    memset(&testData, 0, sizeof(testData));
+    testData.isRunCamSplitOpenPortSupported = true;
+    testData.isRunCamSplitPortConfigurated = true;
+    testData.isAllowBufferReadWrite = true;
+    testData.maxTimesOfRespDataAvailable = 0;
+    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
+    addResponseData(responseData, sizeof(responseData), true);
+    bool result = rcdeviceInit();
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
+
+    // get setting detail that type is string
+    runcamDeviceSettingDetail_t charsetDetail;
+    uint8_t responseDataForColumnsDetail1[] = { 0xCC, 0x00, 0x0B, 0x0C, 0x31, 0x31, 0x35, 0x2F, 0x36, 0x30, 0x38, 0x39, 0x30, 0x00, 0xFE };
+    addResponseData(responseDataForColumnsDetail1, sizeof(responseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(RCDEVICE_PROTOCOL_SETTINGTYPE_INFO, charsetDetail.type);
+    EXPECT_STREQ("115/60890", charsetDetail.stringValue);
+    clearResponseBuff();
+
+    // get setting detail that type is string, but the response length is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail1[] = { 0xCC, 0x00, 0x0B, 0x0C, 0x31, 0x31, 0x35, 0x2F, 0x36, 0x30, 0x38 };
+    addResponseData(incorrectResponseDataForColumnsDetail1, sizeof(incorrectResponseDataForColumnsDetail1), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is string, but the response crc is incorrect
+    uint8_t incorrectResponseDataForColumnsDetail2[] = { 0xCC, 0x00, 0x0B, 0x0C, 0x31, 0x31, 0x35, 0x2F, 0x36, 0x30, 0x38, 0x39, 0x30, 0x00, 0xFF };
+    addResponseData(incorrectResponseDataForColumnsDetail2, sizeof(incorrectResponseDataForColumnsDetail2), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, false);
+    clearResponseBuff();
+
+    // get setting detail that type is string, but the response has some randome data at trailing
+    uint8_t incorrectResponseDataForColumnsDetail3[] = { 0xCC, 0x00, 0x0B, 0x0C, 0x31, 0x31, 0x35, 0x2F, 0x36, 0x30, 0x38, 0x39, 0x30, 0x00, 0xFE, 0xAA, 0xBB, 0xCC };
+    addResponseData(incorrectResponseDataForColumnsDetail3, sizeof(incorrectResponseDataForColumnsDetail3), true);
+    result = runcamDeviceGetSettingDetail(camDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &charsetDetail);
+    EXPECT_EQ(result, true);
+    clearResponseBuff();
 }
 
 extern "C" {

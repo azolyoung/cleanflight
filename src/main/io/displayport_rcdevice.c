@@ -18,41 +18,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
-
-#include "common/utils.h"
-
-#include "config/feature.h"
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
-
 #include "drivers/display.h"
-#include "io/rcdevice.h"
-#include "io/rcdevice_osd.h"
 #include "drivers/vcd.h"
 
+#include "io/rcdevice.h"
+#include "io/rcdevice_osd.h"
+
 #include "io/displayport_rcdevice.h"
-#include "io/osd.h"
-#include "io/osd_slave.h"
 
-#include "fc/config.h"
-
-#if defined(USE_RCDEVICE)
+#ifdef USE_RCDEVICE
 
 displayPort_t rcdeviceOSDDisplayPort;
-
-// int (*grab)(displayPort_t *displayPort);
-// int (*release)(displayPort_t *displayPort);
-// int (*clearScreen)(displayPort_t *displayPort);
-// int (*drawScreen)(displayPort_t *displayPort);
-// int (*fillRegion)(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t value);
-// int (*writeString)(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *text);
-// int (*writeChar)(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c);
-// int (*reloadProfile)(displayPort_t *displayPort);
-// bool (*isTransferInProgress)(const displayPort_t *displayPort);
-// int (*heartbeat)(displayPort_t *displayPort);
-// void (*resync)(displayPort_t *displayPort);
-// uint32_t (*txBytesFree)(const displayPort_t *displayPort);
 
 static const displayPortVTable_t rcdeviceOSDVTable = {
     .grab = rcdeviceOSDGrab,
@@ -69,6 +45,7 @@ static const displayPortVTable_t rcdeviceOSDVTable = {
     .txBytesFree = rcdeviceOSDTxBytesFree,
     // .screenSize = rcdeviceScreenSize,
 };
+
 
 displayPort_t *rcdeviceDisplayPortInit(const vcdProfile_t *vcdProfile)
 {

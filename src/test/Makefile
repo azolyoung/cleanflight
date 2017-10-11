@@ -248,10 +248,9 @@ rcdevice_unittest_SRC := \
 		$(USER_DIR)/io/rcdevice.c \
 		$(USER_DIR)/io/rcdevice_osd.c \
 		$(USER_DIR)/io/rcdevice_cam.c
-
-rcdevice_unitest_DEFINES := \
-		USE_UART3 \
-		USE_RCDEVICE \
+		
+rcdevice_unittest_DEFINES := \
+		USE_RCDEVICE
 
 huffman_unittest_SRC := \
 		$(USER_DIR)/common/huffman.c \

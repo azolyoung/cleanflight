@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "common/streambuf.h"
 #include "drivers/serial.h"
 
 //
@@ -31,8 +30,9 @@
 #define RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE                     32
 #define RCDEVICE_PROTOCOL_MAX_SETTING_NAME_LENGTH                   20
 #define RCDEVICE_PROTOCOL_MAX_SETTING_VALUE_LENGTH                  20
-#define RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE                    5
-#define RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS                       12
+#define RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE                    12
+#define RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS                       30
+#define RCDEVICE_PROTOCOL_MAX_STRING_LENGTH                         58
 
 // Commands
 #define RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO                   0x00
@@ -147,6 +147,7 @@ typedef enum {
     RCDEVICE_PROTOCOL_SETTINGTYPE_INFO           = 12,
     RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN
 } rcdeviceSettingType_e;
+
 // end of Runcam Device definition
 
 // Old version defination(RCSplit firmware v1.0.0 and v1.1.0)
@@ -154,6 +155,8 @@ typedef enum {
 #define RCSPLIT_PACKET_HEADER       0x55
 #define RCSPLIT_PACKET_CMD_CTRL     0x01
 #define RCSPLIT_PACKET_TAIL         0xaa
+
+
 
 typedef enum {
     RCSPLIT_CTRL_ARGU_INVALID     = 0x0,
@@ -181,12 +184,13 @@ typedef struct runcamDeviceSettingTextSelection_s {
 
 typedef struct runcamDeviceSettingDetail_s {
     uint8_t type;
-    uint16_t value;
-    uint16_t minValue;
-    uint16_t maxValue;
-    uint16_t decimalPoint;
-    uint16_t stepSize;
+    uint32_t value;
+    uint32_t minValue;
+    uint32_t maxValue;
+    uint8_t decimalPoint;
+    uint32_t stepSize;
     uint8_t maxStringSize;
+    char stringValue[RCDEVICE_PROTOCOL_MAX_STRING_LENGTH]; // when settingType is RCDEVICE_PROTOCOL_SETTINGTYPE_INFO or RCDEVICE_PROTOCOL_SETTINGTYPE_STRING, this field store the string/info value;
     runcamDeviceSettingTextSelection_t textSelections[RCDEVICE_PROTOCOL_MAX_TEXT_SELECTIONS];
 } runcamDeviceSettingDetail_t;
 
@@ -198,8 +202,6 @@ typedef struct runcamDeviceWriteSettingResponse_s {
 typedef struct runcamDevice_s {
     serialPort_t *serialPort;
     uint8_t buffer[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
-    sbuf_t streamBuffer;
-    sbuf_t *sbuf;
     runcamDeviceInfo_t info;
 } runcamDevice_t;
 
