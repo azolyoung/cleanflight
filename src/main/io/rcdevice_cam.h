@@ -24,6 +24,11 @@
 #include "io/rcdevice.h"
 #include "fc/rc_modes.h"
 
+#define FIVE_KEY_CABLE_JOYSTICK_MIN 1080
+#define FIVE_KEY_CABLE_JOYSTICK_MAX 1920
+#define FIVE_KEY_CABLE_JOYSTICK_MID_START 1350
+#define FIVE_KEY_CABLE_JOYSTICK_MID_END 1650
+
 typedef struct rcdeviceSwitchState_s {
     bool isActivated;
 } rcdeviceSwitchState_t;

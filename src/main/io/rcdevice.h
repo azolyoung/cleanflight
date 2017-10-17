@@ -88,7 +88,10 @@ typedef enum {
 } rcdevice_5key_simulation_operation_e;
 
 // Operation of RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION
-typedef enum { RCDEVICE_PROTOCOL_5KEY_CONNECTION_OPEN = 0x01, RCDEVICE_PROTOCOL_5KEY_CONNECTION_CLOSE = 0x02 } RCDEVICE_5key_connection_event_e;
+typedef enum { 
+    RCDEVICE_PROTOCOL_5KEY_CONNECTION_OPEN = 0x01, 
+    RCDEVICE_PROTOCOL_5KEY_CONNECTION_CLOSE = 0x02 
+} RCDEVICE_5key_connection_event_e;
 
 typedef enum {
     RCDEVICE_CAM_KEY_NONE,
@@ -147,7 +150,6 @@ typedef enum {
     RCDEVICE_PROTOCOL_SETTINGTYPE_INFO           = 12,
     RCDEVICE_PROTOCOL_SETTINGTYPE_UNKNOWN
 } rcdeviceSettingType_e;
-
 // end of Runcam Device definition
 
 // Old version defination(RCSplit firmware v1.0.0 and v1.1.0)
@@ -224,6 +226,6 @@ void runcamDeviceDispWriteVerticalString(runcamDevice_t *device, uint8_t x, uint
 void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data, uint8_t datalen);
 
 // Device Setting Access
-bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE]);
+bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t *outSettingList, int maxSettingItemCount);
 bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail);
 bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t *response);

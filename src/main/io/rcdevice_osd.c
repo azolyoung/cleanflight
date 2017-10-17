@@ -19,7 +19,6 @@
 #include <stdint.h>
 
 #include "drivers/vcd.h"
-#include "io/osd.h"
 
 #include "rcdevice.h"
 #include "rcdevice_osd.h"
@@ -111,8 +110,8 @@ bool rcdeviceOSDInit(const vcdProfile_t *vcdProfile)
 int rcdeviceOSDGrab(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    osdResetAlarms();
-    resumeRefreshAt = 0;
+    // osdResetAlarms();
+    // resumeRefreshAt = 0;
     return 0;
 }
 
@@ -164,11 +163,8 @@ int rcdeviceOSDWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, con
 #if !defined(USE_PARTICLE_DRAW)
     runcamDeviceDispWriteHorizontalString(osdDevice, x, y, buff);
 #else
-    uint8_t i = 0;
-    for (i = 0; *(buff + i); i++) {
-        if (x + i < columnCount) { // Do not write over screen
-            screenBuffer[y * columnCount + x + i] = *(buff + i);
-        }
+    for (int xpos = x; *buff && xpos < columnCount; xpos++) {
+        screenBuffer[y * columnCount + xpos] = *buff++;
     }
 #endif
     return 0;
@@ -191,10 +187,7 @@ int rcdeviceOSDClearScreen(displayPort_t *displayPort)
     UNUSED(displayPort);
 
 #if defined(USE_PARTICLE_DRAW)
-    uint16_t x;
-    uint32_t *p = (uint32_t *)&screenBuffer[0];
-    for (x = 0; x < VIDEO_BUFFER_CHARS_PAL / 4; x++)
-        p[x] = 0x20202020;
+    memset(screenBuffer, 0x20, sizeof(screenBuffer));
 #else
     runcamDeviceDispFillRegion(osdDevice, 0, 0, 255, 255, ' ');
 #endif
@@ -224,7 +217,7 @@ void rcdeviceOSDResync(displayPort_t *displayPort)
         displayPort->rowCount = RCDEVICE_PROTOCOL_OSD_VIDEO_LINES_NTSC;
     }
 
-    displayPort->colCount = 30;
+    displayPort->colCount = columnCount;
     maxScreenSize = displayPort->rowCount * displayPort->colCount;
 }
 
@@ -251,5 +244,6 @@ int rcdeviceReloadProfile(displayPort_t *displayPort)
     UNUSED(displayPort);
     return 0;
 }
+
 
 #endif

@@ -37,179 +37,102 @@ typedef enum {
     RCDP_SETTING_PARSE_WAITING_VALUE,
 } runcamDeviceSettingParseStep_e;
 
-// Parameters:
-//      data: the data that has received
-//      dataLen: the data len that has received
-//      isDone: output parameter, it is used to indicator the response data has fully received
-// Return: If the packet verify failed, it'll return false, else it will return true even the packet still is receiving.
-typedef uint8_t (*runcamDeviceVariableLengthPacketsVerify)(uint8_t *data, uint8_t dataLen, bool *isDone);
+typedef struct runcamDeviceExpectedResponseLength_s {
+    uint8_t command;
+    uint8_t reponseLength;
+} runcamDeviceExpectedResponseLength_t;
 
-// Parse the variable length response, e.g the response of settings data and the detail of setting
-static uint8_t runcamDeviceIsVariableLengthResponseReceiveDone(uint8_t *data, uint8_t dataLen, bool *isDone)
+static runcamDeviceExpectedResponseLength_t expectedResponsesLength[] = {
+    { RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS,               0xFF},
+    { RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL,        0xFF},
+    { RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO,            5},
+    { RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS,      2},
+    { RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE,    2},
+    { RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION,            3},
+    { RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING,              4},
+};
+
+static uint8_t runcamDeviceGetResponseLength(uint8_t command)
 {
-    if (isDone == NULL) {
-        return false;
-    }
-
-    uint8_t settingDataLength = 0x00;
-    // get setting datalen first
-    if (dataLen >= 2) {
-        settingDataLength = data[1];
-        if (dataLen >= (settingDataLength + 3)) {
-            *isDone = true;
-            return true;
+    for (unsigned int i = 0; i < ARRAYLEN(expectedResponsesLength); i++) {
+        if (expectedResponsesLength[i].command == command) {
+            return expectedResponsesLength[i].reponseLength;
         }
     }
 
-    if (settingDataLength > 60) {
-        return false;
-    }
+    return 0;
+}
 
+// Verify the response data has received done, return true if the data is still receiving or it was received done.
+// return false if the packet has incorrect
+static uint8_t runcamDeviceIsResponseReceiveDone(uint8_t command, uint8_t *data, uint8_t dataLen, bool *isDone)
+{
+    uint8_t expectedResponseDataLength = runcamDeviceGetResponseLength(command);
+    if (expectedResponseDataLength == 0xFF) {
+        uint8_t settingDataLength = 0x00;
+        // get setting datalen first
+        if (dataLen >= 3) {
+            settingDataLength = data[2];
+            if (dataLen >= (settingDataLength + 4)) {
+                *isDone = true;
+                return true;
+            }
+        }
+
+        if (settingDataLength > 60) {
+            return false;
+        }
+    } else if (dataLen >= expectedResponseDataLength) {
+        *isDone = true;
+        return true;
+    }
     return true;
 }
 
 // a common way to receive packet and verify it
-static uint8_t runcamDeviceReceivePacket(runcamDevice_t *device, uint8_t expectedDataLen, uint8_t *data, runcamDeviceVariableLengthPacketsVerify isVariableLengthtResponseReceiveDoneCallback)
+static uint8_t runcamDeviceReceivePacket(runcamDevice_t *device, uint8_t command, uint8_t *data)
 {
     uint8_t dataPos = 0;
-    uint8_t crc = crc8_dvb_s2(0, RCDEVICE_PROTOCOL_HEADER);
-    uint8_t result = RCDEVICE_PROTOCOL_MAX_DATA_SIZE_WITH_CRC_FIELD;
+    uint8_t crc = 0;
+    uint8_t responseDataLen = 0;
 
     // wait 1000ms for reply
     timeMs_t timeout = millis() + 1000;
+    bool isWaitingHeader = true;
     while (millis() < timeout) {
         if (serialRxBytesWaiting(device->serialPort) > 0) {
             uint8_t c = serialRead(device->serialPort);
             crc = crc8_dvb_s2(crc, c);
+
             if (data) {
                 data[dataPos] = c;
             }
             dataPos++;
 
-            if (isVariableLengthtResponseReceiveDoneCallback) {
+            if (isWaitingHeader) {
+                if (c == RCDEVICE_PROTOCOL_HEADER) {
+                    isWaitingHeader = false;
+                }
+            } else {
                 bool isDone = false;
-                if (!isVariableLengthtResponseReceiveDoneCallback(data, dataPos, &isDone)) {
+                if (!runcamDeviceIsResponseReceiveDone(command, data, dataPos, &isDone)) {
                     return 0;
                 }
-
+    
                 if (isDone) {
-                    result = dataPos;
+                    responseDataLen = dataPos;
                     break;
                 }
             }
         }
-
-        // if it has been read enough data, than break
-        if (dataPos >= expectedDataLen) {
-            break;
-        }
     }
 
     // check crc
-    if (crc != 0 || (isVariableLengthtResponseReceiveDoneCallback == NULL && dataPos < expectedDataLen)) {
+    if (crc != 0) {
         return 0;
     }
 
-    return result;
-}
-
-// decode the device info
-static bool runcamDeviceReceiveDeviceInfo(runcamDevice_t *device)
-{
-    const uint8_t expectedDataLen = 4;
-    uint8_t data[expectedDataLen];
-
-    if (!runcamDeviceReceivePacket(device, expectedDataLen, data, NULL)) {
-        return false;
-    }
-
-    uint8_t protocolVersion = data[0];
-    if (protocolVersion >= RCDEVICE_PROTOCOL_UNKNOWN) {
-        return false;
-    }
-
-    device->info.protocolVersion = protocolVersion;
-
-    uint8_t featureLowBits = data[1];
-    uint8_t featureHighBits = data[2];
-    device->info.features = (featureHighBits << 8) | featureLowBits;
-
-    return true;
-}
-
-// decode the empty response
-static bool runcamDeviceReceiveEmptyResponse(runcamDevice_t *device)
-{
-    return runcamDeviceReceivePacket(device, 1, NULL, NULL);
-}
-
-// decode the write setting response
-static bool runcamDeviceReceiveWriteSettingResponse(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t *outputBufferLen)
-{
-    const uint8_t expectedDataLen = 3;
-    uint8_t data[expectedDataLen];
-    if (!runcamDeviceReceivePacket(device, expectedDataLen, data, NULL)) {
-        return false;
-    }
-
-    if (outputBufferLen && (*outputBufferLen >= expectedDataLen) && outputBuffer) {
-        memcpy(outputBuffer, data, expectedDataLen);
-        *outputBufferLen = expectedDataLen;
-    }
-
-    return true;
-}
-
-// decode the connection event response
-static bool runcamDeviceReceiveConnectionEventResponse(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t *outputBufferLen)
-{
-    const uint8_t expectedDataLen = 2;
-    uint8_t data[expectedDataLen];
-    if (!runcamDeviceReceivePacket(device, expectedDataLen, data, NULL)) {
-        return false;
-    }
-
-    uint8_t c = data[0];
-    if (outputBufferLen && (*outputBufferLen >= 1) && outputBuffer) {
-        *outputBuffer = c;
-        *outputBufferLen = 1;
-    }
-
-    return true;
-}
-
-// decode the device setting response
-static bool runcamDeviceReceiveSettings(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t *outputBufferLen)
-{
-    uint8_t data[RCDEVICE_PROTOCOL_MAX_DATA_SIZE_WITH_CRC_FIELD];
-    uint8_t receivedDataLen = runcamDeviceReceivePacket(device, RCDEVICE_PROTOCOL_MAX_DATA_SIZE_WITH_CRC_FIELD, data, runcamDeviceIsVariableLengthResponseReceiveDone);
-    if (!receivedDataLen) {
-        return false;
-    }
-
-    if (outputBufferLen && (*outputBufferLen >= (receivedDataLen - 1)) && outputBuffer) {
-        memcpy(outputBuffer, data, receivedDataLen - 1); // return the data expect the crc field
-        *outputBufferLen = receivedDataLen - 1;
-    }
-
-    return true;
-}
-
-// decode the device setting response
-static bool runcamDeviceReceiveSettingDetail(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t *outputBufferLen)
-{
-    uint8_t data[RCDEVICE_PROTOCOL_MAX_DATA_SIZE_WITH_CRC_FIELD];
-    uint8_t receivedDataLen = runcamDeviceReceivePacket(device, RCDEVICE_PROTOCOL_MAX_DATA_SIZE_WITH_CRC_FIELD, data, runcamDeviceIsVariableLengthResponseReceiveDone);
-    if (!receivedDataLen) {
-        return false;
-    }
-
-    if (outputBufferLen && (*outputBufferLen >= (receivedDataLen - 1)) && outputBuffer) {
-        memcpy(outputBuffer, data, receivedDataLen - 1); // return the data expect the crc field
-        *outputBufferLen = receivedDataLen - 1;
-    }
-
-    return true;
+    return responseDataLen;
 }
 
 // every time send packet to device, and want to get something from device,
@@ -253,57 +176,11 @@ static void runcamDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint
     serialWriteBuf(device->serialPort, sbufPtr(&buf), sbufBytesRemaining(&buf));
 }
 
-// a common way to receive data from device, and will decode the response,
-// and save the response data(all the fields from response except the header and
-// crc field) to outputBuffer if the outputBuffer not a NULL pointer.
-static bool runcamDeviceSerialReceive(runcamDevice_t *device, uint8_t command, uint8_t *outputBuffer, uint8_t *outputBufferLen)
-{
-    // wait 1000ms for reply
-    bool isWaitingHeader = true;
-    timeMs_t timeout = millis() + 1000;
-    while (millis() < timeout) {
-        if (serialRxBytesWaiting(device->serialPort) > 0) {
-            if (isWaitingHeader) {
-                uint8_t c = serialRead(device->serialPort);
-                if (c == RCDEVICE_PROTOCOL_HEADER) {
-                    isWaitingHeader = false;
-                }
-            } else {
-                bool decodeResult = false;
-                switch (command) {
-                case RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO:
-                    decodeResult = runcamDeviceReceiveDeviceInfo(device);
-                    break;
-                case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS:
-                case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE:
-                    decodeResult = runcamDeviceReceiveEmptyResponse(device);
-                    break;
-                case RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION:
-                    decodeResult = runcamDeviceReceiveConnectionEventResponse(device, outputBuffer, outputBufferLen);
-                    break;
-                case RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS:
-                    decodeResult = runcamDeviceReceiveSettings(device, outputBuffer, outputBufferLen);
-                    break;
-                case RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL:
-                    decodeResult = runcamDeviceReceiveSettingDetail(device, outputBuffer, outputBufferLen);
-                    break;
-                case RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING:
-                    decodeResult = runcamDeviceReceiveWriteSettingResponse(device, outputBuffer, outputBufferLen);
-                    break;
-                }
-
-                return decodeResult;
-            }
-        }
-    }
-
-    return false;
-}
-
 // a common way to send a packet to device, and get response from the device.
 static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_t commandID, uint8_t *paramData, uint8_t paramDataLen, uint8_t *outputBuffer, uint8_t *outputBufferLen)
 {
     uint32_t max_retries = 3;
+    
     while (max_retries--) {
         // flush rx buffer
         runcamDeviceFlushRxBuffer(device);
@@ -312,7 +189,12 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
         runcamDeviceSendPacket(device, commandID, paramData, paramDataLen);
 
         // waiting response
-        if (runcamDeviceSerialReceive(device, commandID, outputBuffer, outputBufferLen)) {
+        uint8_t responseLength = runcamDeviceReceivePacket(device, commandID, outputBuffer);
+        if (responseLength) {
+            if (outputBufferLen) {
+                *outputBufferLen = responseLength;
+            }
+
             return true;
         }
     }
@@ -322,23 +204,23 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
 
 // get the device info(firmware version, protocol version and features, see the
 // definition of runcamDeviceInfo_t to know more)
-static bool runcamDeviceGetDeviceInfo(runcamDevice_t *device, uint8_t *outputBuffer, uint8_t *outputBufferLen) 
+static bool runcamDeviceGetDeviceInfo(runcamDevice_t *device, uint8_t *outputBuffer) 
 {
-    return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, NULL, 0, outputBuffer, outputBufferLen); 
+    return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, NULL, 0, outputBuffer, NULL); 
 }
 
 static bool runcamDeviceSend5KeyOSDCableConnectionEvent(runcamDevice_t *device, uint8_t operation, uint8_t *outActionID, uint8_t *outErrorCode)
 {
-    uint8_t result = 0;
-    uint8_t outputDataLen = 1;
-    if (!runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION, &operation, sizeof(uint8_t), &result, &outputDataLen)) {
+    uint8_t outputDataLen = RCDEVICE_PROTOCOL_MAX_PACKET_SIZE;
+    uint8_t respBuf[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
+    if (!runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION, &operation, sizeof(uint8_t), respBuf, &outputDataLen)) {
         return false;
     }
 
     // the high 4 bits is the operationID that we sent
     // the low 4 bits is the result code
-    uint8_t operationID = (result & 0xF0) >> 4;
-    bool errorCode = (result & 0x0F);
+    uint8_t operationID = (respBuf[1] & 0xF0) >> 4;
+    bool errorCode = (respBuf[1] & 0x0F);
     if (outActionID) {
         *outActionID = operationID;
     }
@@ -358,20 +240,25 @@ bool runcamDeviceInit(runcamDevice_t *device)
 {
     serialPortFunction_e portID = FUNCTION_RCDEVICE;
     serialPortConfig_t *portConfig = findSerialPortConfig(portID);
-    while (portConfig != NULL) {
+    if (portConfig != NULL) {
         device->serialPort = openSerialPort(portConfig->identifier, portID, NULL, 115200, MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (device->serialPort != NULL) {
             // send RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO to device to retrive
             // device info, e.g protocol version, supported features
-            if (runcamDeviceGetDeviceInfo(device, NULL, 0)) {
+            uint8_t respBuf[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
+            if (runcamDeviceGetDeviceInfo(device, respBuf)) {
+                device->info.protocolVersion = respBuf[1];
+
+                uint8_t featureLowBits = respBuf[2];
+                uint8_t featureHighBits = respBuf[3];
+                device->info.features = (featureHighBits << 8) | featureLowBits;
+
                 return true;
             }
 
             closeSerialPort(device->serialPort);
         }
-
-        portConfig = findNextSerialPortConfig(portID);
     }
 
     device->serialPort = NULL;
@@ -455,42 +342,35 @@ void runcamDeviceDispWriteChar(runcamDevice_t *device, uint8_t x, uint8_t y, uin
     runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_CHAR, paramsBuf, sizeof(paramsBuf));
 }
 
+static void runcamDeviceDispWriteString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text, bool isHorizontal)
+{
+    uint8_t textLen = strlen(text);
+    if (textLen > 60) { // if text len more then 60 chars, cut it to 60
+        textLen = 60;
+    }
+
+    uint8_t paramsBufLen = 3 + textLen;
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+
+    paramsBuf[0] = paramsBufLen - 1;
+    paramsBuf[1] = x;
+    paramsBuf[2] = y;
+    memcpy(paramsBuf + 3, text, textLen);
+
+    uint8_t command = isHorizontal ? RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_HORIZONTAL_STRING : RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_VERTICAL_STRING;
+    runcamDeviceSendPacket(device, command, paramsBuf, paramsBufLen);
+}
+
 // draw a string on special position on screen, this is used to DisplayPort
 // feature support
 void runcamDeviceDispWriteHorizontalString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text)
 {
-    uint8_t textLen = strlen(text);
-    if (textLen > 60) { // if text len more then 60 chars, cut it to 60
-        textLen = 60;
-    }
-
-    uint8_t paramsBufLen = 3 + textLen;
-    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
-
-    paramsBuf[0] = paramsBufLen - 1;
-    paramsBuf[1] = x;
-    paramsBuf[2] = y;
-    memcpy(paramsBuf + 3, text, textLen);
-
-    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_HORIZONTAL_STRING, paramsBuf, paramsBufLen);
+    runcamDeviceDispWriteString(device, x, y, text, true);
 }
 
 void runcamDeviceDispWriteVerticalString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text)
 {
-    uint8_t textLen = strlen(text);
-    if (textLen > 60) { // if text len more then 60 chars, cut it to 60
-        textLen = 60;
-    }
-
-    uint8_t paramsBufLen = 3 + textLen;
-    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
-
-    paramsBuf[0] = paramsBufLen - 1;
-    paramsBuf[1] = x;
-    paramsBuf[2] = y;
-    memcpy(paramsBuf + 3, text, textLen);
-
-    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_VERTICAL_STRING, paramsBuf, paramsBufLen);
+    runcamDeviceDispWriteString(device, x, y, text, false);
 }
 
 void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data, uint8_t datalen)
@@ -509,30 +389,30 @@ void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data, uint8_t d
     runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_CHARS, paramsBuf, paramsBufLen);
 }
 
-static bool runcamDeviceDecodeSettings(sbuf_t *buf, runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE])
+static bool runcamDeviceDecodeSettings(sbuf_t *buf, runcamDeviceSetting_t *outSettingList, int maxSettingItemCount)
 {
     if (outSettingList == NULL) {
         return false;
     }
 
+    if (maxSettingItemCount > RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE)
+        maxSettingItemCount = RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE;
+
     runcamDeviceSettingParseStep_e parseStep = RCDP_SETTING_PARSE_WAITING_ID;
-    memset(outSettingList, 0, RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE * sizeof(runcamDeviceSetting_t));
+    memset(outSettingList, 0, maxSettingItemCount * sizeof(runcamDeviceSetting_t));
     runcamDeviceSetting_t *settingIterator = outSettingList;
-    int i = 0;
     while (sbufBytesRemaining(buf) > 0) {
-        if (i >= RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE) {
+        if (settingIterator >= (outSettingList + maxSettingItemCount)) {
             break;
         }
 
         switch (parseStep) {
         case RCDP_SETTING_PARSE_WAITING_ID: {
-            uint8_t c = sbufReadU8(buf);
-            settingIterator->id = c;
+            settingIterator->id = sbufReadU8(buf);
             parseStep = RCDP_SETTING_PARSE_WAITING_NAME;
         } 
             break;
         case RCDP_SETTING_PARSE_WAITING_NAME: {
-            
             const char *str = (const char *)sbufConstPtr(buf);
             uint8_t nameLen = strlen(str) + 1;
             memset(settingIterator->name, 0, RCDEVICE_PROTOCOL_MAX_SETTING_NAME_LENGTH);
@@ -551,7 +431,6 @@ static bool runcamDeviceDecodeSettings(sbuf_t *buf, runcamDeviceSetting_t outSet
             parseStep = RCDP_SETTING_PARSE_WAITING_ID;
 
             settingIterator++;
-            i++;
         } 
             break;
         }
@@ -564,49 +443,45 @@ static bool runcamDeviceDecodeSettings(sbuf_t *buf, runcamDeviceSetting_t outSet
     return true;
 }
 
-// get settings with parent setting id, the type of parent setting must be a
-// FOLDER after this function called, the settings will fill into outSettingList
-// argument
-bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t outSettingList[RCDEVICE_PROTOCOL_MAX_MENUITEM_PER_PAGE])
+static bool runcamDeviceGetResponseWithMultipleChunk(runcamDevice_t *device, uint8_t command, uint8_t settingID, uint8_t *responseData, uint16_t *responseDatalen)
 {
-    uint8_t paramsBuf[2];
-    uint8_t chunkIndex = 0;
-
-    if (outSettingList == NULL) {
+    if (responseData == NULL || responseDatalen == NULL) {
         return false;
     }
 
     // fill parameters buf
-    paramsBuf[0] = parentSettingID; // parent setting id
-    paramsBuf[1] = chunkIndex;      // chunk index
+    uint8_t paramsBuf[2];
+    uint8_t chunkIndex = 0;
+    paramsBuf[0] = settingID; // parent setting id
+    paramsBuf[1] = chunkIndex; // chunk index
 
-    uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
-    bool result = runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS, paramsBuf, sizeof(paramsBuf), outputBuf, &outputBufLen);
+    uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_PACKET_SIZE;
+    uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
+    bool result = runcamDeviceSendRequestAndWaitingResp(device, command, paramsBuf, sizeof(paramsBuf), outputBuf, &outputBufLen);
     if (!result) {
         return false;
     }
 
-    uint8_t remainingChunk = outputBuf[0];
+    uint8_t remainingChunk = outputBuf[1];
     // Every response chunk count must less than or equal to RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE
-    if ((remainingChunk + 1) > RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE) {
+    if (remainingChunk >= RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE) {
         return false;
     }
 
     // save setting data to sbuf_t object
     const uint16_t maxDataLen = RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t data[maxDataLen];
+    // uint8_t data[maxDataLen];
     sbuf_t dataBuf;
-    dataBuf.ptr = data;
-    dataBuf.end = data + maxDataLen;
-    sbufWriteData(&dataBuf, outputBuf + 2, outputBufLen - 2);
+    dataBuf.ptr = responseData;
+    dataBuf.end = responseData + maxDataLen;
+    sbufWriteData(&dataBuf, outputBuf + 3, outputBufLen - 4);
 
     // get the remaining chunks
     while (remainingChunk > 0) {
         paramsBuf[1] = ++chunkIndex; // chunk index
 
-        outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-        result = runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS, paramsBuf, sizeof(paramsBuf), outputBuf, &outputBufLen);
+        outputBufLen = RCDEVICE_PROTOCOL_MAX_PACKET_SIZE;
+        result = runcamDeviceSendRequestAndWaitingResp(device, command, paramsBuf, sizeof(paramsBuf), outputBuf, &outputBufLen);
 
         if (!result) {
             return false;
@@ -614,15 +489,38 @@ bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, ru
 
         // append the trailing chunk to the sbuf_t object,
         // but only append the actually setting data
-        sbufWriteData(&dataBuf, outputBuf + 2, outputBufLen - 2);
+        sbufWriteData(&dataBuf, outputBuf + 3, outputBufLen - 4);
 
         remainingChunk--;
     }
 
-    // parse the settings data and convert them into a runcamDeviceSetting_t
-    // list
-    sbufSwitchToReader(&dataBuf, (uint8_t *)data);
-    if (!runcamDeviceDecodeSettings(&dataBuf, outSettingList)) {
+    sbufSwitchToReader(&dataBuf, responseData);
+    *responseDatalen = sbufBytesRemaining(&dataBuf);
+
+    return true;
+}
+
+// get settings with parent setting id, the type of parent setting must be a
+// FOLDER after this function called, the settings will fill into outSettingList
+// argument
+bool runcamDeviceGetSettings(runcamDevice_t *device, uint8_t parentSettingID, runcamDeviceSetting_t *outSettingList, int maxSettingItemCount)
+{
+    if (outSettingList == NULL) {
+        return false;
+    }
+
+    uint16_t responseDataLength = 0;
+    uint8_t data[RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE * RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+    if (!runcamDeviceGetResponseWithMultipleChunk(device, RCDEVICE_PROTOCOL_COMMAND_GET_SETTINGS, parentSettingID, data, &responseDataLength)) {
+        return false;
+    }
+
+    sbuf_t dataBuf;
+    dataBuf.ptr = data;
+    dataBuf.end = data + responseDataLength;
+
+    // parse the settings data and convert them into a runcamDeviceSetting_t list
+    if (!runcamDeviceDecodeSettings(&dataBuf, outSettingList, maxSettingItemCount)) {
         return false;
     }
     
@@ -637,7 +535,6 @@ static bool runcamDeviceDecodeSettingDetail(sbuf_t *buf, runcamDeviceSettingDeta
 
     rcdeviceSettingType_e settingType = sbufReadU8(buf);
     outSettingDetail->type = settingType;
-
     switch (settingType) {
     case RCDEVICE_PROTOCOL_SETTINGTYPE_UINT8:
     case RCDEVICE_PROTOCOL_SETTINGTYPE_INT8:
@@ -687,7 +584,6 @@ static bool runcamDeviceDecodeSettingDetail(sbuf_t *buf, runcamDeviceSettingDeta
         break;
     case RCDEVICE_PROTOCOL_SETTINGTYPE_STRING: {
         const char *tmp = (const char *)sbufConstPtr(buf);
-        // printf("tmp:%s, strlen(tmp):%lu\n", tmp, strlen(tmp));
         strncpy(outSettingDetail->stringValue, tmp, RCDEVICE_PROTOCOL_MAX_STRING_LENGTH);
         sbufAdvance(buf, strlen(tmp) + 1);
 
@@ -717,55 +613,17 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
     if (outSettingDetail == NULL)
         return false;
 
-
-    memset(outSettingDetail, 0, sizeof(runcamDeviceSettingDetail_t));
-    uint8_t paramsBuf[2];
-    uint8_t chunkIndex = 0;
-
-    // fill parameters buf
-    paramsBuf[0] = settingID;  // setting id
-    paramsBuf[1] = chunkIndex; // chunk index
-
-    uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
-    bool result = runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL, paramsBuf, sizeof(paramsBuf), outputBuf, &outputBufLen);
-    if (!result) {
+    uint16_t responseDataLength = 0;
+    uint8_t data[RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE * RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+    if (!runcamDeviceGetResponseWithMultipleChunk(device, RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL, settingID, data, &responseDataLength)) {
         return false;
     }
 
-    // save setting data to sbuf_t object
-    uint8_t remainingChunk = outputBuf[0];
-    if ((remainingChunk + 2) > RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE) {
-        return false;
-    }
-
-    const uint16_t maxDataLen = RCDEVICE_PROTOCOL_MAX_CHUNK_PER_RESPONSE * RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t data[maxDataLen];
     sbuf_t dataBuf;
-    memset(data, 0, maxDataLen);
     dataBuf.ptr = data;
-    dataBuf.end = data + maxDataLen;
-    sbufWriteData(&dataBuf, outputBuf + 2, outputBufLen - 2);
+    dataBuf.end = data + responseDataLength;
 
-    // get the remaining chunks
-    while (remainingChunk > 0) {
-        paramsBuf[1] = ++chunkIndex; // chunk index
-
-        outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-        result = runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL, paramsBuf, sizeof(paramsBuf), outputBuf, &outputBufLen);
-
-        if (!result) {
-            return false;
-        }
-        
-        // append the trailing chunk to the sbuf_t object
-        sbufWriteData(&dataBuf, outputBuf + 2, outputBufLen - 2);
-        remainingChunk--;
-    }
-
-    // parse the settings data and convert them into a runcamDeviceSetting_t
-    // list
-    sbufSwitchToReader(&dataBuf, (uint8_t *)data);
+    // parse the settings data and convert them into a runcamDeviceSettingDetail_t
     if (!runcamDeviceDecodeSettingDetail(&dataBuf, outSettingDetail)) {
         return false;
     }
@@ -788,15 +646,15 @@ bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t
     paramsBuf[0] = settingID;
     memcpy(paramsBuf + 1, paramData, paramDataLen);
 
-    uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_DATA_SIZE;
-    uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+    uint8_t outputBufLen = RCDEVICE_PROTOCOL_MAX_PACKET_SIZE;
+    uint8_t outputBuf[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
     bool result = runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING, paramsBuf, paramsBufLen, outputBuf, &outputBufLen);
     if (!result) {
         return false;
     }
 
-    response->resultCode = outputBuf[0];
-    response->needUpdateMenuItems = outputBuf[1];
+    response->resultCode = outputBuf[1];
+    response->needUpdateMenuItems = outputBuf[2];
 
     return true;
 }
