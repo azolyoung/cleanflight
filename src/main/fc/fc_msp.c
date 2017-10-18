@@ -806,10 +806,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_OSD_CONFIG:
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
         sbufWriteU8(dst, 1); // OSD supported
         // send video system (AUTO/PAL/NTSC)
-#ifdef USE_MAX7456
+#if defined(USE_MAX7456) || defined(USE_RCDEVICE)
         sbufWriteU8(dst, osdConfig()->video_system);
 #else
         sbufWriteU8(dst, 0);
@@ -1646,13 +1646,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
     case MSP_SET_OSD_CONFIG:
         {
             const uint8_t addr = sbufReadU8(src);
             // set all the other settings
             if ((int8_t)addr == -1) {
-#ifdef USE_MAX7456
+#if defined(USE_MAX7456) || defined(USE_RCDEVICE)
                 osdConfigMutable()->video_system = sbufReadU8(src);
 #else
                 sbufReadU8(src); // Skip video system

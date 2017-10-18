@@ -1303,7 +1303,10 @@ groups:
   - name: PG_OSD_CONFIG
     type: osdConfig_t
     headers: ["io/osd.h"]
-    condition: OSD
+    condition: 
+      - USE_RCDEVICE
+      - USE_MAX7456
+      - USE_MSP_DISPLAYPORT
     members:
       - name: osd_video_system
         field: video_system

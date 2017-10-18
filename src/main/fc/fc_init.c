@@ -95,6 +95,7 @@
 #include "io/dashboard.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_rcdevice.h"
 #include "io/flashfs.h"
 #include "io/gimbal.h"
 #include "io/gps.h"
@@ -533,29 +534,43 @@ void init(void)
 
     rxInit();
 
-#if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)))
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
     displayPort_t *osdDisplayPort = NULL;
-#endif
-
-#ifdef OSD
+    static vcdProfile_t vcdProfile;
     if (feature(FEATURE_OSD)) {
+        switch (osdConfig()->device) {
 #if defined(USE_MAX7456)
-        // If there is a max7456 chip for the OSD then use it
-        static vcdProfile_t vcdProfile;
-        vcdProfile.video_system = osdConfig()->video_system;
-        osdDisplayPort = max7456DisplayPortInit(&vcdProfile);
-#elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        osdDisplayPort = displayPortMspInit();
+        case OSD_DEVICE_MAX7456:
+            vcdProfile.video_system = osdConfig()->video_system;
+            osdDisplayPort = max7456DisplayPortInit(&vcdProfile);
+            break;
 #endif
-        // osdInit  will register with CMS by itself.
-        osdInit(osdDisplayPort);
-    }
+#if defined(USE_RCDEVICE)
+        case OSD_DEVICE_RUNCAM_DEVICE:
+            vcdProfile.video_system = osdConfig()->video_system;
+            osdDisplayPort = rcdeviceDisplayPortInit(&vcdProfile);
+            break;
 #endif
+#if defined(USE_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
+        case OSD_DEVICE_OSD_OVER_MSP:
+            osdDisplayPort = displayPortMspInit(); 
+            break;
+#endif
+        default:
+            break;
+        }
 
+        if (osdDisplayPort) {
+            // osdInit  will register with CMS by itself.
+            osdInit(osdDisplayPort);
+        } else {
 #if defined(USE_MSP_DISPLAYPORT) && defined(CMS)
-    // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
-    if (!osdDisplayPort) {
-        cmsDisplayPortRegister(displayPortMspInit());
+            // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
+            cmsDisplayPortRegister(displayPortMspInit());
+#else
+            featureClear(FEATURE_OSD);
+#endif
+        }
     }
 #endif
 

@@ -265,7 +265,7 @@ void taskAcc(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
 void taskUpdateOsd(timeUs_t currentTimeUs)
 {
     if (feature(FEATURE_OSD)) {
@@ -552,7 +552,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,

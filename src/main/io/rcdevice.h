@@ -44,6 +44,12 @@
 // device setting access
 #define RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL               0x11
 #define RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING                     0x13
+// display port support
+#define RCDEVICE_PROTOCOL_COMMAND_DISP_FILL_REGION                  0x20
+#define RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_CHAR                   0x21
+#define RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_HORIZONTAL_STRING      0x22
+#define RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_VERTICAL_STRING        0x23
+#define RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_CHARS                  0x24
 
 // Feature Flag sets, it's a uint16_t flag
 typedef enum {
@@ -52,6 +58,7 @@ typedef enum {
     RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE              = (1 << 2),
     RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE = (1 << 3),
     RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS   = (1 << 4),
+    RCDEVICE_PROTOCOL_FEATURE_DISPLAYP_PORT            = (1 << 5),
 } rcdevice_features_e;
 
 // Operation of Camera Button Simulation
@@ -198,3 +205,10 @@ bool runcamDeviceSimulate5KeyOSDCableButtonRelease(runcamDevice_t *device);
 // Device Setting Access
 bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail);
 bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t *response);
+
+// DisplayPort feature support
+void runcamDeviceDispFillRegion(runcamDevice_t *device, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t c);
+void runcamDeviceDispWriteChar(runcamDevice_t *device, uint8_t x, uint8_t y, uint8_t c);
+void runcamDeviceDispWriteHorizontalString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text);
+void runcamDeviceDispWriteVerticalString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text);
+void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data, uint8_t datalen);

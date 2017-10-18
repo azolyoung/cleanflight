@@ -496,4 +496,81 @@ bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t
     return true;
 }
 
+// fill a region with same char on screen, this is used to DisplayPort feature
+// support
+void runcamDeviceDispFillRegion(runcamDevice_t *device, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t c)
+{
+    uint8_t paramsBuf[5];
+
+    // fill parameters buf
+    paramsBuf[0] = x;
+    paramsBuf[1] = y;
+    paramsBuf[2] = width;
+    paramsBuf[3] = height;
+    paramsBuf[4] = c;
+
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_FILL_REGION, paramsBuf, sizeof(paramsBuf));
+}
+
+// draw a single char on special position on screen, this is used to DisplayPort
+// feature support
+void runcamDeviceDispWriteChar(runcamDevice_t *device, uint8_t x, uint8_t y, uint8_t c)
+{
+    uint8_t paramsBuf[3];
+
+    // fill parameters buf
+    paramsBuf[0] = x;
+    paramsBuf[1] = y;
+    paramsBuf[2] = c;
+
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_CHAR, paramsBuf, sizeof(paramsBuf));
+}
+
+static void runcamDeviceDispWriteString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text, bool isHorizontal)
+{
+    uint8_t textLen = strlen(text);
+    if (textLen > 60) { // if text len more then 60 chars, cut it to 60
+        textLen = 60;
+    }
+
+    uint8_t paramsBufLen = 3 + textLen;
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+
+    paramsBuf[0] = paramsBufLen - 1;
+    paramsBuf[1] = x;
+    paramsBuf[2] = y;
+    memcpy(paramsBuf + 3, text, textLen);
+
+    uint8_t command = isHorizontal ? RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_HORIZONTAL_STRING : RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_VERTICAL_STRING;
+    runcamDeviceSendPacket(device, command, paramsBuf, paramsBufLen);
+}
+
+// draw a string on special position on screen, this is used to DisplayPort
+// feature support
+void runcamDeviceDispWriteHorizontalString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text)
+{
+    runcamDeviceDispWriteString(device, x, y, text, true);
+}
+
+void runcamDeviceDispWriteVerticalString(runcamDevice_t *device, uint8_t x, uint8_t y, const char *text)
+{
+    runcamDeviceDispWriteString(device, x, y, text, false);
+}
+
+void runcamDeviceDispWriteChars(runcamDevice_t *device, uint8_t *data, uint8_t datalen)
+{
+    uint8_t adjustedDataLen = datalen;
+    if (adjustedDataLen > 60) { // if data len more then 60 chars, cut it to 60
+        adjustedDataLen = 60;
+    }
+
+    uint8_t paramsBufLen = adjustedDataLen + 1;
+    uint8_t paramsBuf[RCDEVICE_PROTOCOL_MAX_DATA_SIZE];
+
+    paramsBuf[0] = adjustedDataLen;
+    memcpy(paramsBuf + 1, data, adjustedDataLen);
+
+    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_DISP_WRITE_CHARS, paramsBuf, paramsBufLen);
+}
+
 #endif

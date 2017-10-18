@@ -83,6 +83,13 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
 
+typedef enum {
+    OSD_DEVICE_NONE,
+    OSD_DEVICE_MAX7456,
+    OSD_DEVICE_RUNCAM_DEVICE,
+    OSD_DEVICE_OSD_OVER_MSP,
+} osd_device_e;
+
 typedef struct osdConfig_s {
     uint16_t item_pos[OSD_ITEM_COUNT];
 
@@ -105,6 +112,8 @@ typedef struct osdConfig_s {
     uint8_t sidebar_scroll_arrows;
 
     osd_unit_e units;
+
+    osd_device_e device;
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

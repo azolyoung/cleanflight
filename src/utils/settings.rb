@@ -542,7 +542,13 @@ class Generator
     end
 
     def is_condition_enabled(cond)
-        return !cond || @true_conditions.include?(cond)
+        if cond.kind_of?(Array)
+            for c in cond do  
+                @true_conditions.include?(c)
+            end
+        else
+            return !cond || @true_conditions.include?(cond)
+        end
     end
 
     def foreach_enabled_member
@@ -660,11 +666,20 @@ class Generator
     def check_conditions
         buf = StringIO.new
         conditions = Set.new
-        add_condition = -> (c) {
-            if c && !conditions.include?(c)
-                conditions.add(c)
-                buf << "#ifdef #{c}\n"
-                buf << "#pragma message(#{c.inspect})\n"
+        add_condition = -> (cond) {
+            if cond.kind_of?(Array)
+                for c in cond do  
+                    if !conditions.include?(c)
+                        conditions.add(c)
+                        buf << "#ifdef #{c}\n"
+                        buf << "#pragma message(#{c.inspect})\n"
+                        buf << "#endif\n"
+                    end
+                end
+            elsif cond && !conditions.include?(cond)
+                conditions.add(cond)
+                buf << "#ifdef #{cond}\n"
+                buf << "#pragma message(#{cond.inspect})\n"
                 buf << "#endif\n"
             end
         }

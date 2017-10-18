@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(OSD) && defined(CMS)
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)) && defined(CMS)
 
 #include "common/utils.h"
 

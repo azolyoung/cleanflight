@@ -95,7 +95,7 @@ typedef enum {
 #ifdef STACK_CHECK
     TASK_STACK_CHECK,
 #endif
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
     TASK_OSD,
 #endif
 #ifdef CMS

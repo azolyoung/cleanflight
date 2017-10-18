@@ -133,7 +133,7 @@ static OSD_Entry menuMainEntries[] =
 
     {"PID TUNING",  OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
     {"FEATURES",    OME_Submenu,  cmsMenuChange, &menuFeatures, 0},
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
     {"SCR LAYOUT",  OME_Submenu,  cmsMenuChange, &cmsx_menuOsdLayout, 0},
     {"ALARMS",      OME_Submenu,  cmsMenuChange, &cmsx_menuAlarms, 0},
 #endif

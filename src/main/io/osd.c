@@ -30,7 +30,7 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
 
 #include "build/debug.h"
 #include "build/version.h"
@@ -1571,6 +1571,16 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->sidebar_scroll_arrows = 0;
 
     osdConfig->units = OSD_UNIT_METRIC;
+
+#if defined(USE_MAX7456)
+    osdConfig->device = OSD_DEVICE_MAX7456;
+#elif defined(OSD_DEVICE_OSD_OVER_MSP) 
+    osdConfig->device = OSD_DEVICE_OSD_OVER_MSP;
+#elif defined(USE_RCDEVICE)
+    osdConfig->device = OSD_DEVICE_RUNCAM_DEVICE;
+#else
+    osdConfig->device = OSD_DEVICE_NONE;
+#endif
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)

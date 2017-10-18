@@ -622,8 +622,6 @@ COMMON_SRC = \
             io/serial_4way_avrootloader.c \
             io/serial_4way_stk500v2.c \
             io/statusindicator.c \
-            io/rcdevice.c \
-            io/rcdevice_cam.c \
             msp/msp_serial.c \
             rx/ibus.c \
             rx/jetiexbus.c \
@@ -711,7 +709,11 @@ HIGHEND_SRC = \
             io/vtx_string.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \
-            io/vtx_control.c
+            io/vtx_control.c \
+            io/rcdevice.c \
+            io/rcdevice_cam.c \
+            io/rcdevice_osd.c \
+            io/displayport_rcdevice.c
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 VCP_SRC = \
