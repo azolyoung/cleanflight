@@ -17,8 +17,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
+
+#include "platform.h"
 
 #include "drivers/vcd.h"
+
+#include "common/utils.h"
 
 #include "rcdevice.h"
 #include "rcdevice_osd.h"
@@ -157,7 +162,7 @@ int rcdeviceOSDDrawScreen(displayPort_t *displayPort)
     return 0;
 }
 
-int rcdeviceOSDWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *text, textAttributes_t attr);
+int rcdeviceOSDWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *text, textAttributes_t attr)
 {
     UNUSED(displayPort);
     UNUSED(attr);

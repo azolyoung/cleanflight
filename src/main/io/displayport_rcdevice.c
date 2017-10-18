@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "drivers/display.h"
 #include "drivers/vcd.h"
 
@@ -26,6 +28,8 @@
 #include "io/rcdevice_osd.h"
 
 #include "io/displayport_rcdevice.h"
+
+
 
 #ifdef USE_RCDEVICE
 

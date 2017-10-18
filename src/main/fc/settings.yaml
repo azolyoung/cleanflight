@@ -81,6 +81,9 @@ tables:
   - name: nav_rth_allow_landing
     values: ["NEVER", "ALWAYS", "FS_ONLY"]
     enum: navRTHAllowLanding_e
+  - name: osd_device
+    values: ["NONE", "MAX7456", "RUNCAM_DEVICE", "OSD_OVER_MSP"]
+    enum: osd_device_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1485,6 +1488,11 @@ groups:
       - name: osd_efficiency_pos
         field: item_pos[OSD_EFFICIENCY]
         max: OSD_POS_MAX_CLI
+
+      - name: osd_device
+        field: device
+        table: osd_device
+        type: uint8_t
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
