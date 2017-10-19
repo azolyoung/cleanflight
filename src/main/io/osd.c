@@ -82,7 +82,8 @@
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
-
+#include "fc/config.h"
+#include "config/feature.h"
 #define VIDEO_BUFFER_CHARS_PAL    480
 
 // Character coordinate and attributes
@@ -1831,7 +1832,7 @@ void osdUpdate(timeUs_t currentTimeUs)
     if ((counter % STATS_FREQ_DENOM) == 0) {
         osdUpdateStats();
     }
-
+    featureClear(FEATURE_TELEMETRY);
     if ((counter & DRAW_FREQ_DENOM) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);

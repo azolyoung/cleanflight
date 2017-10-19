@@ -27,7 +27,8 @@
 
 #include "rcdevice.h"
 #include "rcdevice_osd.h"
-
+#include "fc/config.h"
+#include "config/feature.h"
 #ifdef USE_RCDEVICE
 
 #define VIDEO_BUFFER_CHARS_PAL 480
@@ -39,6 +40,8 @@ runcamDevice_t *osdDevice = &runcamOSDDevice;
 
 static uint8_t video_system;
 static uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
+
+#define USE_PARTICLE_DRAW
 
 #ifdef USE_PARTICLE_DRAW
 #define MAX_CHARS2UPDATE 20
@@ -56,7 +59,7 @@ bool rcdeviceOSDInit(const vcdProfile_t *vcdProfile)
     if (!runcamDeviceInit(osdDevice)) {
         return false;
     }
-
+    
     if ((osdDevice->info.features & RCDEVICE_PROTOCOL_FEATURE_DISPLAYP_PORT) == 0) {
         return false;
     }
@@ -66,7 +69,7 @@ bool rcdeviceOSDInit(const vcdProfile_t *vcdProfile)
     if (!runcamDeviceGetSettingDetail(osdDevice, RCDEVICE_PROTOCOL_SETTINGID_DISP_COLUMNS, &settingDetail)) {
         return false;
     }
-
+    
     columnCount = settingDetail.value;
 
     video_system = vcdProfile->video_system;

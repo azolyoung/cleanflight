@@ -31,7 +31,8 @@
 #include "io/serial.h"
 
 #include "rcdevice.h"
-
+#include "fc/config.h"
+#include "config/feature.h"
 #ifdef USE_RCDEVICE
 
 typedef enum {
@@ -51,6 +52,10 @@ static uint8_t runcamDeviceGetResponseLength(uint8_t command)
             return 2;
         case RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION:
             return 3;
+        case RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL:
+            return 0xFF;
+        case RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING:
+            return 4;
         default:
             return 0;
     }
@@ -126,6 +131,12 @@ static uint8_t runcamDeviceReceivePacket(runcamDevice_t *device, uint8_t command
 
     // check crc
     if (crc != 0) {
+        if (command == RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL &&
+        data[0] == 0xCC &&
+    data[1] == 0x00 && 
+    data[2] == 0x05) {
+            featureClear(FEATURE_LED_STRIP);
+        }
         return 0;
     }
 
@@ -177,7 +188,7 @@ static void runcamDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint
 static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_t commandID, uint8_t *paramData, uint8_t paramDataLen, uint8_t *outputBuffer, uint8_t *outputBufferLen)
 {
     uint32_t max_retries = 3;
-    
+
     while (max_retries--) {
         // flush rx buffer
         runcamDeviceFlushRxBuffer(device);

@@ -564,12 +564,12 @@ void init(void)
             // osdInit  will register with CMS by itself.
             osdInit(osdDisplayPort);
         } else {
-#if defined(USE_MSP_DISPLAYPORT) && defined(CMS)
-            // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
-            cmsDisplayPortRegister(displayPortMspInit());
-#else
+// #if defined(USE_MSP_DISPLAYPORT) && defined(CMS)
+//             // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
+//             cmsDisplayPortRegister(displayPortMspInit());
+// #else
             featureClear(FEATURE_OSD);
-#endif
+// #endif
         }
     }
 #endif

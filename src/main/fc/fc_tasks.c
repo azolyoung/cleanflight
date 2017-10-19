@@ -353,7 +353,7 @@ void fcTasksInit(void)
 #ifdef USE_PMW_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
-#ifdef OSD
+#if (defined(USE_MAX7456) || defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT))
     setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
 #endif
 #ifdef CMS
