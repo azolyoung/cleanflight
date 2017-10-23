@@ -3013,7 +3013,7 @@ static void cliStatus(char *cmdline)
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
     cliPrintLinef("CPU:%d%%, cycle time: %d, GYRO rate: %d, RX rate: %d, System rate: %d",
             constrain(averageSystemLoadPercent, 0, 100), getTaskDeltaTime(TASK_GYROPID), gyroRate, rxRate, systemRate);
-#if defined(OSD) || !defined(MINIMAL_CLI)
+#if (defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)) || !defined(MINIMAL_CLI)
     /* Flag strings are present if OSD is compiled so may as well use them even with MINIMAL_CLI */
     cliPrint("Arming disable flags:");
     uint16_t flags = getArmingDisableFlags();

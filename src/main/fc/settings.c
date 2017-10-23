@@ -207,7 +207,7 @@ static const char * const lookupTableGyroLpf[] = {
     "EXPERIMENTAL"
 };
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
 static const char * const lookupTableOsdType[] = {
     "AUTO",
     "PAL",
@@ -299,7 +299,7 @@ const lookupTableEntry_t lookupTables[] = {
     { lookupTableLowpassType, sizeof(lookupTableLowpassType) / sizeof(char *) },
     { lookupTableFailsafe, sizeof(lookupTableFailsafe) / sizeof(char *) },
     { lookupTableCrashRecovery, sizeof(lookupTableCrashRecovery) / sizeof(char *) },
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     { lookupTableOsdType, sizeof(lookupTableOsdType) / sizeof(char *) },
 #endif
 #ifdef USE_CAMERA_CONTROL
@@ -666,7 +666,7 @@ const clivalue_t valueTable[] = {
 #endif
 
 // PG_OSD_CONFIG
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     { "osd_units",                  VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_UNIT }, PG_OSD_CONFIG, offsetof(osdConfig_t, units) },
 
     { "osd_rssi_alarm",             VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0, 100 }, PG_OSD_CONFIG, offsetof(osdConfig_t, rssi_alarm) },

@@ -17,7 +17,7 @@
 
 #pragma once
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
 #include "common/time.h"
 #include "config/parameter_group.h"
 

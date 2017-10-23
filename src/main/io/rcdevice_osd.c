@@ -35,6 +35,8 @@ runcamDevice_t *osdDevice = &runcamOSDDevice;
 static uint8_t video_system;
 static uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
+#define USE_PARTICLE_DRAW
+
 #ifdef USE_PARTICLE_DRAW
 #define MAX_CHARS2UPDATE 20
 static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL + 40]; // For faster writes

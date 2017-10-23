@@ -31,7 +31,7 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
 
 #include "blackbox/blackbox.h"
 #include "blackbox/blackbox_io.h"

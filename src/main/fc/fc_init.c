@@ -562,31 +562,37 @@ void init(void)
     //The OSD need to be initialised after GYRO to avoid GYRO initialisation failure on some targets
 
     if (feature(FEATURE_OSD)) {
-#if defined(USE_MAX7456)
-        // If there is a max7456 chip for the OSD then use it
-        osdDisplayPort = max7456DisplayPortInit(vcdProfile());
-#elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        osdDisplayPort = displayPortMspInit();
-#endif
+// #if defined(USE_MAX7456)
+//         // If there is a max7456 chip for the OSD then use it
+//         osdDisplayPort = max7456DisplayPortInit(vcdProfile());
+// #elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
+//         osdDisplayPort = displayPortMspInit();
+// #endif
+        osdDisplayPort = rcdeviceDisplayPortInit(vcdProfile());
         // osdInit  will register with CMS by itself.
-        osdInit(osdDisplayPort);
+        if (osdDisplayPort) {
+            osdInit(osdDisplayPort);
+        } else {
+            featureClear(FEATURE_OSD);
+        }
+        
     }
 #endif
 
-#if defined(USE_OSD_SLAVE) && !defined(OSD)
-#if defined(USE_MAX7456)
-    // If there is a max7456 chip for the OSD then use it
-    osdDisplayPort = max7456DisplayPortInit(vcdProfile());
-    // osdInit  will register with CMS by itself.
-    osdSlaveInit(osdDisplayPort);
-#endif
-#endif
+// #if defined(USE_OSD_SLAVE) && !defined(OSD)
+// #if defined(USE_MAX7456)
+//     // If there is a max7456 chip for the OSD then use it
+//     osdDisplayPort = max7456DisplayPortInit(vcdProfile());
+//     // osdInit  will register with CMS by itself.
+//     osdSlaveInit(osdDisplayPort);
+// #endif
+// #endif
 
-#if defined(CMS) && defined(USE_MSP_DISPLAYPORT)
-    // If BFOSD is not active, then register MSP_DISPLAYPORT as a CMS device.
-    if (!osdDisplayPort)
-        cmsDisplayPortRegister(displayPortMspInit());
-#endif
+// #if defined(CMS) && defined(USE_MSP_DISPLAYPORT)
+//     // If BFOSD is not active, then register MSP_DISPLAYPORT as a CMS device.
+//     if (!osdDisplayPort)
+//         cmsDisplayPortRegister(displayPortMspInit());
+// #endif
 
 #ifdef USE_DASHBOARD
     // Dashbord will register with CMS by itself.

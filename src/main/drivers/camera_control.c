@@ -56,7 +56,7 @@
 #define CAMERA_CONTROL_PIN NONE
 #endif
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
 #include "io/osd.h"
 #endif
 
@@ -193,7 +193,7 @@ void cameraControlKeyPress(cameraControlKey_e key, uint32_t holdDurationMs)
     (void) holdDurationMs;
 #endif
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     // Force OSD timeout so we are alone on the display.
     resumeRefreshAt = 0;
 #endif

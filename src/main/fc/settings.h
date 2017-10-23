@@ -61,7 +61,7 @@ typedef enum {
     TABLE_LOWPASS_TYPE,
     TABLE_FAILSAFE,
     TABLE_CRASH_RECOVERY,
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     TABLE_OSD,
 #endif
 #ifdef USE_CAMERA_CONTROL

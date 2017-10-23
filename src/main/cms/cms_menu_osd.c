@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#if defined(OSD) && defined(CMS)
+#if (defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)) && defined(CMS)
 
 #include "build/version.h"
 

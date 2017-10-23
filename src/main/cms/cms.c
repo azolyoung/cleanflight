@@ -317,7 +317,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
         }
         break;
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     case OME_VISIBLE:
         if (IS_PRINTVALUE(p) && p->data) {
             uint16_t *val = (uint16_t *)p->data;
@@ -756,7 +756,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             }
             break;
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
         case OME_VISIBLE:
             if (p->data) {
                 uint16_t *val = (uint16_t *)p->data;

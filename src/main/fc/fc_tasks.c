@@ -317,7 +317,7 @@ void fcTasksInit(void)
 #ifdef TRANSPONDER
     setTaskEnabled(TASK_TRANSPONDER, feature(FEATURE_TRANSPONDER));
 #endif
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
 #endif
 #ifdef USE_BST
@@ -517,7 +517,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef OSD
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = osdUpdate,

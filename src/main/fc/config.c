@@ -465,7 +465,7 @@ void validateAndFixConfig(void)
     featureClear(FEATURE_DASHBOARD);
 #endif
 
-#ifndef OSD
+#if !defined(USE_RCDEVICE) && !defined(USE_MSP_DISPLAYPORT) && !defined(USE_MAX7456)
     featureClear(FEATURE_OSD);
 #endif
 

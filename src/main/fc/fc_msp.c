@@ -616,7 +616,7 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
 #define OSD_FLAGS_OSD_HARDWARE_MAX_7456 (1 << 4)
 
         uint8_t osdFlags = 0;
-#if defined(OSD)
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)
         osdFlags |= OSD_FLAGS_OSD_FEATURE;
 #endif
 #if defined(USE_OSD_SLAVE)
@@ -2022,7 +2022,7 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #else
                 sbufReadU8(src); // Skip video system
 #endif
-#if defined(OSD)
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
                 osdConfigMutable()->units = sbufReadU8(src);
 
                 // Alarms
@@ -2032,7 +2032,7 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->alt_alarm = sbufReadU16(src);
 #endif
             } else if ((int8_t)addr == -2) {
-#if defined(OSD)
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
                 // Timers
                 uint8_t index = sbufReadU8(src);
                 if (index > OSD_TIMER_COUNT) {
@@ -2042,7 +2042,7 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #endif
                 return MSP_RESULT_ERROR;
             } else {
-#if defined(OSD)
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT) || defined(USE_MAX7456)
                 const uint16_t value = sbufReadU16(src);
 
                 /* Get screen index, 0 is post flight statistics, 1 and above are in flight OSD screens */
