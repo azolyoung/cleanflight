@@ -97,34 +97,39 @@ static uint8_t runcamDeviceReceivePacket(runcamDevice_t *device, uint8_t command
     while (millis() < timeout) {
         if (serialRxBytesWaiting(device->serialPort) > 0) {
             uint8_t c = serialRead(device->serialPort);
-            crc = crc8_dvb_s2(crc, c);
+            if (isWaitingHeader) {
+                if (c == RCDEVICE_PROTOCOL_HEADER) {
+                    isWaitingHeader = false;
+                } else {
+                    continue;
+                }
+            } 
 
             if (data) {
                 data[dataPos] = c;
             }
             dataPos++;
 
-            if (isWaitingHeader) {
-                if (c == RCDEVICE_PROTOCOL_HEADER) {
-                    isWaitingHeader = false;
-                }
+            bool isDone = false;
+            if (!runcamDeviceIsResponseReceiveDone(command, data, dataPos, &isDone)) {
+                return 0;
+            }
+
+            if (isDone) {
+                responseDataLen = dataPos;
+                break;
             } else {
-                bool isDone = false;
-                if (!runcamDeviceIsResponseReceiveDone(command, data, dataPos, &isDone)) {
-                    return 0;
-                }
-    
-                if (isDone) {
-                    responseDataLen = dataPos;
-                    break;
-                }
+                crc = crc8_dvb_s2(crc, c);
             }
         }
     }
 
     // check crc
-    if (crc != 0) {
-        return 0;
+    if (responseDataLen > 0) {
+        uint8_t crcFromReceived = data[responseDataLen - 1];
+        if (crc != crcFromReceived) {
+            return 0;
+        }
     }
 
     return responseDataLen;
