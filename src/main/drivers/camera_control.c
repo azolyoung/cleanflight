@@ -77,6 +77,9 @@ static struct {
     uint32_t period;
 } cameraControlRuntime;
 
+static IO_t uart1RXPin = NULL;
+static timerChannel_t aztestchannel;
+
 static uint32_t endTimeMillis;
 
 #ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
@@ -121,7 +124,7 @@ void cameraControlInit(void)
 
         cameraControlRuntime.period = CAMERA_CONTROL_PWM_RESOLUTION;
         *cameraControlRuntime.channel.ccr = cameraControlRuntime.period;
-        cameraControlRuntime.enabled = true;
+        // cameraControlRuntime.enabled = true;
 #endif
     } else if (CAMERA_CONTROL_MODE_SOFTWARE_PWM == cameraControlConfig()->mode) {
 #ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
@@ -151,6 +154,28 @@ void cameraControlInit(void)
 
 void cameraControlProcess(uint32_t currentTimeUs)
 {
+    
+    if (uart1RXPin == NULL) {
+        uart1RXPin = IOGetByTag(cameraControlConfig()->ioTag2); // cameraControlConfig->iosTag2 was bind with OWNER_AZOL_TEST in cli.c
+        IOInit(uart1RXPin, OWNER_AZOL_TEST, 0);
+
+        const timerHardware_t *timerHardware = timerGetByTag(cameraControlConfig()->ioTag2, TIM_USE_ANY);
+        
+        if (!timerHardware) {
+            return;
+        }
+
+        #ifdef STM32F1
+            IOConfigGPIO(uart1RXPin, IOCFG_AF_PP);
+        #else
+            IOConfigGPIOAF(uart1RXPin, IOCFG_AF_PP, timerHardware->alternateFunction);
+        #endif
+
+        pwmOutConfig(&aztestchannel, timerHardware, CAMERA_CONTROL_TIMER_HZ, CAMERA_CONTROL_PWM_RESOLUTION, 0, 0);
+        *aztestchannel.ccr = CAMERA_CONTROL_PWM_RESOLUTION;
+    }
+    IOLo(uart1RXPin);
+
     if (endTimeMillis && currentTimeUs >= 1000 * endTimeMillis) {
         if (CAMERA_CONTROL_MODE_HARDWARE_PWM == cameraControlConfig()->mode) {
             *cameraControlRuntime.channel.ccr = cameraControlRuntime.period;
@@ -181,6 +206,7 @@ static float calculatePWMDutyCycle(const cameraControlKey_e key)
 
 void cameraControlKeyPress(cameraControlKey_e key, uint32_t holdDurationMs)
 {
+    return ;
     if (!cameraControlRuntime.enabled)
         return;
 

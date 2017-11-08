@@ -67,6 +67,7 @@ typedef enum {
     OWNER_RX_BIND_PLUG,
     OWNER_ESCSERIAL,
     OWNER_CAMERA_CONTROL,
+    OWNER_AZOL_TEST,
     OWNER_TOTAL_COUNT
 } resourceOwner_e;
 
