@@ -165,11 +165,11 @@ void cameraControlProcess(uint32_t currentTimeUs)
             return;
         }
 
-        #ifdef STM32F1
-            IOConfigGPIO(uart1RXPin, IOCFG_AF_PP);
-        #else
-            IOConfigGPIOAF(uart1RXPin, IOCFG_AF_PP, timerHardware->alternateFunction);
-        #endif
+        // #ifdef STM32F1
+            IOConfigGPIO(uart1RXPin, IOCFG_OUT_PP);
+        // #else
+            // IOConfigGPIOAF(uart1RXPin, IOCFG_AF_PP, timerHardware->alternateFunction);
+        // #endif
 
         pwmOutConfig(&aztestchannel, timerHardware, CAMERA_CONTROL_TIMER_HZ, CAMERA_CONTROL_PWM_RESOLUTION, 0, 0);
         *aztestchannel.ccr = CAMERA_CONTROL_PWM_RESOLUTION;
