@@ -77,8 +77,10 @@ static struct {
     uint32_t period;
 } cameraControlRuntime;
 
-static IO_t uart1RXPin = NULL;
-static timerChannel_t aztestchannel;
+static IO_t lowLevelPin = NULL;
+static IO_t highVoltagePin = NULL;
+static timerChannel_t lowLevelChannel;
+static timerChannel_t highVoltageChannel;
 
 static uint32_t endTimeMillis;
 
@@ -155,26 +157,44 @@ void cameraControlInit(void)
 void cameraControlProcess(uint32_t currentTimeUs)
 {
     
-    if (uart1RXPin == NULL) {
-        uart1RXPin = IOGetByTag(cameraControlConfig()->ioTag2); // cameraControlConfig->iosTag2 was bind with OWNER_AZOL_TEST in cli.c
-        IOInit(uart1RXPin, OWNER_AZOL_TEST, 0);
+    if (lowLevelPin == NULL) {
+        lowLevelPin = IOGetByTag(cameraControlConfig()->lowLevelPin); 
+        IOInit(lowLevelPin, OWNER_AZOL_LOW_LEVEL_PIN, 0);
 
-        const timerHardware_t *timerHardware = timerGetByTag(cameraControlConfig()->ioTag2, TIM_USE_ANY);
+        const timerHardware_t *timerHardware = timerGetByTag(cameraControlConfig()->lowLevelPin, TIM_USE_ANY);
         
-        if (!timerHardware) {
-            return;
-        }
+        if (timerHardware) {
+        
 
         // #ifdef STM32F1
-            IOConfigGPIO(uart1RXPin, IOCFG_OUT_PP);
+            IOConfigGPIO(lowLevelPin, IOCFG_OUT_PP);
         // #else
-            // IOConfigGPIOAF(uart1RXPin, IOCFG_AF_PP, timerHardware->alternateFunction);
+            // IOConfigGPIOAF(lowLevelPin, IOCFG_AF_PP, timerHardware->alternateFunction);
         // #endif
 
-        pwmOutConfig(&aztestchannel, timerHardware, CAMERA_CONTROL_TIMER_HZ, CAMERA_CONTROL_PWM_RESOLUTION, 0, 0);
-        *aztestchannel.ccr = CAMERA_CONTROL_PWM_RESOLUTION;
+            pwmOutConfig(&lowLevelChannel, timerHardware, CAMERA_CONTROL_TIMER_HZ, CAMERA_CONTROL_PWM_RESOLUTION, 0, 0);
+            *lowLevelChannel.ccr = CAMERA_CONTROL_PWM_RESOLUTION;
+        }
     }
-    IOLo(uart1RXPin);
+
+    if (lowLevelPin)
+        IOLo(lowLevelPin);
+
+    if (highVoltagePin == NULL) {
+        highVoltagePin = IOGetByTag(cameraControlConfig()->highVoltagePin); 
+        IOInit(highVoltagePin, OWNER_AZOL_3_3_V_PIN, 0);
+
+        const timerHardware_t *timerHardware = timerGetByTag(cameraControlConfig()->highVoltagePin, TIM_USE_ANY);
+        
+        if (timerHardware) {
+            IOConfigGPIO(highVoltagePin, IOCFG_OUT_PP);
+            pwmOutConfig(&highVoltageChannel, timerHardware, CAMERA_CONTROL_TIMER_HZ, CAMERA_CONTROL_PWM_RESOLUTION, 0, 0);
+            *highVoltageChannel.ccr = CAMERA_CONTROL_PWM_RESOLUTION;
+        }
+    }
+    if (highVoltagePin)
+        IOHi(highVoltagePin);
+    
 
     if (endTimeMillis && currentTimeUs >= 1000 * endTimeMillis) {
         if (CAMERA_CONTROL_MODE_HARDWARE_PWM == cameraControlConfig()->mode) {

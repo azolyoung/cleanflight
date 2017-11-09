@@ -67,5 +67,6 @@ const char * const ownerNames[OWNER_TOTAL_COUNT] = {
     "RX_BIND_PLUG",
     "ESCSERIAL",
     "CAMERA_CONTROL",
-    "AZ_TEST_PIN"
+    "AZOL_LOW_LEVEL_PIN",
+    "AZOL_3_3_V_PIN",
 };
