@@ -1263,6 +1263,10 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
                 osdDrawSingleElement(osdCurrentElementIndex);
                 
                 osdCurrentElementIndex = osdIncElementIndex(osdCurrentElementIndex);
+
+// #ifdef USE_PARTICLE_DRAW
+                    displayDrawScreen(osdDisplayPort);
+// #endif
             }
 
             displayHeartbeat(osdDisplayPort);
