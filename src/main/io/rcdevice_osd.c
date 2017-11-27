@@ -38,7 +38,7 @@ static uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 #define USE_PARTICLE_DRAW
 
 #ifdef USE_PARTICLE_DRAW
-#define MAX_CHARS2UPDATE 20
+#define MAX_CHARS2UPDATE 4
 static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL + 40]; // For faster writes
                                                           // we use memcpy so we
                                                           // need some space to
@@ -151,6 +151,7 @@ int rcdeviceOSDDrawScreen(displayPort_t *displayPort)
                 break;
             }
         }
+        
         runcamDeviceDispWriteChars(osdDevice, data, dataLen);
 
         rcdeviceOSDLock = false;

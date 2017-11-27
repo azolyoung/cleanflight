@@ -1240,6 +1240,7 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
             }
 
             displayHeartbeat(osdDisplayPort);
+            displayDrawScreen(osdDisplayPort);
             return;
         } else {
             displayClearScreen(osdDisplayPort);
