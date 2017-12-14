@@ -1,0 +1,11 @@
+<html>
+
+<body>
+    <script type="text/javascript>
+       var aaa = [];
+       aaa.push(1);
+       aaa.push(3);
+       alert(aaa)
+    </script>
+</body>
+</html>

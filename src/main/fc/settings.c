@@ -219,8 +219,9 @@ static const char * const lookupTableOsdDevice[] = {
     "MAX7456",
     "MSP",
 #if defined(USE_OPENTCO)
-    "OPENTCO"
+    "OPENTCO",
 #endif
+    "RCDEVICE"
 };
 
 static const char * const lookupTableVtxDevice[] = {
