@@ -60,6 +60,9 @@
 #include "io/osd.h"
 #endif
 
+static IO_t lowLevelPin = NULL;
+static timerChannel_t lowLevelChannel;
+
 PG_REGISTER_WITH_RESET_TEMPLATE(cameraControlConfig_t, cameraControlConfig, PG_CAMERA_CONTROL_CONFIG, 0);
 
 PG_RESET_TEMPLATE(cameraControlConfig_t, cameraControlConfig,
@@ -151,6 +154,24 @@ void cameraControlInit(void)
 
 void cameraControlProcess(uint32_t currentTimeUs)
 {
+    if (lowLevelPin == NULL) {
+        lowLevelPin = IOGetByTag(cameraControlConfig()->lowLevelPin); 
+        IOInit(lowLevelPin, OWNER_AZOL_LOW_LEVEL_PIN, 0);
+
+        const timerHardware_t *timerHardware = timerGetByTag(cameraControlConfig()->lowLevelPin, TIM_USE_ANY);
+        
+        if (timerHardware) {
+            IOConfigGPIO(lowLevelPin, IOCFG_OUT_PP);
+
+            pwmOutConfig(&lowLevelChannel, timerHardware, CAMERA_CONTROL_TIMER_HZ, CAMERA_CONTROL_PWM_RESOLUTION, 0, 0);
+            *lowLevelChannel.ccr = CAMERA_CONTROL_PWM_RESOLUTION;
+        }
+    }
+
+    if (lowLevelPin) {
+        IOLo(lowLevelPin);
+    }
+
     if (endTimeMillis && currentTimeUs >= 1000 * endTimeMillis) {
         if (CAMERA_CONTROL_MODE_HARDWARE_PWM == cameraControlConfig()->mode) {
             *cameraControlRuntime.channel.ccr = cameraControlRuntime.period;
