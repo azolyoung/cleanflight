@@ -89,26 +89,7 @@ void serialSetMode(serialPort_t *instance, portMode_e mode)
 
 void serialWriteBufShim(void *instance, const uint8_t *data, int count)
 {
-    int remainingBytes = count;
-    int packetSize = 0;
-    while (remainingBytes > 0) {
-        if (remainingBytes > 40) {
-            packetSize = 40;
-            serialWriteBuf((serialPort_t *)instance, data + (count - remainingBytes), packetSize);
-        } else {
-            packetSize = remainingBytes;
-            serialWriteBuf((serialPort_t *)instance, data + (count - remainingBytes), packetSize);
-        }
-
-        // sleep 10 ms
-        timeMs_t timeout = millis() + 10;
-        while (millis() < timeout) {
-
-        }
-
-        remainingBytes -= packetSize;
-    }
-    
+    serialWriteBuf((serialPort_t *)instance, data, count);
 }
 
 void serialWriteBufShimForBLEModule(void *instance, const uint8_t *data, int count)

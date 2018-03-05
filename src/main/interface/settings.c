@@ -51,6 +51,7 @@
 #include "flight/servos.h"
 
 #include "interface/settings.h"
+#include "interface/cli.h"
 
 #include "io/beeper.h"
 #include "io/dashboard.h"
@@ -901,7 +902,7 @@ const clivalue_t valueTable[] = {
 #endif
 
 // Low Speed CLI 
-    { "low_speed_cli_transfer", VAR_UINT8 | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_CLI_CONFIG, offsetof(motorConfig_t, dev.useBurstDshot) },}
+    { "low_speed_cli_transfer", VAR_UINT8 | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_CLI_CONFIG, offsetof(cliConfig_t, isEnabledLowSpeedTransfer) },
 };
 
 const uint16_t valueTableEntryCount = ARRAYLEN(valueTable);

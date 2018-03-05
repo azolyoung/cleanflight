@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include "drivers/io_types.h"
+#include "pg/pg.h"
+
 typedef struct cliConfig_s {
     uint8_t isEnabledLowSpeedTransfer;
 } cliConfig_t;
