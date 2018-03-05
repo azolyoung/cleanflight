@@ -92,8 +92,8 @@ void serialWriteBufShim(void *instance, const uint8_t *data, int count)
     int remainingBytes = count;
     int packetSize = 0;
     while (remainingBytes > 0) {
-        if (remainingBytes > 20) {
-            packetSize = 20;
+        if (remainingBytes > 40) {
+            packetSize = 40;
             serialWriteBuf((serialPort_t *)instance, data + (count - remainingBytes), packetSize);
         } else {
             packetSize = remainingBytes;
