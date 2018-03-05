@@ -21,12 +21,11 @@
 #define USBD_PRODUCT_STRING  "SpeedyBeeF4"
 
 #define LED0_PIN                PB9
-// #define LED1_PIN                PA14
 
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-#define USE_DSHOT_DMAR
+#define ENABLE_DSHOT_DMAR       true
 
 // *************** Gyro & ACC **********************
 #define USE_SPI
@@ -144,4 +143,4 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define USABLE_TIMER_CHANNEL_COUNT 12
-#define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(3)|TIM_N(4)|TIM_N(5)|TIM_N(8)|TIM_N(9))
+#define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(4)|TIM_N(5)|TIM_N(8)|TIM_N(9))
