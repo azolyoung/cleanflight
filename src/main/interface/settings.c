@@ -899,6 +899,9 @@ const clivalue_t valueTable[] = {
     { "pinio_box", VAR_UINT8 | MASTER_VALUE | MODE_ARRAY, .config.array.length = PINIO_COUNT, PG_PINIOBOX_CONFIG, offsetof(pinioBoxConfig_t, permanentId) },
 #endif
 #endif
+
+// Low Speed CLI 
+    { "low_speed_cli_transfer", VAR_UINT8 | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_CLI_CONFIG, offsetof(motorConfig_t, dev.useBurstDshot) },}
 };
 
 const uint16_t valueTableEntryCount = ARRAYLEN(valueTable);
