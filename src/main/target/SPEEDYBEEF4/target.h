@@ -19,11 +19,12 @@
 
 #define TARGET_BOARD_IDENTIFIER "SBF4"
 #define USBD_PRODUCT_STRING  "SpeedyBeeF4"
+#define USE_TARGET_CONFIG
 
 #define LED0_PIN                PB9
 
 #define BEEPER                  PC13
-#define BEEPER_INVERTED
+// #define BEEPER_INVERTED
 
 #define ENABLE_DSHOT_DMAR       true
 
@@ -125,12 +126,12 @@
 #define ADC1_DMA_STREAM         DMA2_Stream0
 #define CURRENT_METER_ADC_PIN   PC1
 #define VBAT_ADC_PIN            PC2
-#define RSSI_ADC_PIN            PB3
+#define RSSI_ADC_PIN            PC3
 
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)
 #define DEFAULT_VOLTAGE_METER_SOURCE    VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE    CURRENT_METER_ADC
-#define CURRENT_METER_SCALE_DEFAULT 179
+#define CURRENT_METER_SCALE_DEFAULT 608
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_PIN PA3
@@ -141,6 +142,10 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+
+// *************** activate/deactivate Bluetooth When disarmed/armed using PINIO_BOX *****************************
+#define PINIO1_PIN PB0
+#define ADDITION_MSP_UART         SERIAL_PORT_UART5
 
 #define USABLE_TIMER_CHANNEL_COUNT 12
 #define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(4)|TIM_N(5)|TIM_N(8)|TIM_N(9))
