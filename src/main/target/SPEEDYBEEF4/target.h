@@ -145,7 +145,8 @@
 
 // *************** activate/deactivate Bluetooth When disarmed/armed using PINIO_BOX *****************************
 #define PINIO1_PIN PB0
-#define ADDITION_MSP_UART         SERIAL_PORT_UART5
+#define BLUETOOTH_MSP_UART          SERIAL_PORT_UART5
+#define BLUETOOTH_MSP_BAUDRATE      BAUD_19200
 
 #define USABLE_TIMER_CHANNEL_COUNT 12
 #define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(4)|TIM_N(5)|TIM_N(8)|TIM_N(9))

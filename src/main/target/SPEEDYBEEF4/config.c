@@ -22,17 +22,20 @@
 #ifdef USE_TARGET_CONFIG
 
 #include "io/serial.h"
-
+#include "pg/pinio.h"
 #include "pg/piniobox.h"
+
+#include "target.h"
 
 void targetConfiguration(void)
 {
+    pinioConfigMutable()->config[0] = PINIO_CONFIG_OUT_INVERTED | PINIO_CONFIG_MODE_OUT_PP;
     pinioBoxConfigMutable()->permanentId[0] = BOXARM;
     
-    serialPortConfig_t *additionMspUART = serialFindPortConfiguration(ADDITION_MSP_UART);
-    if (additionMspUART) {
-        additionMspUART->functionMask = FUNCTION_MSP;
-        additionMspUART->msp_baudrateIndex = BAUD_19200;
+    serialPortConfig_t *bluetoothMspUART = serialFindPortConfiguration(BLUETOOTH_MSP_UART);
+    if (bluetoothMspUART) {
+        bluetoothMspUART->functionMask = FUNCTION_MSP;
+        bluetoothMspUART->msp_baudrateIndex = BLUETOOTH_MSP_BAUDRATE;
     }
 }
 
